@@ -13,7 +13,9 @@ This is an evolution of the many 'Simple Web Browser' examples based on PyQt5 yo
 
 Rationally, this will never be a good replacement for any of the commercial web browsers around. It is intended to serve as a reference for those looking for:
 - Pieces of working code to complete their own projects
-- A way to run a reasonably-well-working browser in those environments in which they can only install Python ;)
+- A way to run a reasonably-functional browser in those environments in which they can only install Python ;)
+
+#### Apologies
 
 Yes, the fonts and images management can definitely be improved... coming soon.
 
@@ -28,7 +30,9 @@ If you want to use this code or contribute, you can either:
 - Create a fork of the [repository](https://github.com/Kalmat/Coward), or
 - [Download the repository](https://github.com/Kalmat/Coward/archive/refs/heads/master.zip), uncompress, and open it on your IDE of choice (e.g. PyCharm)
 
-Be sure you install all dependencies described on "requirements.txt" by using pip
+Be sure you install all dependencies described on "requirements.txt" by using pip:
+
+    python -m pip install -r requirements.txt
 
 ### Run or Test this
 

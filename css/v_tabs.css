@@ -1,0 +1,24 @@
+QTabBar {
+    background: black;
+    color: lightgrey;
+    qproperty-drawBase: 0;
+}
+
+QTabBar::tab {
+    font: 75 10pt "MS Shell Dlg 2";
+    background: black;
+    color: lightgrey;
+    border: none;
+    min-width: 56;
+    height: 48;
+    padding: 5px;
+    text-align: left;
+}
+
+QTabBar::tab:selected {
+    background: #323232;
+}
+
+QTabWidget::pane {
+    border: 0;
+}
