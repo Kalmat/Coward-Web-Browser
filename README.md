@@ -17,20 +17,20 @@ Rationally, this will never be a good replacement for any of the commercial web 
 
 Yes, the fonts and images management can definitely be improved... coming soon.
 
-## Support
+### Support
 
 In case you have a problem, comments or suggestions, do not hesitate to [open issues](https://github.com/Kalmat/Coward/issues) on the [project homepage](https://github.com/Kalmat/Coward)
 
-## Using this code
+### Using this code
 
 If you want to use this code or contribute, you can either:
 
-* Create a fork of the [repository](https://github.com/Kalmat/Coward), or 
-* [Download the repository](https://github.com/Kalmat/Coward/archive/refs/heads/master.zip), uncompress, and open it on your IDE of choice (e.g. PyCharm)
+- Create a fork of the [repository](https://github.com/Kalmat/Coward), or
+- [Download the repository](https://github.com/Kalmat/Coward/archive/refs/heads/master.zip), uncompress, and open it on your IDE of choice (e.g. PyCharm)
 
 Be sure you install all dependencies described on "requirements.txt" by using pip
 
-## Run or Test this
+### Run or Test this
 
 To run or test this module on your own system, cd to the project folder and run:
 
