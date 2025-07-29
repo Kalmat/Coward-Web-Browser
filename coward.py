@@ -27,14 +27,11 @@ class MainWindow(QMainWindow):
         self.new_win = new_win
         self.init_tabs = init_tabs
 
-        # setting window title
+        # setting window title and icon
         self.setWindowTitle("Coward")
         self.setWindowIcon(QIcon(resource_path("res/coward.png")))
 
-        # Set tracking mouse ON
-        self.setMouseTracking(True)
-        self.setMouseTracking(True)
-
+        # get styles from css folder
         with open(resource_path("css/main.css"), "r") as f:
             style = f.read()
             style = style % (resource_path("res/close.png"), resource_path("res/close_sel.png"), resource_path("res/close_sel.png.png"))
@@ -42,11 +39,17 @@ class MainWindow(QMainWindow):
         with open(resource_path("css/h_tabs.css"), "r") as f:
             self.h_tab_style = f.read()
 
-        with open(resource_path("css/v_tabs.css.css"), "r") as f:
+        with open(resource_path("css/v_tabs.css"), "r") as f:
             self.v_tab_style = f.read()
 
-        self.screenSize = self.screen().size()
+        self.setStyleSheet(style)
+        app.setStyleSheet(style)
+
+        # Set tracking mouse ON if needed
+        # self.setMouseTracking(True)
+
         # get or create settings
+        self.screenSize = self.screen().size()
         try:
             with open("coward.json", "r") as f:
                 self.config = json.loads(f.read())
@@ -76,8 +79,6 @@ class MainWindow(QMainWindow):
 
         # vertical / horizontal tabbar
         self.h_tabbar = self.config["h_tabbar"]
-        self.setStyleSheet(style)
-        app.setStyleSheet(style)
 
         # creating a toolbar for navigation
         navtb = QToolBar("Navigation")
