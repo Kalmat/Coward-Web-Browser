@@ -2,7 +2,7 @@
 
 This is an evolution of the many 'Simple Web Browser' examples based on PyQt5 you can find on the Internet, adding:
 
-- Tabs
+- Tabs, which can be added, moved and removed
 - Vertical and Horizontal tabs positioning
 - Enable / Disable cookies
 - Wipe all cookies and history
