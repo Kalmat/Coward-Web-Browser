@@ -11,9 +11,12 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 
 
-def resource_path(relative_path):
+def resource_path(relative_path, inversed=False):
     base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base_path, relative_path)
+    ret = os.path.normpath(os.path.join(base_path, relative_path))
+    if inversed:
+        ret = ret.replace("\\", "/")
+    return ret
 
 
 # main window
@@ -31,19 +34,21 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Coward")
         self.setWindowIcon(QIcon(resource_path("res/coward.png")))
 
-        # get styles from css folder
-        with open(resource_path("css/main.css"), "r") as f:
+        # get styles from qss folder
+        with open(resource_path("qss/main.qss"), "r") as f:
             style = f.read()
-            style = style % (resource_path("res/close.png"), resource_path("res/close_sel.png"), resource_path("res/close_sel.png.png"))
-
-        with open(resource_path("css/h_tabs.css"), "r") as f:
-            self.h_tab_style = f.read()
-
-        with open(resource_path("css/v_tabs.css"), "r") as f:
-            self.v_tab_style = f.read()
 
         self.setStyleSheet(style)
         app.setStyleSheet(style)
+
+        with open(resource_path("qss/h_tabs.qss"), "r") as f:
+            self.h_tab_style = f.read()
+            self.close_ico = resource_path("res/close.png", True)
+            self.close_sel_ico = resource_path("res/close_sel.png", True)
+            self.h_tab_style = self.h_tab_style % (self.close_ico, self.close_sel_ico, self.close_sel_ico)
+
+        with open(resource_path("qss/v_tabs.qss"), "r") as f:
+            self.v_tab_style = f.read()
 
         # Set tracking mouse ON if needed
         # self.setMouseTracking(True)
@@ -81,58 +86,60 @@ class MainWindow(QMainWindow):
         self.h_tabbar = self.config["h_tabbar"]
 
         # creating a toolbar for navigation
-        navtb = QToolBar("Navigation")
-        navtb.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
-        navtb.setFloatable(False)
-        navtb.setMovable(False)
-        self.addToolBar(navtb)
+        self.navtb = QToolBar("Navigation")
+        self.navtb.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
+        self.navtb.setFloatable(False)
+        self.navtb.setMovable(False)
+        self.addToolBar(self.navtb)
 
         # adding toggle vertical / horizontal tabbar button
         self.toggleTab_btn = QAction("", self)
+        font = self.toggleTab_btn.font()
+        font.setPointSize(font.pointSize() + 2)
+        self.toggleTab_btn.setFont(font)
         self.toggleTab_btn.triggered.connect(lambda: self.toggle_tabbar(toggle=True))
-        navtb.addAction(self.toggleTab_btn)
+        self.navtb.addAction(self.toggleTab_btn)
 
         # creating back action
         self.back_btn = QAction("🡠", self)
+        font = self.back_btn.font()
+        font.setPointSize(font.pointSize() + 8)
+        self.back_btn.setFont(font)
         self.back_btn.setDisabled(True)
         self.back_btn.setToolTip("Back to previous page")
-        font = self.back_btn.font()
-        font.setPointSize(int(font.pointSize() * 1.5))
-        self.back_btn.setFont(font)
-
-        # adding action to back button
-        # making current tab to go back
         self.back_btn.triggered.connect(lambda: self.tabs.currentWidget().back())
-        navtb.addAction(self.back_btn)
+        self.navtb.addAction(self.back_btn)
 
         # similarly adding next button
         self.next_btn = QAction("🡢", self)
+        font = self.next_btn.font()
+        font.setPointSize(font.pointSize() + 8)
+        self.next_btn.setFont(font)
         self.next_btn.setDisabled(True)
         self.next_btn.setToolTip("Forward to next page")
-        self.next_btn.setFont(font)
         self.next_btn.triggered.connect(lambda: self.tabs.currentWidget().forward())
-        navtb.addAction(self.next_btn)
+        self.navtb.addAction(self.next_btn)
 
         # similarly adding reload button
-        reload_btn = QAction("⟳", self)
-        reload_btn.setToolTip("Reload page")
-        font.setPointSize(int(font.pointSize() * 1.5))
-        reload_btn.setFont(font)
-        reload_btn.triggered.connect(lambda: self.tabs.currentWidget().reload())
-        navtb.addAction(reload_btn)
+        self.reload_btn = QAction("⟳", self)
+        font = self.reload_btn.font()
+        font.setPointSize(font.pointSize() + 14)
+        self.reload_btn.setFont(font)
+        self.reload_btn.setToolTip("Reload page")
+        self.reload_btn.triggered.connect(lambda: self.tabs.currentWidget().reload())
+        self.navtb.addAction(self.reload_btn)
 
         # creating home action
-        home_btn = QAction("⌂", self)
-        font.setPointSize(int(font.pointSize() * 1.2))
-        home_btn.setFont(font)
-        home_btn.setToolTip("Home page")
-
-        # adding action to home button
-        home_btn.triggered.connect(self.navigate_home)
-        navtb.addAction(home_btn)
+        self.home_btn = QAction("⌂", self)
+        font = self.home_btn.font()
+        font.setPointSize(font.pointSize() + 16)
+        self.home_btn.setFont(font)
+        self.home_btn.setToolTip("Home page")
+        self.home_btn.triggered.connect(self.navigate_home)
+        self.navtb.addAction(self.home_btn)
 
         # adding a separator
-        # navtb.addSeparator()
+        # self.navtb.addSeparator()
 
         # creating a line edit widget for URL
         self.urlbar = QLineEdit()
@@ -142,34 +149,34 @@ class MainWindow(QMainWindow):
         self.urlbar.returnPressed.connect(self.navigate_to_url)
 
         # adding line edit to toolbar
-        navtb.addWidget(self.urlbar)
+        self.navtb.addWidget(self.urlbar)
 
         # similarly adding stop action
-        stop_btn = QAction("⤫", self)
-        stop_btn.setFont(font)
-        stop_btn.setToolTip("Stop loading current page")
-        stop_btn.triggered.connect(lambda: self.tabs.currentWidget().stop())
-        navtb.addAction(stop_btn)
+        self.stop_btn = QAction("⤫", self)
+        font = self.stop_btn.font()
+        font.setPointSize(font.pointSize() + 8)
+        self.stop_btn.setFont(font)
+        self.stop_btn.setToolTip("Stop loading current page")
+        self.stop_btn.triggered.connect(lambda: self.tabs.currentWidget().stop())
+        self.navtb.addAction(self.stop_btn)
 
         # adding cookie mgt.
         self.cookie_btn = QAction("", self)
-        font.setPointSize(int(font.pointSize() * 0.7))
+        font = self.cookie_btn.font()
+        font.setPointSize(font.pointSize() + 4)
         self.cookie_btn.setFont(font)
         self.manage_cookies(clicked=False)
-
-        # adding action to cookie button
         self.cookie_btn.triggered.connect(lambda: self.manage_cookies(clicked=True))
-        navtb.addAction(self.cookie_btn)
+        self.navtb.addAction(self.cookie_btn)
 
         # adding cleaning mgt.
         self.clean_btn = QAction("🧹", self)
-        font.setPointSize(int(font.pointSize() * 1.3))
+        font = self.clean_btn.font()
+        font.setPointSize(font.pointSize() + 6)
         self.clean_btn.setFont(font)
         self.clean_btn.setToolTip("Erase history and cookies")
-
-        # adding action to cleaning button
         self.clean_btn.triggered.connect(lambda: self.clean_dlg.exec())
-        navtb.addAction(self.clean_btn)
+        self.navtb.addAction(self.clean_btn)
 
         # creating a tab widget
         self.tabs = QTabWidget()
@@ -178,7 +185,7 @@ class MainWindow(QMainWindow):
         self.tabs.setTabPosition(QTabWidget.TabPosition.North if self.h_tabbar else QTabWidget.TabPosition.West)
         self.tabs.setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)
         self.tabs.setMovable(True)
-        self.tabs.tabBar().setContentsMargins(20, 20, 20, 20)
+        self.tabs.tabBar().setContentsMargins(0, 0, 0, 0)
         self.tabs.tabBar().setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         self.tabs.tabBar().setIconSize(QSize(32, 32))
         self.tabs.tabBar().tabMoved.connect(self.tab_moved)
@@ -187,10 +194,10 @@ class MainWindow(QMainWindow):
         self.tabs.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tabs.customContextMenuRequested.connect(self.showContextMenu)
         self.tabsContextMenu = QMenu()
-        self.tabsContextMenu.setMinimumHeight(58)
-        self.tabsContextMenu.setContentsMargins(5, 16, 5, 5)
+        self.tabsContextMenu.setMinimumHeight(54)
+        self.tabsContextMenu.setContentsMargins(5, 14, 5, 5)
         self.close_action = QAction()
-        self.close_action.setIcon(QIcon(resource_path("res/close.png")))
+        self.close_action.setIcon(QIcon(self.close_ico))
         self.tabsContextMenu.addAction(self.close_action)
         # Controlling context menu with mouse left-click
         # self.tabs.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
@@ -267,6 +274,13 @@ class MainWindow(QMainWindow):
 
         self.mHtml = ""
 
+        # allTabsButtons = self.tabs.findChildren(QAbstractButton)
+        # for button in allTabsButtons:
+        #     if button.inherits("CloseButton"):
+        #         button.setIcon(QIcon(resource_path("res/close.png")))
+        #         button.setIconSize(QSize(24, 24))
+        #         button.setToolTip("Test")
+
     # method for adding new tab
     def add_tab(self, qurl=None, zoom=1.0, label="Loading..."):
 
@@ -322,7 +336,8 @@ class MainWindow(QMainWindow):
         if self.new_win:
             act2.setVisible(False)
         else:
-            act2.triggered.connect(lambda checked, p=page: self.show_in_new_window([[p.contextMenuData().linkUrl(), 1.0, True]]))
+            act2.triggered.connect(
+                lambda checked, p=page: self.show_in_new_window([[p.contextMenuData().linkUrl(), 1.0, True]]))
         act3 = page.action(page.WebAction.SavePage)
         act3.disconnect()
         act3.triggered.connect(lambda checked, p=page: self.save_page(p))
@@ -446,6 +461,7 @@ class MainWindow(QMainWindow):
         self.tabs.setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)
         self.tabs.setTabPosition(QTabWidget.TabPosition.North if self.h_tabbar else QTabWidget.TabPosition.West)
         self.tabs.setTabsClosable(self.h_tabbar)
+        self.tabs.tabBar().setTabButton(self.tabs.count() - 1, QTabBar.RightSide, None)
         self.tabs.setContextMenuPolicy(
             Qt.ContextMenuPolicy.PreventContextMenu if self.h_tabbar else Qt.ContextMenuPolicy.CustomContextMenu)
         self.toggleTab_btn.setText("˅" if self.h_tabbar else "˃")
@@ -459,14 +475,15 @@ class MainWindow(QMainWindow):
         return self.cookies
 
     def title_changed(self, title, i):
-        self.tabs.tabBar().setTabText(i, ((" " + title[:20] if len(title) > 20 else title) if self.h_tabbar else ""))
+        self.tabs.tabBar().setTabText(i, (("  " + title[:20]) if len(title) > 20 else title) if self.h_tabbar else "")
         self.tabs.setTabToolTip(i, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
 
-    def icon_changed(self, icon, i):
+    def icon_changed(self, icon: QIcon, i):
         if self.h_tabbar:
             new_icon = icon
         else:
-            new_icon = QIcon(icon.pixmap(32, 32).transformed(QTransform().rotate(90)))
+            new_icon = QIcon(icon.pixmap(QSize(32, 32)).transformed(QTransform().rotate(90),
+                                                                    Qt.TransformationMode.SmoothTransformation))
         self.tabs.tabBar().setTabIcon(i, new_icon)
 
     # when tab is changed
@@ -529,7 +546,6 @@ class MainWindow(QMainWindow):
         page.iconChanged.connect(lambda icon, index=from_index: self.icon_changed(icon, index))
 
     def close_current_tab(self, i):
-        print(i, self.tabs.count())
         # if there is only one tab
         if self.tabs.count() < 2:
             # close aplication
@@ -638,7 +654,8 @@ class MainWindow(QMainWindow):
                     new_tabs = []
                     for i in range(w.tabs.count() - 1):
                         browser = w.tabs.widget(i)
-                        new_tabs.append([browser.url().toString(), browser.page().zoomFactor(), i == w.tabs.currentIndex()])
+                        new_tabs.append(
+                            [browser.url().toString(), browser.page().zoomFactor(), i == w.tabs.currentIndex()])
                     new_wins.append(new_tabs)
 
                 # closing all other open child windows
@@ -670,6 +687,25 @@ class CustomDialog(QDialog):
         self.setLayout(layout)
 
 
+def setDPIAwareness():
+    if sys.platform == "win32":
+        import ctypes
+        try:
+            dpiAware = ctypes.windll.user32.GetAwarenessFromDpiAwarenessContext(ctypes.windll.user32.GetThreadDpiAwarenessContext())
+        except AttributeError:  # Windows server does not implement GetAwarenessFromDpiAwarenessContext
+            dpiAware = 0
+
+        if dpiAware == 0:
+            # It seems that this can't be invoked twice. Setting it to 1 for apps having 0 (unaware) may have less impact
+            ctypes.windll.shcore.SetProcessDpiAwareness(1)
+
+
+def setSystemDPISettings():
+    os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
+    os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
+    os.environ["QT_SCALE_FACTOR"] = "1"
+
+
 def force_icon(appid):
     if sys.platform == "win32":
         import ctypes
@@ -691,13 +727,17 @@ app = QApplication(sys.argv + ['-platform', 'windows:darkmode=1'])
 app.setApplicationName("Coward")
 app.setWindowIcon(QIcon(resource_path("res/coward.png")))
 
-if "python" in sys.executable.lower():
+if not hasattr(sys, "_MEIPASS"):
     # change application icon even when running as Python script
     force_icon('kalmat.coward.nav.01')
 
     # This will allow to show some tracebacks (not all, anyway)
     sys._excepthook = sys.excepthook
     sys.excepthook = exception_hook
+
+# TODO: check the behavior of this settings and decide if they are needed and in which cases
+setDPIAwareness()
+setSystemDPISettings()
 
 # creating and showing MainWindow object
 window = MainWindow()

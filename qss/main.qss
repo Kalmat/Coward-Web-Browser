@@ -1,8 +1,9 @@
 QMainWindow {
-    font-family: "MS Shell Dlg 2";
+    font: 75 10pt "MS Shell Dlg 2";
 }
 
 QToolBar {
+    /* font: 75 24pt "MS Shell Dlg 2"; */
     background: #323232;
     color: white;
     border: none;
@@ -10,81 +11,33 @@ QToolBar {
 }
 
 QToolButton {
+    /* font: 75 24pt "MS Shell Dlg 2"; */
     background: #323232;
     color: white;
     width: 48px;
     height: 48px;
 }
 
-QToolButton::disabled {
+QToolButton:disabled {
     background: #323232;
     color: grey;
 }
 
-QToolButton::hover {
+QToolButton:hover {
     background: #646464;
-}
-
-QTabBar {
-    background: black;
-    color: lightgrey;
-    qproperty-drawBase: 0;
-}
-
-QTabBar::tab {
-    font: 75 9pt "MS Shell Dlg 2";
-    background: black;
-    color: lightgrey;
-    border: none;
-    border-right: 1px solid #646464;
-    max-width: 360px;
-    height: 40px;
-    padding: 5px;
-    text-align: left;
-}
-
-QTabBar::tab:selected {
-    background: #323232;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-    border-bottom: none;
-}
-
-QTabBar::close-button {
-    image: url(%s);
-    background: black;
-    color: white;
-    border: none;
-    /* subcontrol-origin: padding; */
-    subcontrol-position: right;
-    width: 24px;
-    height: 24px;
-}
-
-QTabBar::close-button:selected {
-    image: url(%s);
-    background: black;
-}
-
-QTabBar::close-button:hover {
-    image: url(%s);
-    background: black;
-}
-
-QTabWidget::pane {
-    border: 0;
 }
 
 QLineEdit {
     font: 75 10pt "MS Shell Dlg 2";
-    background: #646464;
+    background: #323232;
     color: white;
-    border: none;
-    border-radius: 10px;
-    height: 40px;
+    border: 1px solid #646464;
+    border-radius: 4px;
+    height: 32px;
 }
 
 QToolTip {
+    font: 75 10pt "MS Shell Dlg 2";
     background: #646464;
     color: white;
     border: none;
@@ -92,6 +45,7 @@ QToolTip {
 }
 
 QMenu {
+    font: 75 10pt "MS Shell Dlg 2";
     background: #323232;
     color: white;
     border: none;
@@ -116,7 +70,7 @@ QDialog {
     background: #323232;
     color: white;
     border: none;
-    border-radius: 10px;
+    border-radius: 8px;
 }
 
 QLabel {
@@ -134,24 +88,27 @@ QPushButton {
     border-left: 1px solid #969696;
     border-bottom: 1px solid black;
     border-right: 1px solid black;
-    min-width: 80px;
-    min-height: 30px;
+    min-width: 64px;
+    min-height: 24px;
     border-radius: 4px;
 }
 
-QPushButton::hover {
+QPushButton:hover {
     background: #646464;
 }
 
 QStatusBar {
+    font: 75 10pt "MS Shell Dlg 2";
     background: #323232;
     color: white;
     border: none;
-    height: 5px;
+    max-height: 20px;
 }
 
 QProgressBar {
+    font: 75 10pt "MS Shell Dlg 2";
     background: #646464;
     color: white;
     border: none;
+    max-height: 18px;
 }

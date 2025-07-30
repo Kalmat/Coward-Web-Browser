@@ -1,0 +1,50 @@
+QTabBar {
+    font: 75 10pt "MS Shell Dlg 2";
+    background: black;
+    color: lightgrey;
+    qproperty-drawBase: 0;
+}
+
+QTabBar::tab {
+    font: 75 10pt "MS Shell Dlg 2";
+    background: black;
+    color: lightgrey;
+    border: none;
+    border-right: 1px solid #646464;
+    min-width: 32px;
+    max-width: 240px;
+    height: 48px;
+    padding: 3px;
+}
+
+QTabBar::tab:selected {
+    background-color: #646464;
+    border: none;
+}
+
+QTabBar::close-button {
+    image: url('%s');
+    background: black;
+    color: white;
+    border: none;
+    subcontrol-origin: padding;
+    subcontrol-position: right;
+    width: 32px;
+    height: 32px;
+}
+
+QTabBar::close-button:selected {
+    image: url('%s');
+    background: lightgrey;
+    color: black;
+}
+
+QTabBar::close-button:hover {
+    image: url('%s');
+    background: lightgrey;
+    color: black;
+}
+
+QTabWidget::pane {
+    border: 0;
+}
