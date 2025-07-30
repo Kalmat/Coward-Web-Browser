@@ -735,7 +735,7 @@ if not hasattr(sys, "_MEIPASS"):
     sys._excepthook = sys.excepthook
     sys.excepthook = exception_hook
 
-# TODO: check the behavior of this settings and decide if they are needed and in which cases
+# TODO: check the behavior of these settings and decide if they are needed and in which cases
 setDPIAwareness()
 setSystemDPISettings()
 
