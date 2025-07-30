@@ -142,7 +142,7 @@ class MainWindow(QMainWindow):
         # self.navtb.addSeparator()
 
         # creating a line edit widget for URL
-        self.urlbar = QLineEdit()
+        self.urlbar = LineEdit()
         self.urlbar.setTextMargins(10, 0, 0, 0)
 
         # adding action to line edit when return key is pressed
@@ -264,15 +264,21 @@ class MainWindow(QMainWindow):
         self.dl_progress.setMinimum(0)
         self.dl_progress.setMaximum(100)
         self.status.addPermanentWidget(self.dl_progress)
+        self.dl_stop = QPushButton()
+        self.dl_stop.setStyleSheet(open(resource_path("qss/small_button.qss")).read())
+        self.dl_stop.setIcon(QIcon(self.close_ico))
+        self.dl_stop.setText("Cancel Download")
+        self.dl_stop.clicked.connect(self.stop_download)
+        self.status.addPermanentWidget(self.dl_stop)
         self.setStatusBar(self.status)
         self.statusBar().setVisible(False)
 
         # Prepare clean all warning dialog
-        self.clean_dlg = CustomDialog(self)
+        self.clean_dlg = Dialog(self)
         self.clean_dlg.accepted.connect(self.clean_all)
         self.clean_dlg.rejected.connect(self.clean_dlg.close)
 
-        self.mHtml = ""
+        self.item = None
 
         # allTabsButtons = self.tabs.findChildren(QAbstractButton)
         # for button in allTabsButtons:
@@ -280,6 +286,11 @@ class MainWindow(QMainWindow):
         #         button.setIcon(QIcon(resource_path("res/close.png")))
         #         button.setIconSize(QSize(24, 24))
         #         button.setToolTip("Test")
+
+    @pyqtSlot("QWidget*", "QWidget*")
+    def on_focusChanged(self, old, now):
+        if self.urlbar == now:
+            QTimer.singleShot(100, self.urlbar.selectAll)
 
     # method for adding new tab
     def add_tab(self, qurl=None, zoom=1.0, label="Loading..."):
@@ -324,7 +335,7 @@ class MainWindow(QMainWindow):
         page.titleChanged.connect(lambda title, index=i: self.title_changed(title, index))
         page.iconChanged.connect(lambda icon, index=i: self.icon_changed(icon, index))
 
-        # manage file downloads
+        # manage file downloads (including pages and files)
         page.profile().downloadRequested.connect(self.download_file)
 
         # manage context menu options (only those not already working out-of-the-box)
@@ -336,25 +347,22 @@ class MainWindow(QMainWindow):
         if self.new_win:
             act2.setVisible(False)
         else:
-            act2.triggered.connect(
-                lambda checked, p=page: self.show_in_new_window([[p.contextMenuData().linkUrl(), 1.0, True]]))
-        act3 = page.action(page.WebAction.SavePage)
-        act3.disconnect()
-        act3.triggered.connect(lambda checked, p=page: self.save_page(p))
-        act4 = page.action(page.WebAction.ViewSource)
+            act2.triggered.connect(lambda checked, p=page: self.show_in_new_window([[p.contextMenuData().linkUrl(), 1.0, True]]))
+        act3 = page.action(page.WebAction.ViewSource)
         self.inspector = QWebEngineView()
-        act4.disconnect()
-        act4.triggered.connect(lambda checked, p=page: self.inspect_page(p))
+        act3.disconnect()
+        act3.triggered.connect(lambda checked, p=page: self.inspect_page(p))
 
         return i
 
     # adding action to download files
     def download_file(self, item: QWebEngineDownloadItem):
 
-        # this fails for web pages. Managed using .toHtml() in save_page() method
+        self.item = item
+
+        # download the whole page content
         if item.isSavePageDownload():
-            # do nothing here (signal will also be triggered for save_page())
-            return
+            item.setSavePageFormat(QWebEngineDownloadItem.SavePageFormat.CompleteHtmlSaveFormat)
 
         accept = True
         if item and item.state() == QWebEngineDownloadItem.DownloadRequested:
@@ -363,12 +371,17 @@ class MainWindow(QMainWindow):
                                                       QDir(item.downloadDirectory()).filePath(norm_name))
             if filename:
                 filename = os.path.normpath(filename)
+                # download item is proposing ".mhtml" extension for web pages... changing it in such a case
+                if "." in filename:
+                    parts = filename.rsplit(".", 1)
+                    if parts[1].lower() == "mhtml":
+                        filename = parts[0] + "html"
                 item.setDownloadDirectory(QFileInfo(filename).path())
                 item.setDownloadFileName(QFileInfo(filename).fileName())
-                item.downloadProgress.connect(
-                    lambda p, t=item.totalBytes(), n=item.downloadFileName(): self.download_progress(p, t, n))
+                item.downloadProgress.connect(lambda p, t=item.totalBytes(), n=item.downloadFileName(): self.download_progress(p, t, n))
                 self.tabs.setStatusTip("Downloading file: " + filename)
                 self.dl_progress.setValue(0)
+                self.dl_stop.setEnabled(True)
                 self.statusBar().setVisible(True)
             else:
                 accept = False
@@ -380,37 +393,27 @@ class MainWindow(QMainWindow):
 
     def download_progress(self, progress, total, filename):
 
-        value = int(progress / total * 100)
-        if value == 100:
+        value = int(progress / (total if total != 0 else 1) * 100)
+        if value == 100 or (self.item is not None and self.item.isFinished):
+            self.item = None
             self.tabs.setStatusTip("Finished downloading: " + filename)
             self.dl_progress.setValue(100)
+            self.dl_stop.setDisabled(True)
             self.status.repaint()
             QTimer().singleShot(3000, self.dl_finished)
         else:
             self.dl_progress.setValue(value)
 
+    def stop_download(self):
+        if self.item is not None:
+            self.item.cancel()
+            self.dl_finished()
+
     def dl_finished(self):
+        self.item = None
         self.tabs.setStatusTip("")
         self.dl_progress.setValue(0)
         self.statusBar().setVisible(False)
-
-    def save_page_cb(self, html):
-
-        with open(self.mHtml, 'w', encoding="utf-8") as f:
-            f.write(html)
-        self.tabs.setStatusTip("Finished downloading: " + self.mHtml)
-        self.dl_progress.setValue(100)
-        self.statusBar().setVisible(True)
-        QTimer().singleShot(3000, self.dl_finished)
-
-    def save_page(self, page: QWebEnginePage):
-
-        self.mHtml, _ = QFileDialog.getSaveFileName(self, "Save Page As",
-                                                    self.get_valid_filename(page.title()),
-                                                    "Hypertext Markup Language (*.htm *.html);;" "All files(*.*)")
-        if self.mHtml:
-            self.mHtml = os.path.normpath(self.mHtml)
-            page.toHtml(self.save_page_cb)
 
     def get_valid_filename(self, name):
         s = str(name).strip().replace(" ", "_")
@@ -609,9 +612,6 @@ class MainWindow(QMainWindow):
         # set text to the url bar
         self.urlbar.setText(qurl.toString())
 
-        # set cursor position
-        self.urlbar.setCursorPosition(0)
-
         # Enable/Disable navigation arrows according to page history
         page = browser.page()
         self.back_btn.setEnabled(page.history().canGoBack())
@@ -667,7 +667,18 @@ class MainWindow(QMainWindow):
                 f.write(json.dumps(self.config, indent=4))
 
 
-class CustomDialog(QDialog):
+class LineEdit(QLineEdit):
+
+    def __init__(self, parent=None):
+        super(LineEdit, self).__init__(parent)
+
+    def focusInEvent(self, event):
+        # this delay is needed to avoid other mouse events to interfere with selectAll() command
+        QTimer.singleShot(200, self.selectAll)
+        super(LineEdit, self).focusInEvent(event)
+
+
+class Dialog(QDialog):
     def __init__(self, parent, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
 
