@@ -1,12 +1,14 @@
 QTabBar {
-    font: 75 10pt "MS Shell Dlg 2";
+    font-family: "MS Shell Dlg 2";
+    font-size: 10pt;
     background: black;
     color: lightgrey;
     qproperty-drawBase: 0;
 }
 
 QTabBar::tab {
-    font: 75 10pt "MS Shell Dlg 2";
+    font-family: "MS Shell Dlg 2";
+    font-size: 10pt;
     background: black;
     color: lightgrey;
     border: none;
