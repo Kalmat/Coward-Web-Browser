@@ -1,7 +1,7 @@
 QTabBar {
     font-family: "MS Shell Dlg 2";
     font-size: 10pt;
-    background: black;
+    background: #161616;
     color: lightgrey;
     qproperty-drawBase: 0;
 }
@@ -9,7 +9,7 @@ QTabBar {
 QTabBar::tab {
     font-family: "MS Shell Dlg 2";
     font-size: 10pt;
-    background: black;
+    background: #161616;
     color: lightgrey;
     border: none;
     border-right: 1px solid #646464;
@@ -26,7 +26,7 @@ QTabBar::tab:selected {
 
 QTabBar::close-button {
     image: url('%s');
-    background: black;
+    background: #161616;
     color: white;
     border: none;
     subcontrol-origin: padding;
@@ -38,13 +38,13 @@ QTabBar::close-button {
 QTabBar::close-button:selected {
     image: url('%s');
     background: #646464;
-    color: black;
+    color: #161616;
 }
 
 QTabBar::close-button:hover {
     image: url('%s');
     background: #646464;
-    color: black;
+    color: #161616;
 }
 
 QTabWidget::pane {
