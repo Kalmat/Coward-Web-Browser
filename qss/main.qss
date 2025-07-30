@@ -31,9 +31,9 @@ QLineEdit {
     font-size: 10pt;
     background: #161616;
     color: white;
-    border: 1px solid #646464;
+    border: none;
     border-radius: 8px;
-    height: 32px;
+    height: 40px;
 }
 
 QToolTip {

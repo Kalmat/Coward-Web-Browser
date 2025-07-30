@@ -56,9 +56,18 @@ class MainWindow(QMainWindow):
         # get or create settings
         self.screenSize = self.screen().size()
         try:
+            # open and check settings file
             with open("coward.json", "r") as f:
                 self.config = json.loads(f.read())
+            _ = self.config["tabs"]
+            _ = self.config["pos"]
+            _ = self.config["size"]
+            _ = self.config["cookies"]
+            _ = self.config["h_tabbar"]
+            _ = self.config["new_wins"]
+
         except:
+            # create a default settings file in case of error
             self.config = {"tabs": [["https://www.google.es", 1.0, True]],
                            "pos": (100, 100),
                            "size": (min(self.screenSize.width() // 2, 1024), min(self.screenSize.height() - 200, 1024)),
@@ -366,16 +375,15 @@ class MainWindow(QMainWindow):
 
         accept = True
         if item and item.state() == QWebEngineDownloadItem.DownloadRequested:
-            norm_name = self.get_valid_filename(item.downloadFileName())
+            itemFileName = item.downloadFileName()
+            # download item is proposing ".mhtml" extension for web pages... changing it if that's the case
+            if itemFileName.endswith(".mhtml"):
+                itemFileName = itemFileName.rsplit(".mhtml", 1)[0] + ".html"
+            norm_name = self.get_valid_filename(itemFileName)
             filename, _ = QFileDialog.getSaveFileName(self, "Save File As",
                                                       QDir(item.downloadDirectory()).filePath(norm_name))
             if filename:
                 filename = os.path.normpath(filename)
-                # download item is proposing ".mhtml" extension for web pages... changing it in such a case
-                if "." in filename:
-                    parts = filename.rsplit(".", 1)
-                    if parts[1].lower() == "mhtml":
-                        filename = parts[0] + "html"
                 item.setDownloadDirectory(QFileInfo(filename).path())
                 item.setDownloadFileName(QFileInfo(filename).fileName())
                 item.downloadProgress.connect(lambda p, t=item.totalBytes(), n=item.downloadFileName(): self.download_progress(p, t, n))
