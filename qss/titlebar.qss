@@ -1,0 +1,28 @@
+QToolBar {
+    background: #323232;
+    color: white;
+    border: none;
+    height: 48px;
+}
+
+QToolButton {
+    background: #323232;
+    color: white;
+    width: 48px;
+    height: 48px;
+}
+
+QToolButton:disabled {
+    background: #323232;
+    color: grey;
+}
+
+QToolButton:hover {
+    background: #646464;
+}
+
+QToolBar::separator {
+    background: #646464;
+    width: 2px;
+    max-height: 24px;
+}

@@ -11,17 +11,10 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 
 
-def resource_path(relative_path, inversed=False):
-    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-    ret = os.path.normpath(os.path.join(base_path, relative_path))
-    if inversed:
-        ret = ret.replace("\\", "/")
-    return ret
-
-
 # main window
 class MainWindow(QMainWindow):
-    htmlFinished = pyqtSignal()
+
+    _gripSize = 8
 
     # constructor
     def __init__(self, parent=None, new_win=False, init_tabs=None):
@@ -56,14 +49,17 @@ class MainWindow(QMainWindow):
         # get or create settings
         self.screenSize = self.screen().size()
         try:
-            # open and check settings file
+            # open settings file
             with open("coward.json", "r") as f:
                 self.config = json.loads(f.read())
+
+            # check settings structure
             _ = self.config["tabs"]
             _ = self.config["pos"]
             _ = self.config["size"]
             _ = self.config["cookies"]
             _ = self.config["h_tabbar"]
+            _ = self.config["custom_title"]
             _ = self.config["new_wins"]
 
         except:
@@ -73,6 +69,7 @@ class MainWindow(QMainWindow):
                            "size": (min(self.screenSize.width() // 2, 1024), min(self.screenSize.height() - 200, 1024)),
                            "cookies": True,
                            "h_tabbar": False,
+                           "custom_title": True,
                            "new_wins": []
                            }
 
@@ -94,8 +91,26 @@ class MainWindow(QMainWindow):
         # vertical / horizontal tabbar
         self.h_tabbar = self.config["h_tabbar"]
 
+        # custom / standard title bar
+        self.custom_titlebar = self.config["custom_title"]
+
+        self.sideGrips = [
+            SideGrip(self, Qt.Edge.LeftEdge),
+            SideGrip(self, Qt.Edge.TopEdge),
+            SideGrip(self, Qt.Edge.RightEdge),
+            SideGrip(self, Qt.Edge.BottomEdge),
+        ]
+        # corner grips should be "on top" of everything, otherwise the side grips
+        # will take precedence on mouse events, so we are adding them *after*;
+        # alternatively, widget.raise_() can be used
+        self.cornerGrips = [QSizeGrip(self) for i in range(4)]
+
         # creating a toolbar for navigation
-        self.navtb = QToolBar("Navigation")
+        if self.custom_titlebar:
+            self.navtb = TitleBar(self, open(resource_path("qss/titlebar.qss")).read())
+        else:
+            self.navtb = QToolBar(self)
+            self.navtb.setStyleSheet(open(resource_path("qss/titlebar.qss")).read())
         self.navtb.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
         self.navtb.setFloatable(False)
         self.navtb.setMovable(False)
@@ -150,11 +165,16 @@ class MainWindow(QMainWindow):
         # adding a separator
         # self.navtb.addSeparator()
 
+        spacer = QLabel()
+        spacer.setAccessibleName("spacer")
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.navtb.addWidget(spacer)
+
         # creating a line edit widget for URL
         self.urlbar = LineEdit()
         self.urlbar.setTextMargins(10, 0, 0, 0)
-
-        # adding action to line edit when return key is pressed
+        self.urlbar.setFixedWidth(max(200, min(self.size().width() // 2, self.screenSize.width()//3)))
+        self.urlbar.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.urlbar.returnPressed.connect(self.navigate_to_url)
 
         # adding line edit to toolbar
@@ -168,6 +188,11 @@ class MainWindow(QMainWindow):
         self.stop_btn.setToolTip("Stop loading current page")
         self.stop_btn.triggered.connect(lambda: self.tabs.currentWidget().stop())
         self.navtb.addAction(self.stop_btn)
+
+        spacer = QLabel()
+        spacer.setAccessibleName("spacer")
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.navtb.addWidget(spacer)
 
         # adding cookie mgt.
         self.cookie_btn = QAction("", self)
@@ -186,6 +211,34 @@ class MainWindow(QMainWindow):
         self.clean_btn.setToolTip("Erase history and cookies")
         self.clean_btn.triggered.connect(lambda: self.clean_dlg.exec())
         self.navtb.addAction(self.clean_btn)
+
+        if self.custom_titlebar:
+
+            self.navtb.addSeparator()
+
+            self.min_btn = QAction("―", self)
+            self.min_btn.setToolTip("Minimize")
+            font = self.min_btn.font()
+            font.setPointSize(font.pointSize() + 2)
+            self.min_btn.setFont(font)
+            self.min_btn.triggered.connect(self.showMinimized)
+            self.navtb.addAction(self.min_btn)
+
+            self.max_btn = QAction(" ⃞ ", self)
+            self.max_btn.setToolTip("Maximize")
+            font = self.max_btn.font()
+            font.setPointSize(font.pointSize() + 4)
+            self.max_btn.setFont(font)
+            self.max_btn.triggered.connect(self.showMaxRestore)
+            self.navtb.addAction(self.max_btn)
+
+            self.closewin_btn = QAction("🕱", self)
+            self.closewin_btn.setToolTip("Quit, coward")
+            font = self.closewin_btn.font()
+            font.setPointSize(font.pointSize() + 8)
+            self.closewin_btn.setFont(font)
+            self.closewin_btn.triggered.connect(self.close)
+            self.navtb.addAction(self.closewin_btn)
 
         # creating a tab widget
         self.tabs = QTabWidget()
@@ -258,6 +311,8 @@ class MainWindow(QMainWindow):
             self.add_tab()
         self.tabs.setCurrentIndex(current)
         self.update_urlbar(self.tabs.currentWidget().url(), self.tabs.currentWidget())
+        # this will load the active tab only, saving time at start
+        # self.tabs.currentWidget().reload()
 
         # open child window instances passing their open tabs
         self.instances = []
@@ -283,10 +338,13 @@ class MainWindow(QMainWindow):
         self.statusBar().setVisible(False)
 
         # Prepare clean all warning dialog
-        self.clean_dlg = Dialog(self)
+        self.clean_dlg = Dialog(self, message="This will erase all your history and stored cookies.\n\n"
+                                              "Are you sure you want to proceed?")
         self.clean_dlg.accepted.connect(self.clean_all)
         self.clean_dlg.rejected.connect(self.clean_dlg.close)
 
+        self.moving = False
+        self.maxNormal = False
         self.item = None
 
         # allTabsButtons = self.tabs.findChildren(QAbstractButton)
@@ -318,7 +376,7 @@ class MainWindow(QMainWindow):
 
         # Enabling fullscreen in YouTube and other sites
         browser.settings().setAttribute(QWebEngineSettings.FullScreenSupportEnabled, True)
-        page.fullScreenRequested.connect(lambda request: request.accept())
+        page.fullScreenRequested.connect(lambda request: self.fullscr(request))
 
         # Enabling some extra features
         # page.featurePermissionRequested.connect(lambda u, f, p=page, b=browser: p.setFeaturePermission(u, f, QWebEnginePage.PermissionGrantedByUser))
@@ -329,6 +387,8 @@ class MainWindow(QMainWindow):
 
         # setting url to browser
         browser.setUrl(qurl)
+        # this saves time if launched with several open tabs (will be reloaded in tab_changed() method)
+        # browser.stop()
 
         # setting page zoom factor
         page.setZoomFactor(zoom)
@@ -364,34 +424,69 @@ class MainWindow(QMainWindow):
 
         return i
 
+    def fullscr(self, request):
+        if request.toggleOn():
+            # PyQt fullScreen() doesn't take into account actual screen size
+            # e.g. in a monitor using a lower resolution than the standard one (w/ black side stripes)
+            # ugly hack to simulate fullscreen without really entering into it
+            # from win32api import GetMonitorInfo, MonitorFromPoint
+            # primary_monitor = MonitorFromPoint((0, 0))
+            # monitor_info = GetMonitorInfo(primary_monitor)
+            # monitor_area = monitor_info.get("Monitor")
+            # work_area = monitor_info.get("Work")
+            # taskbar_height = monitor_area[3] - work_area[3]
+            # print("The taskbar height is {}.".format(taskbar_height))
+            # self.prev_rect = self.geometry()
+            # self.setGeometry(0, 0, self.screenSize.width() - 1, self.screenSize.height() - taskbar_height)
+            self.navtb.setVisible(False)
+            self.tabs.tabBar().setVisible(False)
+            request.accept()
+            self.showFullScreen()
+        else:
+            # self.setGeometry(self.prev_rect)
+            self.navtb.setVisible(True)
+            self.tabs.tabBar().setVisible(True)
+            request.accept()
+            self.showNormal()
+
     # adding action to download files
     def download_file(self, item: QWebEngineDownloadItem):
 
-        self.item = item
-
-        # download the whole page content
-        if item.isSavePageDownload():
-            item.setSavePageFormat(QWebEngineDownloadItem.SavePageFormat.CompleteHtmlSaveFormat)
-
         accept = True
-        if item and item.state() == QWebEngineDownloadItem.DownloadRequested:
-            itemFileName = item.downloadFileName()
-            # download item is proposing ".mhtml" extension for web pages... changing it if that's the case
-            if itemFileName.endswith(".mhtml"):
-                itemFileName = itemFileName.rsplit(".mhtml", 1)[0] + ".html"
-            norm_name = self.get_valid_filename(itemFileName)
-            filename, _ = QFileDialog.getSaveFileName(self, "Save File As",
-                                                      QDir(item.downloadDirectory()).filePath(norm_name))
-            if filename:
-                filename = os.path.normpath(filename)
-                item.setDownloadDirectory(QFileInfo(filename).path())
-                item.setDownloadFileName(QFileInfo(filename).fileName())
-                item.downloadProgress.connect(lambda p, t=item.totalBytes(), n=item.downloadFileName(): self.download_progress(p, t, n))
-                self.tabs.setStatusTip("Downloading file: " + filename)
-                self.dl_progress.setValue(0)
-                self.dl_stop.setEnabled(True)
-                self.statusBar().setVisible(True)
+        if item and item.state() == QWebEngineDownloadItem.DownloadState.DownloadRequested:
+
+            if self.item is None:
+
+                self.item = item
+
+                # download the whole page content
+                if item.isSavePageDownload():
+                    item.setSavePageFormat(QWebEngineDownloadItem.SavePageFormat.CompleteHtmlSaveFormat)
+
+                itemFileName = item.downloadFileName()
+                # download item is proposing ".mhtml" extension for web pages... changing it if that's the case
+                if itemFileName.endswith(".mhtml"):
+                    itemFileName = itemFileName.rsplit(".mhtml", 1)[0] + ".html"
+                norm_name = self.get_valid_filename(itemFileName)
+                filename, _ = QFileDialog.getSaveFileName(self, "Save File As",
+                                                          QDir(item.downloadDirectory()).filePath(norm_name))
+                if filename:
+                    filename = os.path.normpath(filename)
+                    item.setDownloadDirectory(QFileInfo(filename).path())
+                    item.setDownloadFileName(QFileInfo(filename).fileName())
+                    item.downloadProgress.connect(lambda p, t=item.totalBytes(), n=item.downloadFileName(): self.download_progress(p, t, n))
+                    self.tabs.setStatusTip("Downloading file: " + filename)
+                    self.dl_progress.setValue(0)
+                    self.dl_stop.setEnabled(True)
+                    self.statusBar().setVisible(True)
+
+                else:
+                    accept = False
+
             else:
+                dialog = Dialog(self, message="Another download is still active. Please wait...\n",
+                                buttons=QDialogButtonBox.StandardButton.Ok)
+                dialog.exec()
                 accept = False
 
         if accept:
@@ -402,14 +497,15 @@ class MainWindow(QMainWindow):
     def download_progress(self, progress, total, filename):
 
         value = int(progress / (total if total != 0 else 1) * 100)
-        if value == 100 or (self.item is not None and self.item.isFinished):
+        if value == 100:
             self.item = None
             self.tabs.setStatusTip("Finished downloading: " + filename)
             self.dl_progress.setValue(100)
             self.dl_stop.setDisabled(True)
             self.status.repaint()
             QTimer().singleShot(3000, self.dl_finished)
-        else:
+
+        elif self.item is not None:
             self.dl_progress.setValue(value)
 
     def stop_download(self):
@@ -447,7 +543,7 @@ class MainWindow(QMainWindow):
 
         self.addtab_btn = QLabel()
         i = self.tabs.addTab(self.addtab_btn, " ✚ ")
-        self.tabs.tabBar().setTabButton(i, QTabBar.RightSide, None)
+        self.tabs.tabBar().setTabButton(i, QTabBar.ButtonPosition.RightSide, None)
         self.tabs.widget(i).setDisabled(True)
         self.tabs.tabBar().setTabToolTip(i, "New tab")
 
@@ -472,7 +568,7 @@ class MainWindow(QMainWindow):
         self.tabs.setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)
         self.tabs.setTabPosition(QTabWidget.TabPosition.North if self.h_tabbar else QTabWidget.TabPosition.West)
         self.tabs.setTabsClosable(self.h_tabbar)
-        self.tabs.tabBar().setTabButton(self.tabs.count() - 1, QTabBar.RightSide, None)
+        self.tabs.tabBar().setTabButton(self.tabs.count() - 1, QTabBar.ButtonPosition.RightSide, None)
         self.tabs.setContextMenuPolicy(
             Qt.ContextMenuPolicy.PreventContextMenu if self.h_tabbar else Qt.ContextMenuPolicy.CustomContextMenu)
         self.toggleTab_btn.setText("˅" if self.h_tabbar else "˃")
@@ -507,11 +603,14 @@ class MainWindow(QMainWindow):
             # update the url
             self.update_urlbar(qurl, self.tabs.currentWidget())
 
+            # reload url (saves time at start, while not taking much if already loaded)
+            # self.tabs.currentWidget().reload()
+
         # self.tabClicked = False
 
     def tab_clicked(self, i):
 
-        if app.mouseButtons() == Qt.LeftButton:
+        if app.mouseButtons() == Qt.MouseButton.LeftButton:
             if i == self.tabs.count() - 1:
                 self.add_new_tab()
 
@@ -610,7 +709,7 @@ class MainWindow(QMainWindow):
         self.tabs.currentWidget().setUrl(qurl)
 
     # method to update the url
-    def update_urlbar(self, qurl, browser=None):
+    def update_urlbar(self, qurl, browser: QWidget = None):
 
         # If this signal is not from the current tab, ignore
         if browser != self.tabs.currentWidget():
@@ -636,7 +735,86 @@ class MainWindow(QMainWindow):
         self.back_btn.setEnabled(False)
         self.next_btn.setEnabled(False)
 
+    @property
+    def gripSize(self):
+        return self._gripSize
+
+    def setGripSize(self, size):
+        if size == self._gripSize:
+            return
+        self._gripSize = max(2, size)
+        self.updateGrips()
+
+    def updateGrips(self):
+        # self.setContentsMargins(*[self.gripSize] * 4)
+
+        outRect = self.rect()
+        # an "inner" rect used for reference to set the geometries of size grips
+        inRect = outRect.adjusted(self.gripSize, self.gripSize,
+                                  -self.gripSize, -self.gripSize)
+
+        # top left
+        self.cornerGrips[0].setGeometry(
+            QRect(outRect.topLeft(), inRect.topLeft()))
+        # top right
+        self.cornerGrips[1].setGeometry(
+            QRect(outRect.topRight(), inRect.topRight()).normalized())
+        # bottom right
+        self.cornerGrips[2].setGeometry(
+            QRect(inRect.bottomRight(), outRect.bottomRight()))
+        # bottom left
+        self.cornerGrips[3].setGeometry(
+            QRect(outRect.bottomLeft(), inRect.bottomLeft()).normalized())
+
+        # left edge
+        self.sideGrips[0].setGeometry(
+            0, inRect.top(), self.gripSize, inRect.height())
+        # top edge
+        self.sideGrips[1].setGeometry(
+            inRect.left(), 0, inRect.width(), self.gripSize)
+        # right edge
+        self.sideGrips[2].setGeometry(
+            inRect.left() + inRect.width(),
+            inRect.top(), self.gripSize, inRect.height())
+        # bottom edge
+        self.sideGrips[3].setGeometry(
+            self.gripSize, inRect.top() + inRect.height(),
+            inRect.width(), self.gripSize)
+
+        for grip in self.sideGrips + self.cornerGrips:
+            grip.setStyleSheet("background-color: transparent;")
+            grip.raise_()
+
+    def showMaxRestore(self):
+
+        if self.maxNormal:
+            self.showNormal()
+            self.maxNormal = False
+            self.max_btn.setText(" ⃞ ")
+
+        else:
+            self.showMaximized()
+            self.maxNormal = True
+            self.max_btn.setText("⧉")
+
+    def resizeEvent(self, event):
+        # propagate event
+        QMainWindow.resizeEvent(self, event)
+
+        # update grip areas
+        self.updateGrips()
+
+        # check and adjust urlbar width
+        new_width = max(200, min(self.size().width() // 2, self.screenSize.width()//3))
+        if self.urlbar.size().width() != new_width:
+            self.urlbar.setFixedWidth(new_width)
+
     def closeEvent(self, a0, QMouseEvent=None):
+
+        # stop existing downloads:
+        if self.item is not None:
+            self.item.cancel()
+            self.item = None
 
         # Save current browser contents and settings
         # only main instance may save settings
@@ -687,23 +865,108 @@ class LineEdit(QLineEdit):
 
 
 class Dialog(QDialog):
-    def __init__(self, parent, *args, **kwargs):
-        super().__init__(parent, *args, **kwargs)
+    def __init__(self, parent, title="", message="", buttons=None):
+        super().__init__(parent)
 
-        self.setWindowTitle("Warning!")
+        self.setWindowTitle(title or "Warning!")
         self.setWindowIcon(QIcon(resource_path("res/coward.png")))
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
 
-        self.buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.buttonBox = QDialogButtonBox(buttons or (QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel))
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
 
+        self.message = QLabel(message or "Lorem ipsum consectetuer adipisci est")
+
         layout = QVBoxLayout()
-        message = QLabel("This will erase all your history and stored cookies.\n\n"
-                         "Are you sure you want to proceed?")
-        layout.addWidget(message)
+        layout.addWidget(self.message)
         layout.addWidget(self.buttonBox)
         self.setLayout(layout)
+
+
+class TitleBar(QToolBar):
+
+    def __init__(self, parent, qss):
+        super().__init__(parent)
+
+        self.parent = parent
+        self.qss = qss
+
+        self.parent.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
+        self.setAutoFillBackground(True)
+        self.setBackgroundRole(QPalette.Highlight)
+        self.setStyleSheet(qss)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.parent.moving = True
+            self.parent.offset = event.pos()
+
+    def mouseMoveEvent(self, event):
+        if self.parent.moving:
+            self.parent.move(event.globalPos() - self.parent.offset)
+
+
+class SideGrip(QWidget):
+    def __init__(self, parent, edge):
+        QWidget.__init__(self, parent)
+        if edge == Qt.Edge.LeftEdge:
+            self.setCursor(Qt.CursorShape.SizeHorCursor)
+            self.resizeFunc = self.resizeLeft
+        elif edge == Qt.Edge.TopEdge:
+            self.setCursor(Qt.CursorShape.SizeVerCursor)
+            self.resizeFunc = self.resizeTop
+        elif edge == Qt.Edge.RightEdge:
+            self.setCursor(Qt.CursorShape.SizeHorCursor)
+            self.resizeFunc = self.resizeRight
+        else:
+            self.setCursor(Qt.CursorShape.SizeVerCursor)
+            self.resizeFunc = self.resizeBottom
+        self.mousePos = None
+
+    def resizeLeft(self, delta):
+        window = self.window()
+        width = max(window.minimumWidth(), window.width() - delta.x())
+        geo = window.geometry()
+        geo.setLeft(geo.right() - width)
+        window.setGeometry(geo)
+
+    def resizeTop(self, delta):
+        window = self.window()
+        height = max(window.minimumHeight(), window.height() - delta.y())
+        geo = window.geometry()
+        geo.setTop(geo.bottom() - height)
+        window.setGeometry(geo)
+
+    def resizeRight(self, delta):
+        window = self.window()
+        width = max(window.minimumWidth(), window.width() + delta.x())
+        window.resize(width, window.height())
+
+    def resizeBottom(self, delta):
+        window = self.window()
+        height = max(window.minimumHeight(), window.height() + delta.y())
+        window.resize(window.width(), height)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.mousePos = event.pos()
+
+    def mouseMoveEvent(self, event):
+        if self.mousePos is not None:
+            delta = event.pos() - self.mousePos
+            self.resizeFunc(delta)
+
+    def mouseReleaseEvent(self, event):
+        self.mousePos = None
+
+
+def resource_path(relative_path, inversed=False):
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    ret = os.path.normpath(os.path.join(base_path, relative_path))
+    if inversed:
+        ret = ret.replace("\\", "/")
+    return ret
 
 
 def setDPIAwareness():
@@ -755,8 +1018,11 @@ if not hasattr(sys, "_MEIPASS"):
     sys.excepthook = exception_hook
 
 # TODO: check the behavior of these settings and decide if they are needed and in which cases
-setDPIAwareness()
-setSystemDPISettings()
+# setDPIAwareness()
+# setSystemDPISettings()
+# app.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+# if hasattr(QStyleFactory, 'AA_UseHighDpiPixmaps'):
+#     app.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
 
 # creating and showing MainWindow object
 window = MainWindow()
