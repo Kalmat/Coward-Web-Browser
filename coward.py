@@ -73,16 +73,20 @@ class MainWindow(QMainWindow):
                            "new_wins": []
                            }
 
+        # custom / standard title bar
+        self.custom_titlebar = self.config["custom_title"]
+
         # set initial position and size
         x, y = self.config["pos"]
         w, h = self.config["size"]
-        w = max(800, min(w, self.screenSize.width()))
-        h = max(600, min(h, self.screenSize.height()))
         if self.new_win:
             x += 50
             y += 50
         x = max(0, min(x, self.screenSize.width() - w))
-        y = max(50, min(y, self.screenSize.height() - h))
+        gap = 0 if self.custom_titlebar else 50  # standard title bar height
+        y = max(gap, min(y, self.screenSize.height() - h))
+        w = max(800, min(x + w, self.screenSize.width()))
+        h = max(600, min(y + h, self.screenSize.height()))
         self.setGeometry(x, y, w, h)
 
         # Enable/Disable cookies
@@ -90,9 +94,6 @@ class MainWindow(QMainWindow):
 
         # vertical / horizontal tabbar
         self.h_tabbar = self.config["h_tabbar"]
-
-        # custom / standard title bar
-        self.custom_titlebar = self.config["custom_title"]
 
         self.sideGrips = [
             SideGrip(self, Qt.Edge.LeftEdge),
