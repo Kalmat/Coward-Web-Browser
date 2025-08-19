@@ -47,13 +47,20 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(style)
         app.setStyleSheet(style)
 
+        # This is required by sidegrips to make them invisible (hide dots)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
+        # Icons
+        self.web_ico = QIcon(resource_path("res/web.png"))
+        self.close_ico = QIcon(resource_path("res/close.png"))
+        self.close_ico_inv = resource_path("res/close.png", True)
+        self.close_sel_ico = resource_path("res/close_sel.png")
+        self.close_sel_ico_inv = resource_path("res/close_sel.png", True)
+
+        # tab bar styles
         with open(resource_path("qss/h_tabs.qss"), "r") as f:
             self.h_tab_style = f.read()
-            self.close_ico = resource_path("res/close.png", True)
-            self.close_sel_ico = resource_path("res/close_sel.png", True)
-            self.h_tab_style = self.h_tab_style % (self.close_ico, self.close_sel_ico, self.close_sel_ico)
+            self.h_tab_style = self.h_tab_style % (self.close_ico_inv, self.close_sel_ico_inv, self.close_sel_ico_inv)
 
         with open(resource_path("qss/v_tabs.qss"), "r") as f:
             self.v_tab_style = f.read()
@@ -455,14 +462,13 @@ class MainWindow(QMainWindow):
     def leaveTabBar(self):
         if self.autoHide:
             if self.h_tabbar:
-                self.navtb.hide()
-                self.hoverHWidget.show()
+                if not self.navtb.rect().contains(self.mapFromGlobal(QCursor.pos())):
+                    self.navtb.hide()
+                    self.tabs.tabBar().hide()
+                    self.hoverHWidget.show()
             else:
-                if not self.tabsContextMenu.isVisible():
-                    self.hoverVWidget.show()
-            if not self.tabsContextMenu.isVisible():
                 self.tabs.tabBar().hide()
-
+                self.hoverVWidget.show()
 
     def show(self):
         super().show()
@@ -515,7 +521,7 @@ class MainWindow(QMainWindow):
 
         # setting tab index and default icon
         i = self.tabs.addTab(browser, label if self.h_tabbar else "")
-        self.tabs.tabBar().setTabIcon(i, QIcon(resource_path("res/web.png")))
+        self.tabs.tabBar().setTabIcon(i, self.web_ico)
 
         # adding action to the browser when url changes
         browser.urlChanged.connect(lambda u, b=browser: self.update_urlbar(u, b))
@@ -706,13 +712,14 @@ class MainWindow(QMainWindow):
     # action to load the home page
     def navigate_home(self):
         # go to google
+        self.tabs.tabBar().setTabIcon(self.tabs.currentIndex(), self.web_ico)
         self.tabs.currentWidget().setUrl(QUrl("https://www.google.es///"))
 
     # method for navigate to url
     def navigate_to_url(self):
 
         # Set default icon
-        self.tabs.tabBar().setTabIcon(self.tabs.currentIndex(), QIcon(resource_path("res/web.png")))
+        self.tabs.tabBar().setTabIcon(self.tabs.currentIndex(), self.web_ico)
 
         # get the line edit text
         # convert it to QUrl object
@@ -727,6 +734,7 @@ class MainWindow(QMainWindow):
             qurl.setScheme("https")
 
         # set the url
+        self.tabs.tabBar().setTabIcon(self.tabs.currentIndex(), self.web_ico)
         self.tabs.currentWidget().setUrl(qurl)
 
     def manage_cookies(self, clicked):
@@ -927,8 +935,7 @@ class MainWindow(QMainWindow):
                     new_tabs = []
                     for i in range(w.tabs.count() - 1):
                         browser = w.tabs.widget(i)
-                        new_tabs.append(
-                            [browser.url().toString(), browser.page().zoomFactor(), i == w.tabs.currentIndex()])
+                        new_tabs.append([browser.url().toString(), browser.page().zoomFactor(), i == w.tabs.currentIndex()])
                     new_wins.append(new_tabs)
 
                 # closing all other open child windows
