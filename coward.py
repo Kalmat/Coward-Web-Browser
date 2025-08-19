@@ -399,7 +399,7 @@ class MainWindow(QMainWindow):
         # auto-hide navigation bar
         self.hoverHWidget = HoverHWidget(self, self.navtb)
         self.navtb.setFixedHeight(64)
-        self.hoverHWidget.setGeometry(0, 0 + self.tabs.tabBar().height() if self.h_tabbar else 0, self.width(), 20)
+        self.hoverHWidget.setGeometry(0, 0, self.width(), 20)
         self.hoverHWidget.hide()
         # auto-hide tab bar
         self.hoverVWidget = HoverVWidget(self, self.tabs.tabBar())
@@ -474,11 +474,12 @@ class MainWindow(QMainWindow):
         super().show()
         if self.autoHide:
             self.navtb.hide()
-            self.hoverHWidget.setGeometry(0, 0 + self.tabs.tabBar().height() if self.h_tabbar else 0, self.width(), 20)
+            self.hoverHWidget.setGeometry(0, 0, self.width(), 20)
             self.hoverHWidget.show()
             self.tabs.tabBar().hide()
             self.hoverVWidget.setGeometry(0, 0, 20, self.height())
-            self.hoverVWidget.show()
+            if not self.h_tabbar:
+                self.hoverVWidget.show()
 
     @pyqtSlot("QWidget*", "QWidget*")
     def on_focusChanged(self, old, now):
@@ -896,7 +897,7 @@ class MainWindow(QMainWindow):
             self.updateGrips()
 
         if self.autoHide:
-            self.hoverHWidget.setGeometry(0, 0 + self.tabs.tabBar().height() if self.h_tabbar else 0, self.width(), 20)
+            self.hoverHWidget.setGeometry(0, 0, self.width(), 20)
             self.hoverVWidget.setGeometry(0, 0, 20, self.height())
 
         # check and adjust urlbar width
