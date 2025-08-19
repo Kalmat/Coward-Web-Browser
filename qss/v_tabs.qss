@@ -28,3 +28,4 @@ QTabBar::tab:selected {
 QTabWidget::pane {
     border: 0;
 }
+

@@ -4,6 +4,8 @@ This is an evolution of the many 'Simple Web Browser' examples based on PyQt5 yo
 
 - Tabs, which can be added, moved and removed
 - Vertical and Horizontal tabs positioning
+- "Panoramic" view, which enables auto-hide in all navigation and tool bars (not the same as fullscreen or maximized)
+- Custom or standard title bar, whilst still allowing to move and resize window
 - Enable / Disable cookies
 - Wipe all cookies and history
 - Download pages
