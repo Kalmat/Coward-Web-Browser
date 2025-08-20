@@ -957,8 +957,8 @@ class DownloadManager(QWidget):
         self.moving = False
         self.offset = self.pos()
 
-        self.pause_ico = "⏸"
-        self.cancel_ico = "❎"
+        self.pause_ico = "||"
+        self.cancel_ico = "ℵ"
         self.resume_ico = "⟳"
         self.folder_ico = "🗀"
 

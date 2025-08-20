@@ -1,6 +1,6 @@
 QPushButton {
     font-family: "MS Shell Dlg 2";
-    font-size: 8pt;
+    font-size: 9pt;
     background: #323232;
     color: white;
     border: none;
