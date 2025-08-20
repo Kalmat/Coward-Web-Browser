@@ -284,7 +284,7 @@ class MainWindow(QMainWindow):
 
         # creating a tab widget
         self.tabs = QTabWidget(self)
-        self.tabBar = TabBar(self, None, self.leaveTabBar)
+        self.tabBar = TabBar(self.tabs, None, self.leaveTabBar)
         self.tabs.setTabBar(self.tabBar)
         self.tabs.setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)
         self.tabs.setMovable(True)
@@ -589,8 +589,8 @@ class MainWindow(QMainWindow):
         if self.h_tabbar:
             new_icon = icon
         else:
-            new_icon = QIcon(icon.pixmap(QSize(32, 32)).transformed(QTransform().rotate(90),
-                                                                    Qt.TransformationMode.SmoothTransformation))
+            # icon rotation is required if not using custom painter in TabBar class
+            new_icon = QIcon(icon.pixmap(QSize(32, 32))) #.transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
         self.tabs.tabBar().setTabIcon(i, new_icon)
 
     # when tab is changed
@@ -1017,6 +1017,7 @@ class DownloadManager(QWidget):
         widget = QWidget()
         widget.setStyleSheet("background: #646464; color: white;")
         layout = QGridLayout()
+        layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
         name = QLabel()
         name.setFixedWidth(400)
@@ -1035,9 +1036,10 @@ class DownloadManager(QWidget):
         prog.setObjectName("prog")
         layout.addWidget(prog, 1, 0)
 
-        pause = QPushButton()
         with open(resource_path("qss/small_button.qss")) as f:
             buttonStyle = f.read()
+
+        pause = QPushButton()
         pause.setStyleSheet(buttonStyle)
         pause.setText(self.pause_ico)
         pause.setObjectName("pause")
@@ -1205,7 +1207,6 @@ class HoverWidget(QWidget):
     def __init__(self, parent, obj_to_show, enter_callback=None, leave_callback=None):
         super(HoverWidget, self).__init__(parent)
 
-        self.parent = parent
         self.obj_to_show = obj_to_show
         self.enter_callback = enter_callback
         self.leave_callback = leave_callback
@@ -1229,7 +1230,6 @@ class TitleBar(QToolBar):
     def __init__(self, parent, isCustom, other_widgets_to_move=None, enter_callback=None, leave_callback=None):
         super(TitleBar, self).__init__(parent)
 
-        self.parent = parent
         self.isCustom = isCustom
         self.other_move = other_widgets_to_move or []
         self.enter_callback = enter_callback
@@ -1240,7 +1240,7 @@ class TitleBar(QToolBar):
         self.other_offsets = []
 
         if isCustom:
-            self.parent.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
+            self.parent().setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
             self.setAutoFillBackground(True)
             self.setBackgroundRole(QPalette.Highlight)
 
@@ -1250,11 +1250,11 @@ class TitleBar(QToolBar):
             self.offset = event.pos()
             self.other_offsets = []
             for w in self.other_move:
-                self.other_offsets.append([w, w.pos() - self.parent.pos()])
+                self.other_offsets.append([w, w.pos() - self.parent().pos()])
 
     def mouseMoveEvent(self, event):
         if self.moving:
-            self.parent.move(event.globalPos() - self.offset)
+            self.parent().move(event.globalPos() - self.offset)
             for item in self.other_offsets:
                 w, offset = item
                 if w.isVisible():
@@ -1277,9 +1277,33 @@ class TabBar(QTabBar):
     def __init__(self, parent, enter_callback=None, leave_callback=None):
         super(TabBar, self).__init__(parent)
 
-        self.parent = parent
         self.enter_callback = enter_callback
         self.leave_callback = leave_callback
+
+    # this will align tab titles to left (maybe a "little bit" excessive, but fun...)
+    def paintEvent(self, event):
+        # thanks to Oleg Palamarchuk: https://stackoverflow.com/questions/77257766/left-alignment-of-tab-names
+        painter = QStylePainter(self)
+        opt = QStyleOptionTab()
+
+        for i in range(self.count()):
+            self.initStyleOption(opt, i)
+
+            painter.drawControl(QStyle.ControlElement.CE_TabBarTabShape, opt)
+            painter.save()
+
+            r = self.tabRect(i)
+            opt.rect = r
+
+            textGap = 8
+            if i < self.count() - 1:
+                painter.drawImage(QRect(r.x() + 8, r.y() + ((r.height() - 32) // 2), 32, 32), QImage(opt.icon.pixmap(QSize(32, 32))))
+                textGap = 48
+
+            if self.parent().tabPosition() == QTabWidget.TabPosition.North or i == self.count() - 1:
+                painter.drawText(QRect(r.x() + textGap, r.y(), r.width(), r.height()), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, opt.text)
+
+            painter.restore()
 
     def enterEvent(self, event):
         if self.enter_callback is not None:
@@ -1288,7 +1312,6 @@ class TabBar(QTabBar):
     def leaveEvent(self, event):
         if self.leave_callback is not None:
             self.leave_callback()
-
 
 
 class SideGrip(QWidget):
