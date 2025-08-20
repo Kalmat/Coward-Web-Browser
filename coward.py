@@ -957,6 +957,11 @@ class DownloadManager(QWidget):
         self.moving = False
         self.offset = self.pos()
 
+        self.pause_ico = "⏸"
+        self.cancel_ico = "❎"
+        self.resume_ico = "⟳"
+        self.folder_ico = "🗀"
+
         self.tempFolder = os.path.join(os.getenv("SystemDrive"), os.path.sep, "Windows", "Temp", "Coward")
         try:
             shutil.rmtree(self.tempFolder)
@@ -1034,15 +1039,15 @@ class DownloadManager(QWidget):
         with open(resource_path("qss/small_button.qss")) as f:
             buttonStyle = f.read()
         pause.setStyleSheet(buttonStyle)
-        pause.setText("⏸")
+        pause.setText(self.pause_ico)
         pause.setObjectName("pause")
-        pause.setToolTip("Cancel Download")
+        pause.setToolTip("Pause Download")
         pause.clicked.connect(lambda checked, b=pause, i=item, l=location: self.pause(checked, b, i, l))
         layout.addWidget(pause, 0, 1)
 
         close_loc = QPushButton()
         close_loc.setStyleSheet(buttonStyle)
-        close_loc.setText("⨯")
+        close_loc.setText(self.cancel_ico)
         close_loc.setObjectName("close_loc")
         close_loc.setToolTip("Cancel Download")
         close_loc.clicked.connect(lambda checked, b=close_loc, i=item, l=location: self.close_loc(checked, b, i, l))
@@ -1075,7 +1080,7 @@ class DownloadManager(QWidget):
             pause = widget.findChild(QPushButton, "pause")
             pause.hide()
             close_loc = widget.findChild(QPushButton, "close_loc")
-            close_loc.setText("🗀")
+            close_loc.setText(self.folder_ico)
             close_loc.setToolTip("Open file location")
             prog = widget.findChild(QProgressBar, "prog")
             prog.hide()
@@ -1087,22 +1092,22 @@ class DownloadManager(QWidget):
 
     def pause(self, checked, button, item, location):
 
-        if button.text() == "⏸":
+        if button.text() == self.pause_ico:
             try:
                 # it's not possible to resume a canceled download, so it has to be paused
                 # to avoid garbage files, the temporary download file will be stored in system temporary folder
                 item.pause()
             except:
                 pass
-            button.setText("⟳")
+            button.setText(self.resume_ico)
 
-        elif button.text() == "⟳":
+        elif button.text() == self.resume_ico:
             dl_data = self.downloads.get(str(item.id()), [])
             if dl_data:
                 _, _, _, _, widget = dl_data
 
                 item.resume()
-                button.setText("⏸")
+                button.setText(self.pause_ico)
                 name = widget.findChild(QLabel, "name")
                 font = name.font()
                 font.setStrikeOut(False)
@@ -1110,11 +1115,11 @@ class DownloadManager(QWidget):
                 prog = widget.findChild(QProgressBar, "prog")
                 prog.show()
                 close_loc = widget.findChild(QPushButton, "close_loc")
-                close_loc.setText("⨯")
+                close_loc.setText(self.cancel_ico)
 
     def close_loc(self, checked, button, item, location):
 
-        if button.text() == "🗀":
+        if button.text() == self.folder_ico:
             if os.path.isfile(location):
                 subprocess.Popen(r'explorer /select, "%s"' % location)
             else:
@@ -1128,7 +1133,7 @@ class DownloadManager(QWidget):
                     font.setStrikeOut(True)
                     name.setFont(font)
 
-        elif button.text() == "⨯":
+        elif button.text() == self.cancel_ico:
             try:
                 # it's not possible to resume a canceled download, so it has to be paused
                 # to avoid garbage files, the temporary download file will be stored in system temporary folder
