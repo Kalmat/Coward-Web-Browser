@@ -5,7 +5,6 @@ import re
 import shutil
 import subprocess
 import sys
-import time
 import traceback
 
 from PyQt5.QtCore import *
@@ -132,7 +131,9 @@ class MainWindow(QMainWindow):
 
         # creating a toolbar for navigation
         self.navtb = TitleBar(self, self.custom_titlebar, [self.dl_manager], None, self.leaveNavTab)
-        self.navtb.setStyleSheet(open(resource_path("qss/titlebar.qss")).read())
+        with open(resource_path("qss/titlebar.qss")) as f:
+            navStyle = f.read()
+        self.navtb.setStyleSheet(navStyle)
 
         self.navtb.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
         self.navtb.setMovable(False)
@@ -1029,16 +1030,27 @@ class DownloadManager(QWidget):
         prog.setObjectName("prog")
         layout.addWidget(prog, 1, 0)
 
+        pause = QPushButton()
+        with open(resource_path("qss/small_button.qss")) as f:
+            buttonStyle = f.read()
+        pause.setStyleSheet(buttonStyle)
+        pause.setText("⏸")
+        pause.setObjectName("pause")
+        pause.setToolTip("Cancel Download")
+        pause.clicked.connect(lambda checked, b=pause, i=item, l=location: self.pause(checked, b, i, l))
+        layout.addWidget(pause, 0, 1)
+
         close_loc = QPushButton()
-        close_loc.setStyleSheet(open(resource_path("qss/small_button.qss")).read())
+        close_loc.setStyleSheet(buttonStyle)
         close_loc.setText("⨯")
         close_loc.setObjectName("close_loc")
         close_loc.setToolTip("Cancel Download")
         close_loc.clicked.connect(lambda checked, b=close_loc, i=item, l=location: self.close_loc(checked, b, i, l))
-        layout.addWidget(close_loc, 0, 1)
+        layout.addWidget(close_loc, 0, 2)
 
         layout.setColumnStretch(0, 1)
         layout.setColumnStretch(1, 0)
+        layout.setColumnStretch(2, 0)
 
         widget.setLayout(layout)
         self.mainLayout.insertWidget(1, widget)
@@ -1060,6 +1072,8 @@ class DownloadManager(QWidget):
         if dl_data:
             item, _, location, tempfile, widget = dl_data
 
+            pause = widget.findChild(QPushButton, "pause")
+            pause.hide()
             close_loc = widget.findChild(QPushButton, "close_loc")
             close_loc.setText("🗀")
             close_loc.setToolTip("Open file location")
@@ -1070,6 +1084,33 @@ class DownloadManager(QWidget):
                     shutil.move(tempfile, location)
                 except:
                     pass
+
+    def pause(self, checked, button, item, location):
+
+        if button.text() == "⏸":
+            try:
+                # it's not possible to resume a canceled download, so it has to be paused
+                # to avoid garbage files, the temporary download file will be stored in system temporary folder
+                item.pause()
+            except:
+                pass
+            button.setText("⟳")
+
+        elif button.text() == "⟳":
+            dl_data = self.downloads.get(str(item.id()), [])
+            if dl_data:
+                _, _, _, _, widget = dl_data
+
+                item.resume()
+                button.setText("⏸")
+                name = widget.findChild(QLabel, "name")
+                font = name.font()
+                font.setStrikeOut(False)
+                name.setFont(font)
+                prog = widget.findChild(QProgressBar, "prog")
+                prog.show()
+                close_loc = widget.findChild(QPushButton, "close_loc")
+                close_loc.setText("⨯")
 
     def close_loc(self, checked, button, item, location):
 
@@ -1091,7 +1132,7 @@ class DownloadManager(QWidget):
             try:
                 # it's not possible to resume a canceled download, so it has to be paused
                 # to avoid garbage files, the temporary download file will be stored in system temporary folder
-                item.pause()
+                item.cancel()
             except:
                 pass
             dl_data = self.downloads.get(str(item.id()), [])
@@ -1104,23 +1145,10 @@ class DownloadManager(QWidget):
                 name.setFont(font)
                 prog = widget.findChild(QProgressBar, "prog")
                 prog.hide()
+                pause = widget.findChild(QPushButton, "pause")
+                pause.hide()
                 close_loc = widget.findChild(QPushButton, "close_loc")
-                close_loc.setText("⟳")
-
-        elif button.text() == "⟳":
-            dl_data = self.downloads.get(str(item.id()), [])
-            if dl_data:
-                _, _, _, _, widget = dl_data
-
-                item.resume()
-                name = widget.findChild(QLabel, "name")
-                font = name.font()
-                font.setStrikeOut(False)
-                name.setFont(font)
-                prog = widget.findChild(QProgressBar, "prog")
-                prog.show()
-                close_loc = widget.findChild(QPushButton, "close_loc")
-                close_loc.setText("⨯")
+                close_loc.hide()
 
     def cancelAllDownloads(self):
         for dl_id in self.downloads.keys():
