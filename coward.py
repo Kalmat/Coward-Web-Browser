@@ -1021,9 +1021,7 @@ class DownloadManager(QWidget):
         layout.addWidget(name, 0, 0)
 
         prog = QProgressBar()
-        font = prog.font()
-        font.setPointSize(6)
-        prog.setFont(font)
+        prog.setTextVisible(False)
         prog.setFixedWidth(400)
         prog.setFixedHeight(6)
         prog.setMinimum(0)

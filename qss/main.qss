@@ -126,3 +126,7 @@ QProgressBar {
     border: none;
     max-height: 20px;
 }
+
+QProgressBar::chunk {
+    background-color: lightgrey;
+}
