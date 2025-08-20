@@ -590,12 +590,10 @@ class MainWindow(QMainWindow):
             new_icon = icon
         else:
             # icon rotation is required if not using custom painter in TabBar class
-            new_icon = QIcon(icon.pixmap(QSize(32, 32))) #.transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
+            new_icon = QIcon(icon.pixmap(QSize(32, 32)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
         self.tabs.tabBar().setTabIcon(i, new_icon)
 
-    # when tab is changed
-
-    # method to update the url
+    # method to update the url when tab is changed
     def update_urlbar(self, qurl, browser: QWidget = None):
 
         # If this signal is not from the current tab, ignore
@@ -1281,29 +1279,29 @@ class TabBar(QTabBar):
         self.leave_callback = leave_callback
 
     # this will align tab titles to left (maybe a "little bit" excessive, but fun...)
-    def paintEvent(self, event):
-        # thanks to Oleg Palamarchuk: https://stackoverflow.com/questions/77257766/left-alignment-of-tab-names
-        painter = QStylePainter(self)
-        opt = QStyleOptionTab()
-
-        for i in range(self.count()):
-            self.initStyleOption(opt, i)
-
-            painter.drawControl(QStyle.ControlElement.CE_TabBarTabShape, opt)
-            painter.save()
-
-            r = self.tabRect(i)
-            opt.rect = r
-
-            textGap = 8
-            if i < self.count() - 1:
-                painter.drawImage(QRect(r.x() + 8, r.y() + ((r.height() - 32) // 2), 32, 32), QImage(opt.icon.pixmap(QSize(32, 32))))
-                textGap = 48
-
-            if self.parent().tabPosition() == QTabWidget.TabPosition.North or i == self.count() - 1:
-                painter.drawText(QRect(r.x() + textGap, r.y(), r.width(), r.height()), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, opt.text)
-
-            painter.restore()
+    # def paintEvent(self, event):
+    #     # thanks to Oleg Palamarchuk: https://stackoverflow.com/questions/77257766/left-alignment-of-tab-names
+    #     painter = QStylePainter(self)
+    #     opt = QStyleOptionTab()
+    #
+    #     for i in range(self.count()):
+    #         self.initStyleOption(opt, i)
+    #
+    #         painter.drawControl(QStyle.ControlElement.CE_TabBarTabShape, opt)
+    #         painter.save()
+    #
+    #         r = self.tabRect(i)
+    #         opt.rect = r
+    #
+    #         textGap = 8
+    #         if i < self.count() - 1:
+    #             painter.drawImage(QRect(r.x() + 8, r.y() + ((r.height() - 32) // 2), 32, 32), QImage(opt.icon.pixmap(QSize(32, 32))))
+    #             textGap = 48
+    #
+    #         if self.parent().tabPosition() == QTabWidget.TabPosition.North or i == self.count() - 1:
+    #             painter.drawText(QRect(r.x() + textGap, r.y(), r.width(), r.height()), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, opt.text)
+    #
+    #         painter.restore()
 
     def enterEvent(self, event):
         if self.enter_callback is not None:
