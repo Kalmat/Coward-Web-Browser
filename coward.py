@@ -137,7 +137,8 @@ class MainWindow(QMainWindow):
         self.dl_manager.hide()
 
         # creating a toolbar for navigation
-        self.navtb = TitleBar(self, self.custom_titlebar, self.h_tabbar, self.autoHide, open(resource_path("qss/titlebar.qss")).read(), [self.dl_manager])
+        self.navtb = TitleBar(self, self.custom_titlebar, [self.dl_manager])
+        self.navtb.setStyleSheet(open(resource_path("qss/titlebar.qss")).read())
 
         self.navtb.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
         self.navtb.setMovable(False)
@@ -150,7 +151,6 @@ class MainWindow(QMainWindow):
         font.setPointSize(font.pointSize() + 2)
         self.toggleTab_btn.setFont(font)
         self.toggleTab_btn.triggered.connect(lambda: self.toggle_tabbar(toggle=True))
-        # self.toggleTab_btn.setEnabled(self.h_tabbar)
         self.navtb.addAction(self.toggleTab_btn)
 
         # creating back action
@@ -289,7 +289,7 @@ class MainWindow(QMainWindow):
 
         # creating a tab widget
         self.tabs = QTabWidget(self)
-        self.tabBar = TabBar(self, self.h_tabbar, self.autoHide, self.h_tab_style if self.h_tabbar else self.v_tab_style)
+        self.tabBar = TabBar(self)
         self.tabs.setTabBar(self.tabBar)
         self.tabs.setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)
         self.tabs.setMovable(True)
@@ -589,13 +589,13 @@ class MainWindow(QMainWindow):
         if self.autoHide:
             if self.h_tabbar:
                 self.tabs.tabBar().show()
+            if hasattr(self, "hoverHWidget"):
+                self.hoverHWidget.show()
             if hasattr(self, "hoverVWidget"):
                 if self.h_tabbar:
                     self.hoverVWidget.hide()
                 else:
                     self.hoverVWidget.show()
-            if hasattr(self, "hoverHWidget"):
-                self.hoverHWidget.show()
 
     def cookie_filter(self, request):
         # print(f"firstPartyUrl: {request.firstPartyUrl.toString()}, "
@@ -905,6 +905,11 @@ class MainWindow(QMainWindow):
         if self.urlbar.size().width() != new_width:
             self.urlbar.setFixedWidth(new_width)
 
+        if self.dl_manager.isVisible():
+            x = self.x() + self.width() - self.dl_manager.width()
+            y = self.y() + self.navtb.height()
+            self.dl_manager.move(x, y)
+
     def closeEvent(self, a0, QMouseEvent=None):
 
         # stop existing downloads:
@@ -1210,33 +1215,37 @@ class HoverVWidget(QWidget):
 
 class TitleBar(QToolBar):
 
-    def __init__(self, parent, isCustom, h_tabbar, autoHide, qss, other_widgets_to_move=None):
+    def __init__(self, parent, isCustom, other_widgets_to_move=None):
         super(TitleBar, self).__init__(parent)
 
         self.parent = parent
         self.isCustom = isCustom
-        self.h_tabbar = h_tabbar
-        self.autoHide = autoHide
-        self.qss = qss
         self.other_move = other_widgets_to_move or []
 
         self.moving = False
         self.offset = parent.pos()
+        self.other_offsets = []
 
         if isCustom:
             self.parent.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
-            # self.setAutoFillBackground(True)
-            # self.setBackgroundRole(QPalette.Highlight)
-        self.setStyleSheet(qss)
+            self.setAutoFillBackground(True)
+            self.setBackgroundRole(QPalette.Highlight)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton and self.isCustom:
             self.moving = True
             self.offset = event.pos()
+            self.other_offsets = []
+            for w in self.other_move:
+                self.other_offsets.append([w, w.pos() - self.parent.pos()])
 
     def mouseMoveEvent(self, event):
         if self.moving:
             self.parent.move(event.globalPos() - self.offset)
+            for item in self.other_offsets:
+                w, offset = item
+                if w.isVisible():
+                    w.move(event.globalPos() - self.offset + offset)
 
     def mouseReleaseEvent(self, event):
         self.moving = False
@@ -1247,16 +1256,10 @@ class TitleBar(QToolBar):
 
 class TabBar(QTabBar):
 
-    def __init__(self, parent, h_tabbar, autoHide, qss=None):
+    def __init__(self, parent):
         super(TabBar, self).__init__(parent)
 
         self.parent = parent
-        self.h_tabbar = h_tabbar
-        self.autoHide = autoHide
-        self.qss = qss
-
-        if qss is not None:
-            self.setStyleSheet(qss)
 
     def leaveEvent(self, event):
         self.parent.leaveTabBarSig.emit()
