@@ -1083,6 +1083,7 @@ class DownloadManager(QWidget):
                 dl_data = self.downloads.get(str(item.id()), [])
                 if dl_data:
                     _, _, _, _, widget = dl_data
+
                     name = widget.findChild(QLabel, "name")
                     font = name.font()
                     font.setStrikeOut(True)
@@ -1111,7 +1112,8 @@ class DownloadManager(QWidget):
         elif button.text() == "⟳":
             dl_data = self.downloads.get(str(item.id()), [])
             if dl_data:
-                item, _, _, _, widget = dl_data
+                _, _, _, _, widget = dl_data
+
                 item.resume()
                 name = widget.findChild(QLabel, "name")
                 font = name.font()
