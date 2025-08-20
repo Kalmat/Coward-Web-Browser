@@ -2,8 +2,10 @@
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import time
 import traceback
 
 from PyQt5.QtCore import *
@@ -15,14 +17,6 @@ from PyQt5.QtGui import *
 # main window
 class MainWindow(QMainWindow):
 
-    enterHHoverSig = pyqtSignal()
-    leaveHHoverSig = pyqtSignal()
-    enterVHoverSig = pyqtSignal()
-    leaveVHoverSig = pyqtSignal()
-    enterNavTabSig = pyqtSignal()
-    leaveNavTabSig = pyqtSignal()
-    enterTabBarSig = pyqtSignal()
-    leaveTabBarSig = pyqtSignal()
     _gripSize = 8
 
     # constructor
@@ -137,7 +131,7 @@ class MainWindow(QMainWindow):
         self.dl_manager.hide()
 
         # creating a toolbar for navigation
-        self.navtb = TitleBar(self, self.custom_titlebar, [self.dl_manager])
+        self.navtb = TitleBar(self, self.custom_titlebar, [self.dl_manager], None, self.leaveNavTab)
         self.navtb.setStyleSheet(open(resource_path("qss/titlebar.qss")).read())
 
         self.navtb.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
@@ -289,7 +283,7 @@ class MainWindow(QMainWindow):
 
         # creating a tab widget
         self.tabs = QTabWidget(self)
-        self.tabBar = TabBar(self)
+        self.tabBar = TabBar(self, None, self.leaveTabBar)
         self.tabs.setTabBar(self.tabBar)
         self.tabs.setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)
         self.tabs.setMovable(True)
@@ -397,26 +391,15 @@ class MainWindow(QMainWindow):
 
         # set hover areas for auto-hide mode
         # auto-hide navigation bar
-        self.hoverHWidget = HoverHWidget(self, self.navtb)
+        self.hoverHWidget = HoverWidget(self, self.navtb, self.enterHHover)
         self.navtb.setFixedHeight(64)
         self.hoverHWidget.setGeometry(0, 0, self.width(), 20)
         self.hoverHWidget.hide()
         # auto-hide tab bar
-        self.hoverVWidget = HoverVWidget(self, self.tabs.tabBar())
+        self.hoverVWidget = HoverWidget(self, self.tabs.tabBar(), self.enterVHover)
         self.hoverVWidget.setGeometry(0, 0, 20, self.height())
         self.hoverVWidget.hide()
 
-        # Prepare all signals to handle auto-hide
-        self.enterHHoverSig.connect(self.enterHHover)
-        self.leaveHHoverSig.connect(self.leaveHHover)
-        self.enterVHoverSig.connect(self.enterVHover)
-        self.leaveVHoverSig.connect(self.leaveVHover)
-        self.enterNavTabSig.connect(self.enterNavTab)
-        self.leaveNavTabSig.connect(self.leaveNavTab)
-        self.enterTabBarSig.connect(self.enterTabBar)
-        self.leaveTabBarSig.connect(self.leaveTabBar)
-
-    @pyqtSlot()
     def enterHHover(self):
         if self.autoHide:
             self.hoverHWidget.hide()
@@ -424,25 +407,20 @@ class MainWindow(QMainWindow):
             if self.h_tabbar:
                 self.tabs.tabBar().show()
 
-    @pyqtSlot()
     def leaveHHover(self):
         pass
 
-    @pyqtSlot()
     def enterVHover(self):
         if self.autoHide:
             self.hoverVWidget.hide()
             self.tabs.tabBar().show()
 
-    @pyqtSlot()
     def leaveVHover(self):
         pass
 
-    @pyqtSlot()
     def enterNavTab(self):
         pass
 
-    @pyqtSlot()
     def leaveNavTab(self):
         if self.autoHide:
             if self.h_tabbar:
@@ -454,11 +432,9 @@ class MainWindow(QMainWindow):
                 self.navtb.hide()
                 self.hoverHWidget.show()
 
-    @pyqtSlot()
     def enterTabBar(self):
         pass
 
-    @pyqtSlot()
     def leaveTabBar(self):
         if self.autoHide:
             if self.h_tabbar:
@@ -959,7 +935,7 @@ class DownloadManager(QWidget):
         super(DownloadManager, self).__init__(parent)
 
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
-        self.setWindowFlag(Qt.Tool, True)
+        self.setWindowFlag(Qt.WindowType.Tool, True)
 
         self.setWindowTitle("Coward - Downloads")
         self.setStyleSheet("background: #323232; color: white;")
@@ -980,10 +956,17 @@ class DownloadManager(QWidget):
         self.moving = False
         self.offset = self.pos()
 
+        self.tempFolder = os.path.join(os.getenv("SystemDrive"), os.path.sep, "Windows", "Temp", "Coward")
+        try:
+            shutil.rmtree(self.tempFolder)
+        except:
+            pass
+
     def addDownload(self, item):
 
         accept = True
         filename = ""
+        tempfile = ""
         added = False
         if item and item.state() == QWebEngineDownloadItem.DownloadState.DownloadRequested:
 
@@ -1000,9 +983,11 @@ class DownloadManager(QWidget):
                                                       QDir(item.downloadDirectory()).filePath(norm_name))
             if filename:
                 filename = os.path.normpath(filename)
-                item.setDownloadDirectory(QFileInfo(filename).path())
-                item.setDownloadFileName(QFileInfo(filename).fileName())
+                tempfile = os.path.join(self.tempFolder, str(item.id()), os.path.basename(filename))
+                item.setDownloadDirectory(os.path.dirname(tempfile))
+                item.setDownloadFileName(os.path.basename(filename))
                 item.downloadProgress.connect(lambda p, t, i=item.id(): self.updateDownload(p, t, i))
+                item.finished.connect(lambda i=item.id(): self.downloadFinished(i))
                 added = True
 
             else:
@@ -1011,14 +996,15 @@ class DownloadManager(QWidget):
         if accept:
             item.accept()
             if added:
-                self._add(item, filename.rsplit("\\", 1)[1], filename)
+                self._add(item, os.path.basename(filename), filename, tempfile)
                 added = True
         else:
             item.cancel()
+            del item
 
         return added
 
-    def _add(self, item, title, location):
+    def _add(self, item, title, location, tempfile):
 
         self.init_label.setText("Downloads")
 
@@ -1058,37 +1044,61 @@ class DownloadManager(QWidget):
 
         widget.setLayout(layout)
         self.mainLayout.insertWidget(1, widget)
-        self.downloads[str(item.id())] = [item, title, location, widget]
+        self.downloads[str(item.id())] = [item, title, location, tempfile, widget]
 
     def updateDownload(self, progress, total, dl_id):
 
         dl_data = self.downloads.get(str(dl_id), [])
         if dl_data:
-            _, _, _, widget = dl_data
+            item, _, _, _, widget = dl_data
 
             prog = widget.findChild(QProgressBar, "prog")
             value = int(progress / total * 100)
-            if value == 100:
-                close_loc = widget.findChild(QPushButton, "close_loc")
-                close_loc.setText("🗀")
-                close_loc.setToolTip("Open file location")
-                prog.hide()
-            else:
-                prog.setValue(value)
+            prog.setValue(value)
+
+    def downloadFinished(self, dl_id):
+
+        dl_data = self.downloads.get(str(dl_id), [])
+        if dl_data:
+            item, _, location, tempfile, widget = dl_data
+
+            close_loc = widget.findChild(QPushButton, "close_loc")
+            close_loc.setText("🗀")
+            close_loc.setToolTip("Open file location")
+            prog = widget.findChild(QProgressBar, "prog")
+            prog.hide()
+            if item.state() == QWebEngineDownloadItem.DownloadState.DownloadCompleted:
+                try:
+                    shutil.move(tempfile, location)
+                except:
+                    pass
 
     def close_loc(self, checked, button, item, location):
 
         if button.text() == "🗀":
-            subprocess.Popen(r'explorer /select, "%s"' % location)
+            if os.path.isfile(location):
+                subprocess.Popen(r'explorer /select, "%s"' % location)
+            else:
+                button.hide()
+                dl_data = self.downloads.get(str(item.id()), [])
+                if dl_data:
+                    _, _, _, _, widget = dl_data
+                    name = widget.findChild(QLabel, "name")
+                    font = name.font()
+                    font.setStrikeOut(True)
+                    name.setFont(font)
 
         elif button.text() == "⨯":
             try:
-                item.cancel()
+                # it's not possible to resume a canceled download, so it has to be paused
+                # to avoid garbage files, the temporary download file will be stored in system temporary folder
+                item.pause()
             except:
                 pass
             dl_data = self.downloads.get(str(item.id()), [])
             if dl_data:
-                _, _, _, widget = dl_data
+                _, _, _, tempfile, widget = dl_data
+
                 name = widget.findChild(QLabel, "name")
                 font = name.font()
                 font.setStrikeOut(True)
@@ -1101,47 +1111,28 @@ class DownloadManager(QWidget):
         elif button.text() == "⟳":
             dl_data = self.downloads.get(str(item.id()), [])
             if dl_data:
-                item, _, _, widget = dl_data
-                # TODO: How to resume a canceled download?
+                item, _, _, _, widget = dl_data
                 item.resume()
-            pass
-
-    def removeDownload(self, dl_id):
-
-        dl_data = self.downloads.get(str(dl_id), [])
-        if dl_data:
-            _, _, _, widget = dl_data
-            self.mainLayout.removeWidget(widget)
-            del self.downloads[str(dl_id)]
-
-    def cancelDownload(self, dl_id):
-        dl_data = self.downloads.get(str(dl_id), [])
-        if dl_data:
-            item, _, _, _ = dl_data
-            try:
-                item.cancel()
-            except:
-                pass
+                name = widget.findChild(QLabel, "name")
+                font = name.font()
+                font.setStrikeOut(False)
+                name.setFont(font)
+                prog = widget.findChild(QProgressBar, "prog")
+                prog.show()
+                close_loc = widget.findChild(QPushButton, "close_loc")
+                close_loc.setText("⨯")
 
     def cancelAllDownloads(self):
         for dl_id in self.downloads.keys():
-            item, _, _, _ = self.downloads[dl_id]
+            item, _, location, tempfile, _ = self.downloads[dl_id]
             try:
                 item.cancel()
             except:
                 pass
-
-    # def mousePressEvent(self, event):
-    #     if event.button() == Qt.MouseButton.LeftButton and self.init_label.underMouse():
-    #         self.moving = True
-    #         self.offset = event.pos()
-    #
-    # def mouseMoveEvent(self, event):
-    #     if self.moving:
-    #         self.move(event.globalPos() - self.offset)
-    #
-    # def mouseReleaseEvent(self, event):
-    #     self.moving = False
+        try:
+            shutil.rmtree(self.tempFolder)
+        except:
+            pass
 
 
 class LineEdit(QLineEdit):
@@ -1156,6 +1147,7 @@ class LineEdit(QLineEdit):
 
 
 class Dialog(QDialog):
+
     def __init__(self, parent, title="", message="", buttons=None):
         super().__init__(parent)
 
@@ -1175,52 +1167,40 @@ class Dialog(QDialog):
         self.setLayout(layout)
 
 
-class HoverHWidget(QWidget):
+class HoverWidget(QWidget):
 
-    def __init__(self, parent, obj_to_show=None):
-        super(HoverHWidget, self).__init__(parent)
-
-        self.parent = parent
-
-        self.obj_to_show = obj_to_show
-
-        # self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        # self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
-        self.setAttribute(Qt.WidgetAttribute.WA_InputMethodTransparent)
-        # self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
-        # flags = flags | QtCore.Qt.WindowDoesNotAcceptFocus
-
-    def enterEvent(self, a0):
-        self.parent.enterHHoverSig.emit()
-
-
-class HoverVWidget(QWidget):
-
-    def __init__(self, parent, obj_to_show=None):
-        super(HoverVWidget, self).__init__(parent)
+    def __init__(self, parent, obj_to_show, enter_callback=None, leave_callback=None):
+        super(HoverWidget, self).__init__(parent)
 
         self.parent = parent
-
         self.obj_to_show = obj_to_show
+        self.enter_callback = enter_callback
+        self.leave_callback = leave_callback
 
-        # self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        # self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setAttribute(Qt.WidgetAttribute.WA_InputMethodTransparent)
-        # self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
-        # flags = flags | QtCore.Qt.WindowDoesNotAcceptFocus
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+        self.setWindowFlag(Qt.WindowType.WindowDoesNotAcceptFocus, True)
 
     def enterEvent(self, a0):
-        self.parent.enterVHoverSig.emit()
+        if self.enter_callback is not None:
+            self.enter_callback()
+
+    def leaveEvent(self, a0):
+        if self.leave_callback is not None:
+            self.leave_callback()
 
 
 class TitleBar(QToolBar):
 
-    def __init__(self, parent, isCustom, other_widgets_to_move=None):
+    def __init__(self, parent, isCustom, other_widgets_to_move=None, enter_callback=None, leave_callback=None):
         super(TitleBar, self).__init__(parent)
 
         self.parent = parent
         self.isCustom = isCustom
         self.other_move = other_widgets_to_move or []
+        self.enter_callback = enter_callback
+        self.leave_callback = leave_callback
 
         self.moving = False
         self.offset = parent.pos()
@@ -1250,22 +1230,38 @@ class TitleBar(QToolBar):
     def mouseReleaseEvent(self, event):
         self.moving = False
 
+    def enterEvent(self, event):
+        if self.enter_callback is not None:
+            self.enter_callback()
+
     def leaveEvent(self, event):
-        self.parent.leaveNavTabSig.emit()
+        if self.leave_callback is not None:
+            self.leave_callback()
 
 
 class TabBar(QTabBar):
 
-    def __init__(self, parent):
+    def __init__(self, parent, enter_callback=None, leave_callback=None):
         super(TabBar, self).__init__(parent)
 
         self.parent = parent
+        self.enter_callback = enter_callback
+        self.leave_callback = leave_callback
+
+    def enterEvent(self, event):
+        if self.enter_callback is not None:
+            self.enter_callback()
 
     def leaveEvent(self, event):
-        self.parent.leaveTabBarSig.emit()
+        if self.leave_callback is not None:
+            self.leave_callback()
+
 
 
 class SideGrip(QWidget):
+    # thanks to musicamante. Just impressive...
+    # https://stackoverflow.com/questions/62807295/how-to-resize-a-window-from-the-edges-after-adding-the-property-qtcore-qt-framel
+
     def __init__(self, parent, edge):
         QWidget.__init__(self, parent)
         if edge == Qt.Edge.LeftEdge:
