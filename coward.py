@@ -105,8 +105,8 @@ class MainWindow(QMainWindow):
         gap = 0 if self.custom_titlebar else 50
         x = max(0, min(x, self.screenSize.width() - w))
         y = max(gap, min(y, self.screenSize.height() - h))
-        w = max(800, min(x + w, self.screenSize.width()))
-        h = max(600, min(y + h, self.screenSize.height()))
+        w = max(800, min(w, self.screenSize.width() - x))
+        h = max(600, min(h, self.screenSize.height() - y))
         self.setGeometry(x, y, w, h)
 
         # Enable/Disable cookies
