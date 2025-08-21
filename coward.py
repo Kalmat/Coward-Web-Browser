@@ -393,12 +393,12 @@ class MainWindow(QMainWindow):
         # set hover areas for auto-hide mode
         # auto-hide navigation bar
         self.hoverHWidget = HoverWidget(self, self.navtb, self.enterHHover)
-        self.navtb.setFixedHeight(64)
-        self.hoverHWidget.setGeometry(0, 0, self.width(), 20)
+        self.navtb.setFixedHeight(52)
+        self.hoverHWidget.setGeometry(48, 0, self.width(), 20)
         self.hoverHWidget.hide()
         # auto-hide tab bar
         self.hoverVWidget = HoverWidget(self, self.tabs.tabBar(), self.enterVHover)
-        self.hoverVWidget.setGeometry(0, 0, 20, self.height())
+        self.hoverVWidget.setGeometry(0, 48, 20, self.height())
         self.hoverVWidget.hide()
 
     def enterHHover(self):
@@ -451,10 +451,10 @@ class MainWindow(QMainWindow):
         super().show()
         if self.autoHide:
             self.navtb.hide()
-            self.hoverHWidget.setGeometry(0, 0, self.width(), 20)
+            self.hoverHWidget.setGeometry(48, 0, self.width(), 20)
             self.hoverHWidget.show()
             self.tabs.tabBar().hide()
-            self.hoverVWidget.setGeometry(0, 0, 20, self.height())
+            self.hoverVWidget.setGeometry(0, 48, 20, self.height())
             if not self.h_tabbar:
                 self.hoverVWidget.show()
 
@@ -872,8 +872,8 @@ class MainWindow(QMainWindow):
             self.updateGrips()
 
         if self.autoHide:
-            self.hoverHWidget.setGeometry(0, 0, self.width(), 20)
-            self.hoverVWidget.setGeometry(0, 0, 20, self.height())
+            self.hoverHWidget.setGeometry(48, 0, self.width(), 20)
+            self.hoverVWidget.setGeometry(0, 48, 20, self.height())
 
         # check and adjust urlbar width
         new_width = max(200, min(self.size().width() // 2, self.screenSize.width()//3))

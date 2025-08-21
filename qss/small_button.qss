@@ -9,5 +9,5 @@ QPushButton {
 }
 
 QPushButton:hover {
-    background: #646464;
+    background: lightgrey;
 }

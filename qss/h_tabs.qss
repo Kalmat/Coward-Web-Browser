@@ -13,9 +13,9 @@ QTabBar::tab {
     color: lightgrey;
     border: none;
     border-right: 1px solid #646464;
-    min-width: 32px;
+    min-width: 48px;
     max-width: 240px;
-    height: 48px;
+    height: 40px;
     padding: 3px;
 }
 
