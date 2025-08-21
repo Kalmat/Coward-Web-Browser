@@ -49,12 +49,12 @@ class MainWindow(QMainWindow):
         self.close_ico_inv = resource_path("res/close.png", True)
         self.close_sel_ico = resource_path("res/close_sel.png")
         self.close_sel_ico_inv = resource_path("res/close_sel.png", True)
-        self.tabsep_ico = resource_path("res/tabsep.png")
+        self.tabsep_ico_inv = resource_path("res/tabsep.png", True)
 
         # tab bar styles
         with open(resource_path("qss/h_tabs.qss"), "r") as f:
             self.h_tab_style = f.read()
-            self.h_tab_style = self.h_tab_style % (self.tabsep_ico, self.close_ico_inv, self.close_sel_ico_inv, self.close_sel_ico_inv)
+            self.h_tab_style = self.h_tab_style % (self.tabsep_ico_inv, self.close_ico_inv, self.close_sel_ico_inv, self.close_sel_ico_inv)
 
         with open(resource_path("qss/v_tabs.qss"), "r") as f:
             self.v_tab_style = f.read()
