@@ -44,10 +44,11 @@ class MainWindow(QMainWindow):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
         # Icons
+        # as images
         self.web_ico = QIcon(resource_path("res/web.png"))
         self.close_ico = QIcon(resource_path("res/close.png"))
+        # as path for qss files (path separator inverted: "/")
         self.close_ico_inv = resource_path("res/close.png", True)
-        self.close_sel_ico = resource_path("res/close_sel.png")
         self.close_sel_ico_inv = resource_path("res/close_sel.png", True)
         self.tabsep_ico_inv = resource_path("res/tabsep.png", True)
 
@@ -1371,10 +1372,10 @@ class SideGrip(QWidget):
         self.mousePos = None
 
 
-def resource_path(relative_path, inversed=False):
+def resource_path(relative_path, inverted=False):
     base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
     ret = os.path.normpath(os.path.join(base_path, relative_path))
-    if inversed:
+    if inverted:
         ret = ret.replace("\\", "/")
     return ret
 
