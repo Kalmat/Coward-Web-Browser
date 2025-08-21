@@ -1279,6 +1279,7 @@ class TabBar(QTabBar):
         self.leave_callback = leave_callback
 
     # this will align tab titles to left (maybe a "little bit" excessive, but fun...)
+    # WARNING: moving tabs produces weird behavior
     # def paintEvent(self, event):
     #     # thanks to Oleg Palamarchuk: https://stackoverflow.com/questions/77257766/left-alignment-of-tab-names
     #     painter = QStylePainter(self)

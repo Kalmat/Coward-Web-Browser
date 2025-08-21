@@ -12,7 +12,8 @@ QTabBar::tab {
     background: #161616;
     color: lightgrey;
     border: none;
-    border-right: 1px solid #646464;
+    border-left: 1px;
+    border-image: url(res/tabsep.png) 2 repeat;
     min-width: 48px;
     max-width: 240px;
     height: 40px;
