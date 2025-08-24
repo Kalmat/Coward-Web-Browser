@@ -17,12 +17,20 @@ from PyQt5.QtGui import *
 class MainWindow(QMainWindow):
 
     _gripSize = 8
+    enterHHoverSig = pyqtSignal()
+    leaveHHoverSig = pyqtSignal()
+    enterVHoverSig = pyqtSignal()
+    leaveVHoverSig = pyqtSignal()
+    enterNavBarSig = pyqtSignal()
+    leaveNavBarSig = pyqtSignal()
+    enterTabBarSig = pyqtSignal()
+    leaveTabBarSig = pyqtSignal()
 
     # constructor
     def __init__(self, parent=None, new_win=False, init_tabs=None):
         super(MainWindow, self).__init__(parent)
 
-        self.new_win = new_win
+        self.isNewWin = new_win and init_tabs
         self.init_tabs = init_tabs
 
         # setting window title and icon
@@ -46,16 +54,13 @@ class MainWindow(QMainWindow):
         # Icons
         # as images
         self.web_ico = QIcon(resource_path("res/web.png"))
-        self.close_ico = QIcon(resource_path("res/close.png"))
         # as path for qss files (path separator inverted: "/")
-        self.close_ico_inv = resource_path("res/close.png", True)
-        self.close_sel_ico_inv = resource_path("res/close_sel.png", True)
         self.tabsep_ico_inv = resource_path("res/tabsep.png", True)
 
         # tab bar styles
         with open(resource_path("qss/h_tabs.qss"), "r") as f:
             self.h_tab_style = f.read()
-            self.h_tab_style = self.h_tab_style % (self.tabsep_ico_inv, self.close_ico_inv, self.close_sel_ico_inv, self.close_sel_ico_inv)
+            self.h_tab_style = self.h_tab_style % self.tabsep_ico_inv
 
         with open(resource_path("qss/v_tabs.qss"), "r") as f:
             self.v_tab_style = f.read()
@@ -99,7 +104,7 @@ class MainWindow(QMainWindow):
         # set initial position and size
         x, y = self.config["pos"]
         w, h = self.config["size"]
-        if self.new_win:
+        if self.isNewWin:
             x += 50
             y += 50
         gap = 0 if self.custom_titlebar else 50
@@ -108,6 +113,8 @@ class MainWindow(QMainWindow):
         w = max(800, min(w, self.screenSize.width() - x))
         h = max(600, min(h, self.screenSize.height() - y))
         self.setGeometry(x, y, w, h)
+        self.setMinimumWidth(48*15)
+        self.setMinimumHeight(96)
 
         # Enable/Disable cookies
         self.cookies = self.config["cookies"]
@@ -132,7 +139,7 @@ class MainWindow(QMainWindow):
         self.dl_manager.hide()
 
         # creating a toolbar for navigation
-        self.navtb = TitleBar(self, self.custom_titlebar, [self.dl_manager], None, self.leaveNavTab)
+        self.navtb = TitleBar(self, self.custom_titlebar, [self.dl_manager], None, self.leaveNavBarSig)
         with open(resource_path("qss/titlebar.qss")) as f:
             navStyle = f.read()
         self.navtb.setStyleSheet(navStyle)
@@ -192,14 +199,14 @@ class MainWindow(QMainWindow):
         # self.navtb.addSeparator()
 
         spacer = QLabel()
-        spacer.setAccessibleName("spacer")
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        spacer.setMinimumWidth(20)
+        spacer.setMaximumWidth(200)
         self.navtb.addWidget(spacer)
 
         # creating a line edit widget for URL
         self.urlbar = LineEdit()
         self.urlbar.setTextMargins(10, 0, 0, 0)
-        self.urlbar.setFixedWidth(max(200, min(self.size().width() // 2, self.screenSize.width()//3)))
         self.urlbar.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.urlbar.returnPressed.connect(self.navigate_to_url)
 
@@ -216,8 +223,9 @@ class MainWindow(QMainWindow):
         self.navtb.addAction(self.stop_btn)
 
         spacer = QLabel()
-        spacer.setAccessibleName("spacer")
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        spacer.setMinimumWidth(20)
+        spacer.setMaximumWidth(200)
         self.navtb.addWidget(spacer)
 
         # adding auto-hide mgt.
@@ -286,7 +294,7 @@ class MainWindow(QMainWindow):
 
         # creating a tab widget
         self.tabs = QTabWidget(self)
-        self.tabBar = TabBar(self.tabs, None, self.leaveTabBar)
+        self.tabBar = TabBar(self.tabs, None, self.leaveTabBarSig)
         self.tabs.setTabBar(self.tabBar)
         self.tabs.setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)
         self.tabs.setMovable(True)
@@ -303,7 +311,7 @@ class MainWindow(QMainWindow):
         self.tabsContextMenu.setMinimumHeight(54)
         self.tabsContextMenu.setContentsMargins(5, 14, 5, 5)
         self.close_action = QAction()
-        self.close_action.setIcon(QIcon(self.close_ico))
+        self.close_action.setIcon(self.style().standardIcon(QStyle.SP_MessageBoxCritical))
         self.tabsContextMenu.addAction(self.close_action)
         # Controlling context menu with mouse left-click
         # self.tabs.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
@@ -330,7 +338,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.tabs)
 
         # open all windows and their tabs
-        if self.new_win:
+        if self.isNewWin:
             # get open tabs for child window instance
             tabs = self.init_tabs
 
@@ -394,15 +402,26 @@ class MainWindow(QMainWindow):
 
         # set hover areas for auto-hide mode
         # auto-hide navigation bar
-        self.hoverHWidget = HoverWidget(self, self.navtb, self.enterHHover)
+        self.hoverHWidget = HoverWidget(self, self.navtb, self.enterHHoverSig)
         self.navtb.setFixedHeight(52)
         self.hoverHWidget.setGeometry(48, 0, self.width(), 20)
         self.hoverHWidget.hide()
         # auto-hide tab bar
-        self.hoverVWidget = HoverWidget(self, self.tabs.tabBar(), self.enterVHover)
+        self.hoverVWidget = HoverWidget(self, self.tabs.tabBar(), self.enterVHoverSig)
         self.hoverVWidget.setGeometry(0, 48, 20, self.height())
         self.hoverVWidget.hide()
 
+        # define signals for auto-hide events
+        self.enterHHoverSig.connect(self.enterHHover)
+        self.leaveHHoverSig.connect(self.leaveHHover)
+        self.enterVHoverSig.connect(self.enterVHover)
+        self.leaveVHoverSig.connect(self.leaveVHover)
+        self.enterNavBarSig.connect(self.enterNavBar)
+        self.leaveNavBarSig.connect(self.leaveNavBar)
+        self.enterTabBarSig.connect(self.enterTabBar)
+        self.leaveTabBarSig.connect(self.leaveTabBar)
+
+    @pyqtSlot()
     def enterHHover(self):
         if self.autoHide:
             self.hoverHWidget.hide()
@@ -410,21 +429,26 @@ class MainWindow(QMainWindow):
             if self.h_tabbar:
                 self.tabs.tabBar().show()
 
+    @pyqtSlot()
     def leaveHHover(self):
         pass
 
+    @pyqtSlot()
     def enterVHover(self):
         if self.autoHide:
             self.hoverVWidget.hide()
             self.tabs.tabBar().show()
 
+    @pyqtSlot()
     def leaveVHover(self):
         pass
 
-    def enterNavTab(self):
+    @pyqtSlot()
+    def enterNavBar(self):
         pass
 
-    def leaveNavTab(self):
+    @pyqtSlot()
+    def leaveNavBar(self):
         if self.autoHide:
             if self.h_tabbar:
                 if not self.underMouse():
@@ -435,9 +459,11 @@ class MainWindow(QMainWindow):
                 self.navtb.hide()
                 self.hoverHWidget.show()
 
+    @pyqtSlot()
     def enterTabBar(self):
         pass
 
+    @pyqtSlot()
     def leaveTabBar(self):
         if self.autoHide:
             if self.h_tabbar:
@@ -519,7 +545,7 @@ class MainWindow(QMainWindow):
         act1.triggered.connect(lambda checked, p=page: self.add_new_tab(p.contextMenuData().linkUrl()))
         act2 = page.action(page.WebAction.OpenLinkInNewWindow)
         act2.disconnect()
-        if self.new_win:
+        if self.isNewWin:
             act2.setVisible(False)
         else:
             act2.triggered.connect(lambda checked, p=page: self.show_in_new_window([[p.contextMenuData().linkUrl(), 1.0, True]]))
@@ -755,7 +781,7 @@ class MainWindow(QMainWindow):
 
     def show_in_new_window(self, tabs):
 
-        if not self.new_win:
+        if not self.isNewWin:
             w = MainWindow(new_win=True, init_tabs=tabs)
             self.instances.append(w)
             w.show()
@@ -874,15 +900,12 @@ class MainWindow(QMainWindow):
             self.updateGrips()
 
         if self.autoHide:
+            # update hover areas
             self.hoverHWidget.setGeometry(48, 0, self.width(), 20)
             self.hoverVWidget.setGeometry(0, 48, 20, self.height())
 
-        # check and adjust urlbar width
-        new_width = max(200, min(self.size().width() // 2, self.screenSize.width()//3))
-        if self.urlbar.size().width() != new_width:
-            self.urlbar.setFixedWidth(new_width)
-
         if self.dl_manager.isVisible():
+            # reposition download list
             x = self.x() + self.width() - self.dl_manager.width()
             y = self.y() + self.navtb.height()
             self.dl_manager.move(x, y)
@@ -895,7 +918,7 @@ class MainWindow(QMainWindow):
 
         # Save current browser contents and settings
         # only main instance may save settings
-        if not self.new_win:
+        if not self.isNewWin:
             tabs = []
             for i in range(self.tabs.count() - 1):
                 browser = self.tabs.widget(i)
@@ -946,16 +969,13 @@ class DownloadManager(QWidget):
         self.setLayout(self.mainLayout)
 
         self.init_label = QLabel("No Donwloads active yet...")
-        self.init_label.setStyleSheet("background: #323232; color: white; border: none;")
+        # self.init_label.setStyleSheet("background: #323232; color: white; border: none;")
+        self.init_label.setContentsMargins(10, 0, 0, 0)
         self.init_label.setFixedWidth(460)
-        self.init_label.setFixedHeight(30)
+        self.init_label.setFixedHeight(60)
         self.mainLayout.addWidget(self.init_label)
 
         self.downloads = {}
-
-        self.setMouseTracking(True)
-        self.moving = False
-        self.offset = self.pos()
 
         self.pause_ico = "||"
         self.cancel_ico = "ℵ"
@@ -1204,12 +1224,12 @@ class Dialog(QDialog):
 
 class HoverWidget(QWidget):
 
-    def __init__(self, parent, obj_to_show, enter_callback=None, leave_callback=None):
+    def __init__(self, parent, obj_to_show, enter_signal=None, leave_signal=None):
         super(HoverWidget, self).__init__(parent)
 
         self.obj_to_show = obj_to_show
-        self.enter_callback = enter_callback
-        self.leave_callback = leave_callback
+        self.enter_signal = enter_signal
+        self.leave_signal = leave_signal
 
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setAttribute(Qt.WidgetAttribute.WA_InputMethodTransparent)
@@ -1217,24 +1237,25 @@ class HoverWidget(QWidget):
         self.setWindowFlag(Qt.WindowType.WindowDoesNotAcceptFocus, True)
 
     def enterEvent(self, a0):
-        if self.enter_callback is not None:
-            self.enter_callback()
+        if self.enter_signal is not None:
+            self.enter_signal.emit()
 
     def leaveEvent(self, a0):
-        if self.leave_callback is not None:
-            self.leave_callback()
+        if self.leave_signal is not None:
+            self.leave_signal.emit()
 
 
 class TitleBar(QToolBar):
 
-    def __init__(self, parent, isCustom, other_widgets_to_move=None, enter_callback=None, leave_callback=None):
+    def __init__(self, parent, isCustom, other_widgets_to_move=None, enter_signal=None, leave_signal=None):
         super(TitleBar, self).__init__(parent)
 
         self.isCustom = isCustom
         self.other_move = other_widgets_to_move or []
-        self.enter_callback = enter_callback
-        self.leave_callback = leave_callback
+        self.enter_signal = enter_signal
+        self.leave_signal = leave_signal
 
+        self.setMouseTracking(True)
         self.moving = False
         self.offset = parent.pos()
         self.other_offsets = []
@@ -1264,21 +1285,21 @@ class TitleBar(QToolBar):
         self.moving = False
 
     def enterEvent(self, event):
-        if self.enter_callback is not None:
-            self.enter_callback()
+        if self.enter_signal is not None:
+            self.enter_signal.emit()
 
     def leaveEvent(self, event):
-        if self.leave_callback is not None:
-            self.leave_callback()
+        if self.leave_signal is not None:
+            self.leave_signal.emit()
 
 
 class TabBar(QTabBar):
 
-    def __init__(self, parent, enter_callback=None, leave_callback=None):
+    def __init__(self, parent, enter_signal=None, leave_signal=None):
         super(TabBar, self).__init__(parent)
 
-        self.enter_callback = enter_callback
-        self.leave_callback = leave_callback
+        self.enter_signal = enter_signal
+        self.leave_signal = leave_signal
 
     # this will align tab titles to left (maybe a "little bit" excessive, but fun...)
     # WARNING: moving tabs produces weird behavior
@@ -1307,12 +1328,12 @@ class TabBar(QTabBar):
     #         painter.restore()
 
     def enterEvent(self, event):
-        if self.enter_callback is not None:
-            self.enter_callback()
+        if self.enter_signal is not None:
+            self.enter_signal.emit()
 
     def leaveEvent(self, event):
-        if self.leave_callback is not None:
-            self.leave_callback()
+        if self.leave_signal is not None:
+            self.leave_signal.emit()
 
 
 class SideGrip(QWidget):
@@ -1436,7 +1457,7 @@ if not hasattr(sys, "_MEIPASS"):
     sys._excepthook = sys.excepthook
     sys.excepthook = exception_hook
 
-# TODO: check the behavior of these settings and decide if they are needed and in which cases
+# Qt is DPI-Aware, so all this is not likely required
 # setDPIAwareness()
 # setSystemDPISettings()
 # app.setAttribute(Qt.AA_EnableHighDpiScaling, True)

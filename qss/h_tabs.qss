@@ -8,7 +8,7 @@ QTabBar {
 
 QTabBar::tab {
     font-family: "MS Shell Dlg 2";
-    font-size: 8pt;
+    font-size: 9pt;
     background: #161616;
     color: lightgrey;
     border: none;
@@ -23,29 +23,6 @@ QTabBar::tab {
 QTabBar::tab:selected {
     background-color: #323232;
     border: none;
-}
-
-QTabBar::close-button {
-    image: url('%s');
-    background: #161616;
-    color: white;
-    border: none;
-    subcontrol-origin: padding;
-    subcontrol-position: right;
-    width: 32px;
-    height: 32px;
-}
-
-QTabBar::close-button:selected {
-    image: url('%s');
-    background: #646464;
-    color: #161616;
-}
-
-QTabBar::close-button:hover {
-    image: url('%s');
-    background: #646464;
-    color: #161616;
 }
 
 QTabWidget::pane {
