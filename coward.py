@@ -1,4 +1,4 @@
-# importing required libraries
+# based on: https://www.geeksforgeeks.org/python/creating-a-tabbed-browser-using-pyqt5/
 import json
 import os
 import re
@@ -88,7 +88,7 @@ class MainWindow(QMainWindow):
 
         except:
             # create a default settings file in case of error
-            self.config = {"tabs": [["https://www.google.es", 1.0, True]],
+            self.config = {"tabs": [["https://start.duckduckgo.com/?kae=d", 1.0, True]],
                            "pos": (100, 100),
                            "size": (min(self.screenSize.width() // 2, 1024), min(self.screenSize.height() - 200, 1024)),
                            "cookies": True,
@@ -496,7 +496,7 @@ class MainWindow(QMainWindow):
         # if url is blank
         if qurl is None:
             # creating a google url
-            qurl = QUrl('http://www.google.es///')
+            qurl = QUrl('https://start.duckduckgo.com/?kae=d')
 
         # creating a QWebEngineView object
         browser = QWebEngineView()
@@ -703,6 +703,7 @@ class MainWindow(QMainWindow):
 
         else:
             # else remove the tab
+            self.tabs.widget(i).deleteLater()
             self.tabs.removeTab(i)
             if self.tabs.currentIndex() == self.tabs.count() - 1:
                 self.tabs.setCurrentIndex(self.tabs.currentIndex() - 1)
@@ -719,7 +720,7 @@ class MainWindow(QMainWindow):
     def navigate_home(self):
         # go to google
         self.tabs.tabBar().setTabIcon(self.tabs.currentIndex(), self.web_ico)
-        self.tabs.currentWidget().load(QUrl("https://www.google.es///"))
+        self.tabs.currentWidget().load(QUrl("https://start.duckduckgo.com/?kae=d"))
 
     # method for navigate to url
     def navigate_to_url(self):
@@ -733,8 +734,9 @@ class MainWindow(QMainWindow):
 
         # if scheme is blank
         if not qurl.isValid() or "." not in qurl.url():
-            # search in Google
-            qurl.setUrl("https://www.google.es/search?q=%s&safe=off" % self.urlbar.text())
+            # search in DuckDuckGo (safer)
+            # qurl.setUrl("https://www.google.es/search?q=%s&safe=off" % self.urlbar.text())
+            qurl.setUrl("https://duckduckgo.com/?t=h_&hps=1&start=1&q=%s&ia=web&kae=d" % self.urlbar.text().replace(" ", "+"))
         elif qurl.scheme() == "":
             # set scheme
             qurl.setScheme("https")
