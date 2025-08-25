@@ -7,10 +7,11 @@ import subprocess
 import sys
 import traceback
 
-from PyQt5.QtCore import *
-from PyQt5.QtWebEngineWidgets import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import *
+from PyQt6.QtCore import *
+from PyQt6.QtWebEngineCore import *
+from PyQt6.QtWebEngineWidgets import *
+from PyQt6.QtWidgets import *
+from PyQt6.QtGui import *
 
 
 # main window
@@ -199,7 +200,7 @@ class MainWindow(QMainWindow):
         # self.navtb.addSeparator()
 
         spacer = QLabel()
-        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         spacer.setMinimumWidth(20)
         spacer.setMaximumWidth(200)
         self.navtb.addWidget(spacer)
@@ -221,7 +222,7 @@ class MainWindow(QMainWindow):
         # self.navtb.addAction(self.stop_btn)
 
         spacer = QLabel()
-        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         spacer.setMinimumWidth(20)
         spacer.setMaximumWidth(200)
         self.navtb.addWidget(spacer)
@@ -309,7 +310,7 @@ class MainWindow(QMainWindow):
         self.tabsContextMenu.setMinimumHeight(54)
         self.tabsContextMenu.setContentsMargins(5, 14, 5, 5)
         self.close_action = QAction()
-        self.close_action.setIcon(self.style().standardIcon(QStyle.SP_MessageBoxCritical))
+        self.close_action.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxCritical))
         self.tabsContextMenu.addAction(self.close_action)
         # Controlling context menu with mouse left-click
         # self.tabs.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
@@ -498,25 +499,30 @@ class MainWindow(QMainWindow):
             qurl = QUrl('http://www.google.es///')
 
         # creating a QWebEngineView object
-        browser = QWebEngineView(self)
-        page = browser.page()
+        browser = QWebEngineView()
+        profile = QWebEngineProfile("coward" + str(qWebEngineChromiumVersion()), browser)
+        profile.setPersistentCookiesPolicy(QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies)
+        profile.setPersistentPermissionsPolicy(QWebEngineProfile.PersistentPermissionsPolicy.StoreOnDisk)
+        page = QWebEnginePage(profile, browser)
+        browser.setPage(page)
+        # page = browser.page()
 
         # Enable/Disable cookies
         page.profile().defaultProfile().cookieStore().setCookieFilter(self.cookie_filter)
 
         # Enabling fullscreen in YouTube and other sites
-        browser.settings().setAttribute(QWebEngineSettings.FullScreenSupportEnabled, True)
+        browser.settings().setAttribute(QWebEngineSettings.WebAttribute.FullScreenSupportEnabled, True)
         page.fullScreenRequested.connect(lambda request: self.fullscr(request))
 
         # Enabling some extra features
         # page.featurePermissionRequested.connect(lambda u, f, p=page, b=browser: p.setFeaturePermission(u, f, QWebEnginePage.PermissionGrantedByUser))
-        page.settings().setAttribute(QWebEngineSettings.JavascriptCanAccessClipboard, True)
-        browser.settings().setAttribute(QWebEngineSettings.JavascriptEnabled, True)
-        browser.settings().setAttribute(QWebEngineSettings.JavascriptCanOpenWindows, True)
-        browser.settings().setAttribute(QWebEngineSettings.PluginsEnabled, True)
+        page.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanAccessClipboard, True)
+        browser.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
+        browser.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanOpenWindows, True)
+        browser.settings().setAttribute(QWebEngineSettings.WebAttribute.PluginsEnabled, True)
 
         # setting url to browser
-        browser.setUrl(qurl)
+        browser.load(qurl)
         # this saves time if launched with several open tabs (will be reloaded in tab_changed() method)
         # browser.stop()
 
@@ -538,15 +544,12 @@ class MainWindow(QMainWindow):
         page.profile().downloadRequested.connect(self.download_file)
 
         # manage context menu options (only those not already working out-of-the-box)
-        act1 = page.action(page.WebAction.OpenLinkInNewTab)
-        act1.disconnect()
-        act1.triggered.connect(lambda checked, p=page: self.add_new_tab(p.contextMenuData().linkUrl()))
-        act2 = page.action(page.WebAction.OpenLinkInNewWindow)
-        act2.disconnect()
         if self.isNewWin:
+            act2 = page.action(page.WebAction.OpenLinkInNewWindow)
+            act2.disconnect()
             act2.setVisible(False)
         else:
-            act2.triggered.connect(lambda checked, p=page: self.show_in_new_window([[p.contextMenuData().linkUrl(), 1.0, True]]))
+            page.newWindowRequested.connect(self.openLinkRequested)
         act3 = page.action(page.WebAction.ViewSource)
         self.inspector = QWebEngineView()
         act3.disconnect()
@@ -601,10 +604,10 @@ class MainWindow(QMainWindow):
                     self.hoverVWidget.show()
 
     def cookie_filter(self, request):
-        # print(f"firstPartyUrl: {request.firstPartyUrl.toString()}, "
-        # f"origin: {request.origin.toString()}, "
-        # f"thirdParty? {request.thirdParty}"
-        # )
+        print(f"firstPartyUrl: {request.firstPartyUrl.toString()}, "
+        f"origin: {request.origin.toString()}, "
+        f"thirdParty? {request.thirdParty}"
+        )
         return self.cookies
 
     def title_changed(self, title, i):
@@ -679,11 +682,13 @@ class MainWindow(QMainWindow):
 
     def tab_moved(self, to_index, from_index):
         # updating index-dependent signals when tab is moved
+        # destination tab
         page = self.tabs.widget(to_index).page()
         page.titleChanged.disconnect()
         page.titleChanged.connect(lambda title, index=to_index: self.title_changed(title, index))
         page.iconChanged.disconnect()
         page.iconChanged.connect(lambda icon, index=to_index: self.icon_changed(icon, index))
+        # origin tab
         page = self.tabs.widget(from_index).page()
         page.titleChanged.disconnect()
         page.titleChanged.connect(lambda title, index=from_index: self.title_changed(title, index))
@@ -714,7 +719,7 @@ class MainWindow(QMainWindow):
     def navigate_home(self):
         # go to google
         self.tabs.tabBar().setTabIcon(self.tabs.currentIndex(), self.web_ico)
-        self.tabs.currentWidget().setUrl(QUrl("https://www.google.es///"))
+        self.tabs.currentWidget().load(QUrl("https://www.google.es///"))
 
     # method for navigate to url
     def navigate_to_url(self):
@@ -736,7 +741,7 @@ class MainWindow(QMainWindow):
 
         # set the url
         self.tabs.tabBar().setTabIcon(self.tabs.currentIndex(), self.web_ico)
-        self.tabs.currentWidget().setUrl(qurl)
+        self.tabs.currentWidget().load(qurl)
 
     def manage_cookies(self, clicked):
 
@@ -778,12 +783,18 @@ class MainWindow(QMainWindow):
         self.inspector.setWindowTitle("Web Inspector - " + p.title())
         self.inspector.show()
 
-    def show_in_new_window(self, tabs):
+    def openLinkRequested(self, request):
 
-        if not self.isNewWin:
-            w = MainWindow(new_win=True, init_tabs=tabs)
-            self.instances.append(w)
-            w.show()
+        if request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewWindow:
+
+            if not self.isNewWin:
+                tabs = [[request.requestedUrl(), 1.0, True]]
+                w = MainWindow(new_win=True, init_tabs=tabs)
+                self.instances.append(w)
+                w.show()
+
+        elif request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewTab:
+            self.add_new_tab(request.requestedUrl())
 
     def manage_autohide(self):
 
@@ -822,7 +833,7 @@ class MainWindow(QMainWindow):
         self.dl_btn.setText("🡡")
 
     # adding action to download files
-    def download_file(self, item: QWebEngineDownloadItem):
+    def download_file(self, item: QWebEngineDownloadRequest):
         if self.dl_manager.addDownload(item):
             self.show_dl_manager()
 
@@ -921,8 +932,8 @@ class MainWindow(QMainWindow):
         self.dl_manager.cancelAllDownloads()
 
         # Save current browser contents and settings
-        # only main instance may save settings
         if not self.isNewWin:
+            # only main instance may save settings
             tabs = []
             for i in range(self.tabs.count() - 1):
                 browser = self.tabs.widget(i)
@@ -995,29 +1006,25 @@ class DownloadManager(QWidget):
     def addDownload(self, item):
 
         accept = True
+        added = False
         filename = ""
         tempfile = ""
-        added = False
-        if item and item.state() == QWebEngineDownloadItem.DownloadState.DownloadRequested:
+        if item and item.state() == QWebEngineDownloadRequest.DownloadState.DownloadRequested:
 
-            # download the whole page content
             if item.isSavePageDownload():
-                item.setSavePageFormat(QWebEngineDownloadItem.SavePageFormat.CompleteHtmlSaveFormat)
+                # download the whole page content (html file + folder)
+                item.setSavePageFormat(QWebEngineDownloadRequest.SavePageFormat.CompleteHtmlSaveFormat)
 
-            itemFileName = item.downloadFileName()
-            # download item is proposing ".mhtml" extension for web pages... changing it if that's the case
-            if itemFileName.endswith(".mhtml"):
-                itemFileName = itemFileName.rsplit(".mhtml", 1)[0] + ".html"
-            norm_name = get_valid_filename(itemFileName)
-            filename, _ = QFileDialog.getSaveFileName(self, "Save File As",
-                                                      QDir(item.downloadDirectory()).filePath(norm_name))
+            norm_name = get_valid_filename(item.downloadFileName())
+            filename, _ = QFileDialog.getSaveFileName(self, "Save File As", QDir(item.downloadDirectory()).filePath(norm_name))
             if filename:
                 filename = os.path.normpath(filename)
                 tempfile = os.path.join(self.tempFolder, str(item.id()), os.path.basename(filename))
                 item.setDownloadDirectory(os.path.dirname(tempfile))
                 item.setDownloadFileName(os.path.basename(filename))
-                item.downloadProgress.connect(lambda p, t, i=item.id(): self.updateDownload(p, t, i))
-                item.finished.connect(lambda i=item.id(): self.downloadFinished(i))
+                item.receivedBytesChanged.connect(lambda i=item.id(): self.updateDownload(i))
+                item.isFinishedChanged.connect(lambda i=item.id(): self.downloadFinished(i))
+                item.stateChanged.connect(lambda s, i=item.id(): self.onStateChanged(s, i))
                 added = True
 
             else:
@@ -1026,13 +1033,14 @@ class DownloadManager(QWidget):
         if accept:
             item.accept()
             if added:
+                # request is triggered several times. Only the first time  will only be added to the UI
                 self._add(item, os.path.basename(filename), filename, tempfile)
-                added = True
+
         else:
             item.cancel()
             del item
 
-        return added
+        return accept
 
     def _add(self, item, title, location, tempfile):
 
@@ -1087,14 +1095,14 @@ class DownloadManager(QWidget):
         self.mainLayout.insertWidget(1, widget)
         self.downloads[str(item.id())] = [item, title, location, tempfile, widget]
 
-    def updateDownload(self, progress, total, dl_id):
+    def updateDownload(self, dl_id):
 
         dl_data = self.downloads.get(str(dl_id), [])
         if dl_data:
             item, _, _, _, widget = dl_data
 
             prog = widget.findChild(QProgressBar, "prog")
-            value = int(progress / total * 100)
+            value = int(item.receivedBytes() / (item.totalBytes() or 1) * 100)
             prog.setValue(value)
 
     def downloadFinished(self, dl_id):
@@ -1110,18 +1118,37 @@ class DownloadManager(QWidget):
             close_loc.setToolTip("Open file location")
             prog = widget.findChild(QProgressBar, "prog")
             prog.hide()
-            if item.state() == QWebEngineDownloadItem.DownloadState.DownloadCompleted:
+            if item.state() == QWebEngineDownloadRequest.DownloadState.DownloadCompleted:
                 try:
                     shutil.move(tempfile, location)
+                    if item.isSavePageDownload():
+                        shutil.move(tempfile.rsplit(".", 1)[0] + "_files", os.path.dirname(location))
                 except:
                     pass
+
+    def onStateChanged(self, state, dl_id):
+
+        dl_data = self.downloads.get(str(dl_id), [])
+        if dl_data:
+            item, _, location, tempfile, widget = dl_data
+
+            if state not in (QWebEngineDownloadRequest.DownloadState.DownloadInProgress,
+                             QWebEngineDownloadRequest.DownloadState.DownloadCompleted):
+                name = widget.findChild(QLabel, "name")
+                font = name.font()
+                font.setStrikeOut(True)
+                name.setFont(font)
+                prog = widget.findChild(QProgressBar, "prog")
+                prog.hide()
+                pause = widget.findChild(QPushButton, "pause")
+                pause.hide()
+                close_loc = widget.findChild(QPushButton, "close_loc")
+                close_loc.hide()
 
     def pause(self, checked, button, item, location):
 
         if button.text() == self.pause_ico:
             try:
-                # it's not possible to resume a canceled download, so it has to be paused
-                # to avoid garbage files, the temporary download file will be stored in system temporary folder
                 item.pause()
             except:
                 pass
@@ -1161,8 +1188,6 @@ class DownloadManager(QWidget):
 
         elif button.text() == self.cancel_ico:
             try:
-                # it's not possible to resume a canceled download, so it has to be paused
-                # to avoid garbage files, the temporary download file will be stored in system temporary folder
                 item.cancel()
             except:
                 pass
@@ -1267,7 +1292,7 @@ class TitleBar(QToolBar):
         if isCustom:
             self.parent().setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
             self.setAutoFillBackground(True)
-            self.setBackgroundRole(QPalette.Highlight)
+            self.setBackgroundRole(QPalette.ColorRole.Highlight)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton and self.isCustom:
@@ -1279,11 +1304,12 @@ class TitleBar(QToolBar):
 
     def mouseMoveEvent(self, event):
         if self.moving:
-            self.parent().move(event.globalPos() - self.offset)
+            # in PyQt6 globalPos() has been replaced by globalPosition(), which returns a QPointF() object
+            self.parent().move(event.globalPosition().toPoint() - self.offset)
             for item in self.other_offsets:
                 w, offset = item
                 if w.isVisible():
-                    w.move(event.globalPos() - self.offset + offset)
+                    w.move(event.globalPosition().toPoint() - self.offset + offset)
 
     def mouseReleaseEvent(self, event):
         self.moving = False
@@ -1422,14 +1448,21 @@ def setDPIAwareness():
             dpiAware = 0
 
         if dpiAware == 0:
-            # It seems that this can't be invoked twice. Setting it to 1 for apps having 0 (unaware) may have less impact
-            ctypes.windll.shcore.SetProcessDpiAwareness(1)
+            ctypes.windll.shcore.SetProcessDpiAwareness(2)
 
 
 def setSystemDPISettings():
     os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
     os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
     os.environ["QT_SCALE_FACTOR"] = "1"
+
+
+def setApplicationDPISettings():
+    # These attributes are always enabled in PyQt6
+    if hasattr(QStyleFactory, 'AA_EnableHighDpiScaling'):
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_EnableHighDpiScaling, True)
+    if hasattr(QStyleFactory, 'AA_UseHighDpiPixmaps'):
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps, True)
 
 
 def force_icon(appid):
@@ -1446,6 +1479,11 @@ def exception_hook(exctype, value, tb):
     sys.exit(1)
 
 
+# Qt is DPI-Aware, so all this is not likely required
+# setDPIAwareness()
+# setSystemDPISettings()
+# setApplicationDPISettings()
+
 # creating a PyQt5 application and (windows only) force dark mode
 app = QApplication(sys.argv + ['-platform', 'windows:darkmode=1'])
 
@@ -1461,12 +1499,6 @@ if not hasattr(sys, "_MEIPASS"):
     sys._excepthook = sys.excepthook
     sys.excepthook = exception_hook
 
-# Qt is DPI-Aware, so all this is not likely required
-# setDPIAwareness()
-# setSystemDPISettings()
-# app.setAttribute(Qt.AA_EnableHighDpiScaling, True)
-# if hasattr(QStyleFactory, 'AA_UseHighDpiPixmaps'):
-#     app.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
 
 # creating and showing MainWindow object
 window = MainWindow()
