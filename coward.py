@@ -120,6 +120,19 @@ class MainWindow(QMainWindow):
         # Enable/Disable cookies
         self.cookies = self.config["cookies"]
 
+        # Prepare custom cookies environment to assure persistence
+        self.cachePath = os.getcwd() + os.path.sep + "_cache"
+        if not (os.path.exists(self.cachePath) and os.path.isdir(self.cachePath)):
+            os.makedirs(self.cachePath)
+        # This is needed to keep cookies and cache (PyQt6 only, not in PyQt5)
+        self.pageProfile = QWebEngineProfile("coward_" + str(qWebEngineChromiumVersion()), self)
+        self.pageProfile.setCachePath(self.cachePath)
+        self.pageProfile.setPersistentStoragePath(self.cachePath)
+        self.pageProfile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
+        self.pageProfile.setPersistentCookiesPolicy(QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies)
+        self.pageProfile.setPersistentPermissionsPolicy(QWebEngineProfile.PersistentPermissionsPolicy.StoreOnDisk)
+        # self._printProfileDetails(profile)
+
         # vertical / horizontal tabbar
         self.h_tabbar = self.config["h_tabbar"]
 
@@ -500,11 +513,7 @@ class MainWindow(QMainWindow):
 
         # creating a QWebEngineView object
         browser = QWebEngineView()
-        # This is needed to keep cookies and cache (PyQt6 only, not in PyQt5)
-        profile = QWebEngineProfile("coward" + str(qWebEngineChromiumVersion()), browser)
-        profile.setPersistentCookiesPolicy(QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies)
-        profile.setPersistentPermissionsPolicy(QWebEngineProfile.PersistentPermissionsPolicy.StoreOnDisk)
-        page = QWebEnginePage(profile, browser)
+        page = QWebEnginePage(self.pageProfile, browser)
         browser.setPage(page)
         # page = browser.page()
 
@@ -513,7 +522,7 @@ class MainWindow(QMainWindow):
 
         # Enabling fullscreen in YouTube and other sites
         browser.settings().setAttribute(QWebEngineSettings.WebAttribute.FullScreenSupportEnabled, True)
-        page.fullScreenRequested.connect(lambda request: self.fullscr(request))
+        page.fullScreenRequested.connect(self.fullscr)
 
         # Enabling some extra features
         # page.featurePermissionRequested.connect(lambda u, f, p=page, b=browser: p.setFeaturePermission(u, f, QWebEnginePage.PermissionGrantedByUser))
@@ -657,6 +666,7 @@ class MainWindow(QMainWindow):
         if app.mouseButtons() == Qt.MouseButton.LeftButton:
             if i == self.tabs.count() - 1:
                 self.urlbar.setText("")
+                self.urlbar.repaint()
                 self.add_new_tab()
 
             # elif 0 <= i < self.tabs.count() - 1:
@@ -700,7 +710,7 @@ class MainWindow(QMainWindow):
     def close_current_tab(self, i):
         # if there is only one tab
         if self.tabs.count() < 2:
-            # close aplication
+            # close application
             app.quit()
 
         else:
@@ -730,8 +740,7 @@ class MainWindow(QMainWindow):
         # Set default icon
         self.tabs.tabBar().setTabIcon(self.tabs.currentIndex(), self.web_ico)
 
-        # get the line edit text
-        # convert it to QUrl object
+        # get the line edit text and convert it to QUrl object
         qurl = QUrl(self.urlbar.text())
 
         # if scheme is blank
@@ -764,6 +773,7 @@ class MainWindow(QMainWindow):
             page = browser.page()
             page.history().clear()
             page.profile().defaultProfile().cookieStore().deleteAllCookies()
+        shutil.rmtree(self.cachePath)
 
         # Disable navigation arrows (history wiped)
         self.back_btn.setEnabled(False)
@@ -905,6 +915,16 @@ class MainWindow(QMainWindow):
             self.maxNormal = True
             self.max_btn.setText("⧉")
             self.max_btn.setToolTip("Restore")
+
+    def _printProfileDetails(self, profile: QWebEngineProfile):
+        print("***********************")
+        print(f"Storage Name: {profile.storageName()}")
+        print(f"Cache Path: {profile.cachePath()}")
+        print(f"Storage Path: {profile.persistentStoragePath()}")
+        print(f"Cache Type: {profile.httpCacheType()}")
+        print(f"Persistant Cookie Policy: {profile.persistentCookiesPolicy()}")
+        print(f"Off The Record: {profile.isOffTheRecord()}")
+        print("***********************")
 
     def resizeEvent(self, event):
         # propagate event
@@ -1503,7 +1523,6 @@ if not hasattr(sys, "_MEIPASS"):
     # This will allow to show some tracebacks (not all, anyway)
     sys._excepthook = sys.excepthook
     sys.excepthook = exception_hook
-
 
 # creating and showing MainWindow object
 window = MainWindow()
