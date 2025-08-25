@@ -604,10 +604,10 @@ class MainWindow(QMainWindow):
                     self.hoverVWidget.show()
 
     def cookie_filter(self, request):
-        print(f"firstPartyUrl: {request.firstPartyUrl.toString()}, "
-        f"origin: {request.origin.toString()}, "
-        f"thirdParty? {request.thirdParty}"
-        )
+        # print(f"firstPartyUrl: {request.firstPartyUrl.toString()}, "
+        # f"origin: {request.origin.toString()}, "
+        # f"thirdParty? {request.thirdParty}"
+        # )
         return self.cookies
 
     def title_changed(self, title, i):
