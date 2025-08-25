@@ -20,7 +20,7 @@ Rationally, this will never be a good replacement for any of the commercial web 
 
 #### Known issues (due to QtWebEngine limitations or web sites constraints)
 
-- Videos from some web sites will not offer HD quality option
+- Some videos from some web sites will not offer HD quality option
 - Live videos will not load unless QtWebEngine is compiled in your own system, then including all codecs
 - Some pages will not properly load or will remain unresponsive
 

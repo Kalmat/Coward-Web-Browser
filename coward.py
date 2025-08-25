@@ -500,6 +500,7 @@ class MainWindow(QMainWindow):
 
         # creating a QWebEngineView object
         browser = QWebEngineView()
+        # This is needed to keep cookies and cache (PyQt6 only, not in PyQt5)
         profile = QWebEngineProfile("coward" + str(qWebEngineChromiumVersion()), browser)
         profile.setPersistentCookiesPolicy(QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies)
         profile.setPersistentPermissionsPolicy(QWebEngineProfile.PersistentPermissionsPolicy.StoreOnDisk)
@@ -550,10 +551,10 @@ class MainWindow(QMainWindow):
             act2.setVisible(False)
         else:
             page.newWindowRequested.connect(self.openLinkRequested)
-        act3 = page.action(page.WebAction.ViewSource)
+        inspect_act = page.action(page.WebAction.ViewSource)
         self.inspector = QWebEngineView()
-        act3.disconnect()
-        act3.triggered.connect(lambda checked, p=page: self.inspect_page(p))
+        inspect_act.disconnect()
+        inspect_act.triggered.connect(lambda checked, p=page: self.inspect_page(p))
 
         return i
 
@@ -655,6 +656,7 @@ class MainWindow(QMainWindow):
 
         if app.mouseButtons() == Qt.MouseButton.LeftButton:
             if i == self.tabs.count() - 1:
+                self.urlbar.setText("")
                 self.add_new_tab()
 
             # elif 0 <= i < self.tabs.count() - 1:
@@ -734,8 +736,9 @@ class MainWindow(QMainWindow):
 
         # if scheme is blank
         if not qurl.isValid() or "." not in qurl.url():
-            # search in DuckDuckGo (safer)
+            # search in Google
             # qurl.setUrl("https://www.google.es/search?q=%s&safe=off" % self.urlbar.text())
+            # search in DuckDuckGo (safer)
             qurl.setUrl("https://duckduckgo.com/?t=h_&hps=1&start=1&q=%s&ia=web&kae=d" % self.urlbar.text().replace(" ", "+"))
         elif qurl.scheme() == "":
             # set scheme
