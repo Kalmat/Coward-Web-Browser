@@ -113,14 +113,14 @@ class MainWindow(QMainWindow):
         w = max(800, min(w, self.screenSize.width() - x))
         h = max(600, min(h, self.screenSize.height() - y))
         self.setGeometry(x, y, w, h)
-        self.setMinimumWidth(48*15)
+        self.setMinimumWidth(48*14)
         self.setMinimumHeight(96)
 
         # Enable/Disable cookies
         self.cookies = self.config["cookies"]
 
         # vertical / horizontal tabbar
-        self.h_tabbar = self.config["h_tabbar"] # and not self.autoHide
+        self.h_tabbar = self.config["h_tabbar"]
 
         if self.custom_titlebar:
             self.sideGrips = [
@@ -209,18 +209,16 @@ class MainWindow(QMainWindow):
         self.urlbar.setTextMargins(10, 0, 0, 0)
         self.urlbar.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.urlbar.returnPressed.connect(self.navigate_to_url)
-
-        # adding line edit to toolbar
         self.navtb.addWidget(self.urlbar)
 
         # similarly adding stop action
-        self.stop_btn = QAction("⤫", self)
-        font = self.stop_btn.font()
-        font.setPointSize(font.pointSize() + 8)
-        self.stop_btn.setFont(font)
-        self.stop_btn.setToolTip("Stop loading current page")
-        self.stop_btn.triggered.connect(lambda: self.tabs.currentWidget().stop())
-        self.navtb.addAction(self.stop_btn)
+        # self.stop_btn = QAction("⤫", self)
+        # font = self.stop_btn.font()
+        # font.setPointSize(font.pointSize() + 8)
+        # self.stop_btn.setFont(font)
+        # self.stop_btn.setToolTip("Stop loading current page")
+        # self.stop_btn.triggered.connect(lambda: self.tabs.currentWidget().stop())
+        # self.navtb.addAction(self.stop_btn)
 
         spacer = QLabel()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
@@ -633,9 +631,8 @@ class MainWindow(QMainWindow):
         self.urlbar.setText(qurl.toString())
 
         # Enable/Disable navigation arrows according to page history
-        page = browser.page()
-        self.back_btn.setEnabled(page.history().canGoBack())
-        self.next_btn.setEnabled(page.history().canGoForward())
+        self.back_btn.setEnabled(browser.history().canGoBack())
+        self.next_btn.setEnabled(browser.history().canGoForward())
 
     def current_tab_changed(self, i):
 
@@ -732,7 +729,7 @@ class MainWindow(QMainWindow):
         # if scheme is blank
         if not qurl.isValid() or "." not in qurl.url():
             # search in Google
-            qurl.setUrl("https://www.google.es/search?q=%s&safe=active&" % self.urlbar.text())
+            qurl.setUrl("https://www.google.es/search?q=%s&safe=off" % self.urlbar.text())
         elif qurl.scheme() == "":
             # set scheme
             qurl.setScheme("https")
@@ -752,7 +749,9 @@ class MainWindow(QMainWindow):
 
         self.clean_dlg.close()
         for i in range(self.tabs.count() - 1):
-            page = self.tabs.widget(i).page()
+            browser = self.tabs.widget(i)
+            browser.history().clear()
+            page = browser.page()
             page.history().clear()
             page.profile().defaultProfile().cookieStore().deleteAllCookies()
 
@@ -898,6 +897,11 @@ class MainWindow(QMainWindow):
         if self.custom_titlebar:
             # update grip areas
             self.updateGrips()
+
+            # adjust to screen edges:
+            mousePos = QCursor.pos()
+            if -5 < mousePos.y() < 5 or self.screenSize.height() - 5 < mousePos.y() < self.screenSize.height() + 5:
+                self.setGeometry(self.x(), 0, self.width(), self.screenSize.height())
 
         if self.autoHide:
             # update hover areas
