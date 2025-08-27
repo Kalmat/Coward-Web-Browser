@@ -1125,17 +1125,20 @@ class SearchWidget(QWidget):
 
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
         self.setWindowFlag(Qt.WindowType.Tool, True)
+        self.setStyleSheet("background: #323232; color: white; border: 1px solid lightgrey;")
+        self.setFixedSize(300, 54)
 
         self.searchCallback = searchCallback
+        with open(resource_path("qss/small_button.qss")) as f:
+            self.buttonStyle = f.read()
 
+        # create a horizontal layout
         self.mainLayout = QHBoxLayout()
         self.mainLayout.setContentsMargins(5, 5, 5, 5)
         self.mainLayout.setSpacing(10)
         self.setLayout(self.mainLayout)
 
-        self.setStyleSheet("background: #323232; color: white; border: 1px solid lightgrey;")
-        self.setFixedSize(300, 54)
-
+        # text box to fill in target search
         self.search_box = QLineEdit()
         self.search_box.setStyleSheet("background: #161616; color: white; border: none; border-radius:4px;")
         self.search_box.setFixedSize(200, 24)
@@ -1148,15 +1151,16 @@ class SearchWidget(QWidget):
         separator.setPixmap(QPixmap(resource_path("res/tabsep.png")))
         self.mainLayout.addWidget(separator)
 
+        # search forward button
         self.search_forward = QPushButton("▼")
-        self.search_forward.setStyleSheet(open(resource_path("qss/small_button.qss")).read())
+        self.search_forward.setStyleSheet(self.buttonStyle)
         font = self.search_forward.font()
         font.setPointSize(font.pointSize() + 10)
         self.search_forward.setFont(font)
-
         self.search_forward.clicked.connect(lambda button, forward=True: self.searchCallback(button, forward))
         self.mainLayout.addWidget(self.search_forward)
 
+        # search backward button
         self.search_backward = QPushButton("▲")
         self.search_backward.setStyleSheet(open(resource_path("qss/small_button.qss")).read())
         font = self.search_backward.font()
