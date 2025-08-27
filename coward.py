@@ -5,13 +5,19 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 import traceback
 
 from PyQt6.QtCore import *
+from PyQt6.QtGui import *
 from PyQt6.QtWebEngineCore import *
 from PyQt6.QtWebEngineWidgets import *
 from PyQt6.QtWidgets import *
-from PyQt6.QtGui import *
+
+# Using a local copy of this code since it is not in PyPi
+# The library available in PyPi, which is a fork from this one, unfortunately supports PyQt5 only
+# Thanks to z3ntu for sharing (https://github.com/z3ntu/QtWaitingSpinner)
+from _waitingspinnerwidget import QtWaitingSpinner
 
 
 # main window
@@ -31,7 +37,28 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None, new_win=False, init_tabs=None):
         super(MainWindow, self).__init__(parent)
 
-        self.isNewWin = new_win and init_tabs
+        # prepare cache folders and variables
+        self.cachePath = ""
+        self.lastCache = ""
+        self.storageName = "coward_" + str(qWebEngineChromiumVersion()) + ("_debug" if "python" in sys.executable else "")
+        self.deleteCache = False
+
+        # wipe all cache folders except the last one if requested by user
+        if "--delete_cache" in sys.argv:
+            lastCache = sys.argv[-1]
+            cacheName = os.path.basename(lastCache)
+            cacheFolder = os.path.dirname(lastCache)
+            parentFolder = os.path.dirname(cacheFolder)
+            tempCache = os.path.join(parentFolder, cacheName)
+            shutil.move(lastCache, tempCache)
+            shutil.rmtree(cacheFolder)
+            os.rename(tempCache, os.path.join(parentFolder, self.storageName))
+            sys.exit(0)
+
+        self.isNewWin = new_win
+        self.homePage = 'https://start.duckduckgo.com/?kae=d'
+        if self.isNewWin and not init_tabs:
+            init_tabs = [[self.homePage, 1.0, True]]
         self.init_tabs = init_tabs
 
         # setting window title and icon
@@ -70,7 +97,7 @@ class MainWindow(QMainWindow):
         # self.setMouseTracking(True)
 
         # get or create settings
-        self.screenSize = self.screen().size()
+        self.screenSize = self.screen().availableGeometry()
         try:
             # open settings file
             with open("coward.json", "r") as f:
@@ -88,7 +115,7 @@ class MainWindow(QMainWindow):
 
         except:
             # create a default settings file in case of error
-            self.config = {"tabs": [["https://start.duckduckgo.com/?kae=d", 1.0, True]],
+            self.config = {"tabs": [[self.homePage, 1.0, True]],
                            "pos": (100, 100),
                            "size": (min(self.screenSize.width() // 2, 1024), min(self.screenSize.height() - 200, 1024)),
                            "cookies": True,
@@ -105,33 +132,34 @@ class MainWindow(QMainWindow):
         # set initial position and size
         x, y = self.config["pos"]
         w, h = self.config["size"]
+        gap = 0 if self.custom_titlebar else 50
         if self.isNewWin:
             x += 50
             y += 50
-        gap = 0 if self.custom_titlebar else 50
+            gap += 50
         x = max(0, min(x, self.screenSize.width() - w))
         y = max(gap, min(y, self.screenSize.height() - h))
         w = max(800, min(w, self.screenSize.width() - x))
         h = max(600, min(h, self.screenSize.height() - y))
         self.setGeometry(x, y, w, h)
-        self.setMinimumWidth(48*14)
+        self.setMinimumWidth(48*15)
         self.setMinimumHeight(96)
 
         # Enable/Disable cookies
         self.cookies = self.config["cookies"]
 
-        # Prepare custom cookies environment to assure persistence
-        self.cachePath = os.getcwd() + os.path.sep + "_cache"
-        if not (os.path.exists(self.cachePath) and os.path.isdir(self.cachePath)):
-            os.makedirs(self.cachePath)
         # This is needed to keep cookies and cache (PyQt6 only, not in PyQt5)
-        self.pageProfile = QWebEngineProfile("coward_" + str(qWebEngineChromiumVersion()), self)
-        self.pageProfile.setCachePath(self.cachePath)
-        self.pageProfile.setPersistentStoragePath(self.cachePath)
-        self.pageProfile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
+        # Not sure if profile can be unique or new for every tab
+        # Not sure either if profile must have a browser as parent or it is enough using 'self'
+        # Will try to keep session cookies only... we will see!
+        self.pageProfile = QWebEngineProfile(self.storageName, self)
+        # self.pageProfile.setCachePath(self.cachePath)
+        # self.pageProfile.setPersistentStoragePath(self.cachePath)
+        # self.pageProfile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
+        # TODO: check if allow is enough or must use force
         self.pageProfile.setPersistentCookiesPolicy(QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies)
         self.pageProfile.setPersistentPermissionsPolicy(QWebEngineProfile.PersistentPermissionsPolicy.StoreOnDisk)
-        # self._printProfileDetails(profile)
+        self.pageProfile.defaultProfile().cookieStore().setCookieFilter(self.cookie_filter)
 
         # vertical / horizontal tabbar
         self.h_tabbar = self.config["h_tabbar"]
@@ -160,6 +188,7 @@ class MainWindow(QMainWindow):
 
         self.navtb.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
         self.navtb.setMovable(False)
+        self.navtb.setFloatable(False)
         self.navtb.setFloatable(False)
         self.addToolBar(self.navtb)
 
@@ -233,11 +262,19 @@ class MainWindow(QMainWindow):
         # self.stop_btn.setToolTip("Stop loading current page")
         # self.stop_btn.triggered.connect(lambda: self.tabs.currentWidget().stop())
         # self.navtb.addAction(self.stop_btn)
+        # self.navtb.addAction(self.stop_btn)
+
+        self.spinContainer = QWidget()
+        self.spinContainer.setFixedSize(48, 48)
+        self.spinner = QtWaitingSpinner(self.spinContainer)
+        self.spinner.setInnerRadius(5)
+        self.spinner.setColor(QColor(128, 128, 128))
+        self.navtb.addWidget(self.spinContainer)
 
         spacer = QLabel()
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        spacer.setMinimumWidth(20)
-        spacer.setMaximumWidth(200)
+        spacer.setMinimumWidth(0)
+        spacer.setMaximumWidth(200 - self.spinContainer.width())
         self.navtb.addWidget(spacer)
 
         # adding auto-hide mgt.
@@ -321,14 +358,20 @@ class MainWindow(QMainWindow):
         self.tabs.customContextMenuRequested.connect(self.showContextMenu)
         self.tabsContextMenu = QMenu()
         self.tabsContextMenu.setMinimumHeight(54)
-        self.tabsContextMenu.setContentsMargins(5, 14, 5, 5)
+        self.tabsContextMenu.setContentsMargins(0, 5, 0, 0)
         self.close_action = QAction()
         self.close_action.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxCritical))
         self.tabsContextMenu.addAction(self.close_action)
-        # Controlling context menu with mouse left-click
-        # self.tabs.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
-        # self.tabsContextMenu.aboutToHide.connect(self.menu_hiding)
-        # self.tabClicked = False
+
+        # creating a context menu to allow closing tabs when close button is hidden
+        self.newTabContextMenu = QMenu()
+        self.newTabContextMenu.setMinimumHeight(54)
+        self.newTabContextMenu.setContentsMargins(0, 5, 0, 0)
+        self.newWindow_action = QAction()
+        self.newWindow_action.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarNormalButton))
+        self.newWindow_action.setText("Open new tab in separate window")
+        self.newWindow_action.triggered.connect(self.show_in_new_window)
+        self.newTabContextMenu.addAction(self.newWindow_action)
 
         # set tabbar configuration according to orientation
         self.toggle_tabbar(toggle=False)
@@ -365,6 +408,7 @@ class MainWindow(QMainWindow):
             new_wins = self.config["new_wins"]
 
         # open all tabs in main / child window
+        self.spinner.start()
         current = 0
         if tabs:
             for tab in tabs:
@@ -375,6 +419,7 @@ class MainWindow(QMainWindow):
         else:
             self.add_tab()
         self.tabs.setCurrentIndex(current)
+        self.cachePath = self.tabs.currentWidget().page().profile().persistentStoragePath()
 
         self.update_urlbar(self.tabs.currentWidget().url(), self.tabs.currentWidget())
         # this will load the active tab only, saving time at start
@@ -408,7 +453,7 @@ class MainWindow(QMainWindow):
 
         # Prepare clean all warning dialog
         self.clean_dlg = Dialog(self, message="This will erase all your history and stored cookies.\n\n"
-                                              "Are you sure you want to proceed?")
+                                              "Are you sure you want to proceed?\n")
         self.clean_dlg.accepted.connect(self.clean_all)
         self.clean_dlg.rejected.connect(self.clean_dlg.close)
 
@@ -498,27 +543,17 @@ class MainWindow(QMainWindow):
             if not self.h_tabbar:
                 self.hoverVWidget.show()
 
-    @pyqtSlot("QWidget*", "QWidget*")
-    def on_focusChanged(self, old, now):
-        if self.urlbar == now:
-            QTimer.singleShot(100, self.urlbar.selectAll)
-
     # method for adding new tab
     def add_tab(self, qurl=None, zoom=1.0, label="Loading..."):
 
         # if url is blank
         if qurl is None:
             # creating a google url
-            qurl = QUrl('https://start.duckduckgo.com/?kae=d')
+            qurl = QUrl(self.homePage)
 
         # creating a QWebEngineView object
-        browser = QWebEngineView()
-        page = QWebEnginePage(self.pageProfile, browser)
-        browser.setPage(page)
-        # page = browser.page()
-
-        # Enable/Disable cookies
-        page.profile().defaultProfile().cookieStore().setCookieFilter(self.cookie_filter)
+        browser = QWebEngineView(self.pageProfile)
+        page = browser.page()
 
         # Enabling fullscreen in YouTube and other sites
         browser.settings().setAttribute(QWebEngineSettings.WebAttribute.FullScreenSupportEnabled, True)
@@ -541,10 +576,13 @@ class MainWindow(QMainWindow):
 
         # setting tab index and default icon
         i = self.tabs.addTab(browser, label if self.h_tabbar else "")
-        self.tabs.tabBar().setTabIcon(i, self.web_ico)
 
         # adding action to the browser when url changes
         browser.urlChanged.connect(lambda u, b=browser: self.update_urlbar(u, b))
+
+        # check start/finish loading (e.g. for loading animations)
+        browser.loadStarted.connect(lambda b=browser, index=i: self.onLoadStarted(b, index))
+        browser.loadFinished.connect(lambda a, b=browser, index=i: self.onLoadFinished(a, b, index))
 
         # adding action to the browser when title or icon change
         page.titleChanged.connect(lambda title, index=i: self.title_changed(title, index))
@@ -581,17 +619,29 @@ class MainWindow(QMainWindow):
         self.tabs.setCurrentIndex(self.add_tab(qurl))
         self.add_tab_action()
 
+    def show_in_new_window(self, tabs=None):
+
+        if not self.isNewWin:
+            w = MainWindow(new_win=True, init_tabs=tabs)
+            self.instances.append(w)
+            w.show()
+
     def toggle_tabbar(self, toggle=True):
 
         if toggle:
             self.h_tabbar = not self.h_tabbar
 
-        for i in range(self.tabs.count() - 1):
-            if self.h_tabbar:
-                self.title_changed(self.tabs.widget(i).page().title(), i)
-            else:
-                self.tabs.tabBar().setTabText(i, "")
-            self.icon_changed(self.tabs.widget(i).page().icon(), i)
+            for i in range(self.tabs.count() - 1):
+                icon = self.tabs.widget(i).page().icon()
+                if not icon.availableSizes():
+                    icon = self.web_ico
+                if self.h_tabbar:
+                    self.title_changed(self.tabs.widget(i).page().title(), i)
+                    new_icon = icon
+                else:
+                    self.tabs.tabBar().setTabText(i, "")
+                    new_icon = QIcon(icon.pixmap(QSize(32, 32)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
+                self.tabs.tabBar().setTabIcon(i, new_icon)
 
         self.tabs.setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)
         self.tabs.setTabPosition(QTabWidget.TabPosition.North if self.h_tabbar else QTabWidget.TabPosition.West)
@@ -613,24 +663,41 @@ class MainWindow(QMainWindow):
                 else:
                     self.hoverVWidget.show()
 
-    def cookie_filter(self, request):
-        # print(f"firstPartyUrl: {request.firstPartyUrl.toString()}, "
-        # f"origin: {request.origin.toString()}, "
-        # f"thirdParty? {request.thirdParty}"
+    def cookie_filter(self, cookie, origin=None):
+        # print(f"firstPartyUrl: {cookie.firstPartyUrl.toString()}, "
+        # f"origin: {cookie.origin.toString()}, "
+        # f"thirdParty? {cookie.thirdParty}"
         # )
         return self.cookies
+
+    def onLoadStarted(self, browser, index):
+        self.tabs.setTabIcon(index, self.web_ico)
+        if browser == self.tabs.currentWidget():
+            if not self.spinner.isSpinning:
+                self.spinner.start()
+
+    def onLoadFinished(self, a0, browser, index):
+        if browser == self.tabs.currentWidget():
+            if self.spinner.isSpinning:
+                self.spinner.stop()
 
     def title_changed(self, title, i):
         self.tabs.tabBar().setTabText(i, (("  " + title[:20]) if len(title) > 20 else title) if self.h_tabbar else "")
         self.tabs.setTabToolTip(i, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
 
     def icon_changed(self, icon: QIcon, i):
+
         if self.h_tabbar:
             new_icon = icon
         else:
             # icon rotation is required if not using custom painter in TabBar class
             new_icon = QIcon(icon.pixmap(QSize(32, 32)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
         self.tabs.tabBar().setTabIcon(i, new_icon)
+
+    @pyqtSlot("QWidget*", "QWidget*")
+    def on_focusChanged(self, old, now):
+        if self.urlbar == now:
+            QTimer.singleShot(100, self.urlbar.selectAll)
 
     # method to update the url when tab is changed
     def update_urlbar(self, qurl, browser: QWidget = None):
@@ -650,7 +717,7 @@ class MainWindow(QMainWindow):
     def current_tab_changed(self, i):
 
         if i < self.tabs.count() - 1:
-            # get the curl
+            # get the url
             qurl = self.tabs.currentWidget().url()
 
             # update the url
@@ -659,7 +726,14 @@ class MainWindow(QMainWindow):
             # reload url (saves time at start, while not taking much if already loaded)
             # self.tabs.currentWidget().reload()
 
-        # self.tabClicked = False
+            browser: QWebEngineView = self.tabs.currentWidget()
+            page: QWebEnginePage = browser.page()
+            if page.isLoading():
+                if not self.spinner.isSpinning:
+                    self.spinner.start()
+            else:
+                if self.spinner.isSpinning:
+                    self.spinner.stop()
 
     def tab_clicked(self, i):
 
@@ -669,17 +743,12 @@ class MainWindow(QMainWindow):
                 self.urlbar.repaint()
                 self.add_new_tab()
 
-            # elif 0 <= i < self.tabs.count() - 1:
-            #     if not self.h_tabbar and i == self.tabs.currentIndex():
-            #         if not self.tabClicked:
-            #             self.createContextMenu(i)
-            #         else:
-            #             self.tabClicked = False
-
     def showContextMenu(self, point):
         tabIndex = self.tabs.tabBar().tabAt(point)
         if 0 <= tabIndex < self.tabs.count() - 1:
             self.createContextMenu(tabIndex)
+        elif tabIndex == self.tabs.count() - 1:
+            self.createNewTabContextMenu(tabIndex)
 
     def createContextMenu(self, i):
         text = self.tabs.tabBar().tabToolTip(i).replace("\n(Right-click to close)", "")
@@ -692,7 +761,15 @@ class MainWindow(QMainWindow):
         pos = QPoint(self.tabs.tabBar().x() + tab_width, self.tabs.tabBar().y() + tab_height * i)
         self.tabsContextMenu.exec(self.tabs.mapToGlobal(pos))
 
+    def createNewTabContextMenu(self, i):
+        tab_rect = self.tabs.tabBar().tabRect(i)
+        tab_width = tab_rect.width()
+        tab_height = tab_rect.height()
+        pos = QPoint(self.tabs.tabBar().x() + tab_width, self.tabs.tabBar().y() + tab_height * i)
+        self.newTabContextMenu.exec(self.tabs.mapToGlobal(pos))
+
     def tab_moved(self, to_index, from_index):
+
         # updating index-dependent signals when tab is moved
         # destination tab
         page = self.tabs.widget(to_index).page()
@@ -700,18 +777,25 @@ class MainWindow(QMainWindow):
         page.titleChanged.connect(lambda title, index=to_index: self.title_changed(title, index))
         page.iconChanged.disconnect()
         page.iconChanged.connect(lambda icon, index=to_index: self.icon_changed(icon, index))
-        # origin tab
-        page = self.tabs.widget(from_index).page()
-        page.titleChanged.disconnect()
-        page.titleChanged.connect(lambda title, index=from_index: self.title_changed(title, index))
-        page.iconChanged.disconnect()
-        page.iconChanged.connect(lambda icon, index=from_index: self.icon_changed(icon, index))
+
+        if to_index == self.tabs.count() - 1:
+            # Avoid moving last tab (add new tab) if dragging another tab onto it
+            self.tabs.removeTab(from_index)
+            self.add_tab_action()
+
+        else:
+            # origin tab
+            page = self.tabs.widget(from_index).page()
+            page.titleChanged.disconnect()
+            page.titleChanged.connect(lambda title, index=from_index: self.title_changed(title, index))
+            page.iconChanged.disconnect()
+            page.iconChanged.connect(lambda icon, index=from_index: self.icon_changed(icon, index))
 
     def close_current_tab(self, i):
         # if there is only one tab
         if self.tabs.count() < 2:
             # close application
-            app.quit()
+            QCoreApplication.quit()
 
         else:
             # else remove the tab
@@ -731,14 +815,10 @@ class MainWindow(QMainWindow):
     # action to load the home page
     def navigate_home(self):
         # go to google
-        self.tabs.tabBar().setTabIcon(self.tabs.currentIndex(), self.web_ico)
-        self.tabs.currentWidget().load(QUrl("https://start.duckduckgo.com/?kae=d"))
+        self.tabs.currentWidget().load(QUrl(self.homePage))
 
     # method for navigate to url
     def navigate_to_url(self):
-
-        # Set default icon
-        self.tabs.tabBar().setTabIcon(self.tabs.currentIndex(), self.web_ico)
 
         # get the line edit text and convert it to QUrl object
         qurl = QUrl(self.urlbar.text())
@@ -754,7 +834,6 @@ class MainWindow(QMainWindow):
             qurl.setScheme("https")
 
         # set the url
-        self.tabs.tabBar().setTabIcon(self.tabs.currentIndex(), self.web_ico)
         self.tabs.currentWidget().load(qurl)
 
     def manage_cookies(self, clicked):
@@ -762,22 +841,25 @@ class MainWindow(QMainWindow):
         if clicked:
             self.cookies = not self.cookies
         self.cookie_btn.setText("🍪" if self.cookies else "⛔")
-        self.cookie_btn.setToolTip("Cookies are now enabled" if self.cookies else "Cookies are now disabled")
+        self.cookie_btn.setToolTip("Cookies are now %s" % ("enabled" if self.cookies else "disabled"))
 
     def clean_all(self):
 
         self.clean_dlg.close()
-        for i in range(self.tabs.count() - 1):
-            browser = self.tabs.widget(i)
-            browser.history().clear()
-            page = browser.page()
-            page.history().clear()
-            page.profile().defaultProfile().cookieStore().deleteAllCookies()
-        shutil.rmtree(self.cachePath)
 
-        # Disable navigation arrows (history wiped)
-        self.back_btn.setEnabled(False)
-        self.next_btn.setEnabled(False)
+        for i in range(self.tabs.count() - 1):
+            browser: QWebEngineView = self.tabs.widget(i)
+            page: QWebEnginePage = browser.page()
+            page.profile().defaultProfile().cookieStore().deleteAllCookies()
+            page.profile().setPersistentStoragePath(self.lastCache)
+            # page.profile().setCachePath(self.lastCache)
+            browser.reload()
+
+        # activate cache deletion upon closing app
+        self.deleteCache = True
+
+        # set a new cache folder (old ones will be deleted when app is restarted)
+        self.lastCache = os.path.join(self.cachePath, str(time.time()))
 
     def fullscr(self, request):
 
@@ -786,6 +868,7 @@ class MainWindow(QMainWindow):
             self.tabs.tabBar().setVisible(False)
             request.accept()
             self.showFullScreen()
+
         else:
             self.navtb.setVisible(True)
             self.tabs.tabBar().setVisible(True)
@@ -801,12 +884,7 @@ class MainWindow(QMainWindow):
     def openLinkRequested(self, request):
 
         if request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewWindow:
-
-            if not self.isNewWin:
-                tabs = [[request.requestedUrl(), 1.0, True]]
-                w = MainWindow(new_win=True, init_tabs=tabs)
-                self.instances.append(w)
-                w.show()
+            self.show_in_new_window([[request.requestedUrl(), 1.0, True]])
 
         elif request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewTab:
             self.add_new_tab(request.requestedUrl())
@@ -916,16 +994,6 @@ class MainWindow(QMainWindow):
             self.max_btn.setText("⧉")
             self.max_btn.setToolTip("Restore")
 
-    def _printProfileDetails(self, profile: QWebEngineProfile):
-        print("***********************")
-        print(f"Storage Name: {profile.storageName()}")
-        print(f"Cache Path: {profile.cachePath()}")
-        print(f"Storage Path: {profile.persistentStoragePath()}")
-        print(f"Cache Type: {profile.httpCacheType()}")
-        print(f"Persistant Cookie Policy: {profile.persistentCookiesPolicy()}")
-        print(f"Off The Record: {profile.isOffTheRecord()}")
-        print("***********************")
-
     def resizeEvent(self, event):
         # propagate event
         QMainWindow.resizeEvent(self, event)
@@ -951,6 +1019,10 @@ class MainWindow(QMainWindow):
             self.dl_manager.move(x, y)
 
     def closeEvent(self, a0, QMouseEvent=None):
+
+        # stop animations
+        self.spinner.stop()
+        self.spinner.close()
 
         # stop existing downloads:
         self.dl_manager.close()
@@ -992,6 +1064,11 @@ class MainWindow(QMainWindow):
             with open("coward.json", "w") as f:
                 f.write(json.dumps(self.config, indent=4))
 
+            # restart app to wipe all cache folders but the last one
+            if self.deleteCache:
+                QCoreApplication.quit()
+                status = QProcess.startDetached(sys.executable, sys.argv + ["--delete_cache"] + [self.lastCache])
+
 
 class DownloadManager(QWidget):
 
@@ -1022,6 +1099,7 @@ class DownloadManager(QWidget):
         self.resume_ico = "⟳"
         self.folder_ico = "🗀"
 
+        # to avoid garbage, downloads will be stored in system Temp folder, then moved to selected location
         self.tempFolder = os.path.join(os.getenv("SystemDrive"), os.path.sep, "Windows", "Temp", "Coward")
         try:
             shutil.rmtree(self.tempFolder)
@@ -1058,7 +1136,7 @@ class DownloadManager(QWidget):
         if accept:
             item.accept()
             if added:
-                # request is triggered several times. Only the first time  will only be added to the UI
+                # request is triggered several times. Only the first time will be added to the UI
                 self._add(item, os.path.basename(filename), filename, tempfile)
 
         else:
