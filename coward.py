@@ -1162,7 +1162,7 @@ class SearchWidget(QWidget):
 
         # search backward button
         self.search_backward = QPushButton("▲")
-        self.search_backward.setStyleSheet(open(resource_path("qss/small_button.qss")).read())
+        self.search_backward.setStyleSheet(self.buttonStyle)
         font = self.search_backward.font()
         font.setPointSize(font.pointSize() + 10)
         self.search_backward.setFont(font)
