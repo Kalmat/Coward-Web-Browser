@@ -1133,14 +1133,20 @@ class SearchWidget(QWidget):
         self.mainLayout.setSpacing(10)
         self.setLayout(self.mainLayout)
 
-        self.setStyleSheet("background: #323232; color: white; border: 1px solid lightgrey; border-radius: 8px;")
+        self.setStyleSheet("background: #323232; color: white; border: 1px solid lightgrey;")
         self.setFixedSize(300, 54)
 
         self.search_box = QLineEdit()
-        self.search_box.setStyleSheet("background: #161616; color: white; border: 1px solid lightgrey; border-radius:8px;")
+        self.search_box.setStyleSheet("background: #161616; color: white; border: none; border-radius:4px;")
         self.search_box.setFixedSize(200, 24)
         self.search_box.returnPressed.connect(lambda button=None, forward=True: self.searchCallback(button, forward))
         self.mainLayout.addWidget(self.search_box)
+
+        # adding a separator
+        separator = QLabel()
+        separator.setFixedSize(1, 32)
+        separator.setPixmap(QPixmap(resource_path("res/tabsep.png")))
+        self.mainLayout.addWidget(separator)
 
         self.search_forward = QPushButton("▼")
         self.search_forward.setStyleSheet(open(resource_path("qss/small_button.qss")).read())

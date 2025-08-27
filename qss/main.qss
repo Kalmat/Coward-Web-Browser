@@ -56,8 +56,7 @@ QMenu {
     font-size: 10pt;
     background: #323232;
     color: white;
-    border: 1px solid grey;
-    border-radius: 8px;
+    border: none;
     padding: 10px;
 }
 
