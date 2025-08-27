@@ -142,7 +142,7 @@ class MainWindow(QMainWindow):
         w = max(800, min(w, self.screenSize.width() - x))
         h = max(600, min(h, self.screenSize.height() - y))
         self.setGeometry(x, y, w, h)
-        self.setMinimumWidth(48*15)
+        self.setMinimumWidth(48*16)
         self.setMinimumHeight(96)
 
         # Enable/Disable cookies
@@ -180,8 +180,12 @@ class MainWindow(QMainWindow):
         self.dl_manager = DownloadManager(self)
         self.dl_manager.hide()
 
+        # creating search widget before custom title bar to allow moving it too
+        self.search_widget = SearchWidget(self, self.searchPage)
+        self.search_widget.hide()
+
         # creating a toolbar for navigation
-        self.navtb = TitleBar(self, self.custom_titlebar, [self.dl_manager], None, self.leaveNavBarSig)
+        self.navtb = TitleBar(self, self.custom_titlebar, [self.dl_manager, self.search_widget], None, self.leaveNavBarSig)
         with open(resource_path("qss/titlebar.qss")) as f:
             navStyle = f.read()
         self.navtb.setStyleSheet(navStyle)
@@ -276,6 +280,15 @@ class MainWindow(QMainWindow):
         spacer.setMinimumWidth(0)
         spacer.setMaximumWidth(200 - self.spinContainer.width())
         self.navtb.addWidget(spacer)
+
+        # adding search option
+        self.search_btn = QAction("⌕", self)
+        font = self.search_btn.font()
+        font.setPointSize(font.pointSize() + 6)
+        self.search_btn.setFont(font)
+        self.search_btn.setToolTip("Search text in this page")
+        self.search_btn.triggered.connect(self.manage_search)
+        self.navtb.addAction(self.search_btn)
 
         # adding auto-hide mgt.
         self.auto_btn = QAction("⇱" if self.autoHide else "⇲", self)
@@ -735,6 +748,9 @@ class MainWindow(QMainWindow):
                 if self.spinner.isSpinning:
                     self.spinner.stop()
 
+        if self.search_widget.isVisible():
+            self.search_widget.hide()
+
     def tab_clicked(self, i):
 
         if app.mouseButtons() == Qt.MouseButton.LeftButton:
@@ -824,17 +840,37 @@ class MainWindow(QMainWindow):
         qurl = QUrl(self.urlbar.text())
 
         # if scheme is blank
-        if not qurl.isValid() or "." not in qurl.url():
+        if not qurl.isValid() or "." not in qurl.url() or " " in qurl.url():
             # search in Google
             # qurl.setUrl("https://www.google.es/search?q=%s&safe=off" % self.urlbar.text())
             # search in DuckDuckGo (safer)
             qurl.setUrl("https://duckduckgo.com/?t=h_&hps=1&start=1&q=%s&ia=web&kae=d" % self.urlbar.text().replace(" ", "+"))
+
         elif qurl.scheme() == "":
             # set scheme
             qurl.setScheme("https")
 
         # set the url
         self.tabs.currentWidget().load(qurl)
+
+    def manage_search(self):
+
+        if self.search_widget.isVisible():
+            self.search_widget.hide()
+
+        else:
+            x = self.x() + self.width() - 660
+            y = self.y() + self.navtb.height()
+            self.search_widget.move(x, y)
+            self.search_widget.show()
+
+    def searchPage(self, button, forward):
+        textToFind = self.search_widget.getText()
+        if textToFind:
+            if forward:
+                self.tabs.currentWidget().findText(textToFind)
+            else:
+                self.tabs.currentWidget().findText(textToFind, QWebEnginePage.FindFlag.FindBackward)
 
     def manage_cookies(self, clicked):
 
@@ -849,7 +885,13 @@ class MainWindow(QMainWindow):
 
         for i in range(self.tabs.count() - 1):
             browser: QWebEngineView = self.tabs.widget(i)
+            browser.history().clear()
             page: QWebEnginePage = browser.page()
+            page.history().clear()
+            page.profile().clearAllVisitedLinks()
+            page.profile().defaultProfile().clearAllVisitedLinks()
+            page.profile().clearHttpCache()
+            page.profile().defaultProfile().clearHttpCache()
             page.profile().defaultProfile().cookieStore().deleteAllCookies()
             page.profile().setPersistentStoragePath(self.lastCache)
             # page.profile().setCachePath(self.lastCache)
@@ -1018,6 +1060,12 @@ class MainWindow(QMainWindow):
             y = self.y() + self.navtb.height()
             self.dl_manager.move(x, y)
 
+        if self.search_widget.isVisible():
+            # reposition search widget
+            x = self.x() + self.width() - 660
+            y = self.y() + self.navtb.height()
+            self.search_widget.move(x, y)
+
     def closeEvent(self, a0, QMouseEvent=None):
 
         # stop animations
@@ -1068,6 +1116,60 @@ class MainWindow(QMainWindow):
             if self.deleteCache:
                 QCoreApplication.quit()
                 status = QProcess.startDetached(sys.executable, sys.argv + ["--delete_cache"] + [self.lastCache])
+
+
+class SearchWidget(QWidget):
+
+    def __init__(self, parent, searchCallback):
+        super(SearchWidget, self).__init__(parent)
+
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
+        self.setWindowFlag(Qt.WindowType.Tool, True)
+
+        self.searchCallback = searchCallback
+
+        self.mainLayout = QHBoxLayout()
+        self.mainLayout.setContentsMargins(5, 5, 5, 5)
+        self.mainLayout.setSpacing(10)
+        self.setLayout(self.mainLayout)
+
+        self.setStyleSheet("background: #323232; color: white; border: 1px solid lightgrey; border-radius: 8px;")
+        self.setFixedSize(300, 54)
+
+        self.search_box = QLineEdit()
+        self.search_box.setStyleSheet("background: #161616; color: white; border: 1px solid lightgrey; border-radius:8px;")
+        self.search_box.setFixedSize(200, 24)
+        self.search_box.returnPressed.connect(lambda button=None, forward=True: self.searchCallback(button, forward))
+        self.mainLayout.addWidget(self.search_box)
+
+        self.search_forward = QPushButton("▼")
+        self.search_forward.setStyleSheet(open(resource_path("qss/small_button.qss")).read())
+        font = self.search_forward.font()
+        font.setPointSize(font.pointSize() + 10)
+        self.search_forward.setFont(font)
+
+        self.search_forward.clicked.connect(lambda button, forward=True: self.searchCallback(button, forward))
+        self.mainLayout.addWidget(self.search_forward)
+
+        self.search_backward = QPushButton("▲")
+        self.search_backward.setStyleSheet(open(resource_path("qss/small_button.qss")).read())
+        font = self.search_backward.font()
+        font.setPointSize(font.pointSize() + 10)
+        self.search_backward.setFont(font)
+        self.search_forward.clicked.connect(lambda button, forward=False: self.searchCallback(button, forward))
+        self.mainLayout.addWidget(self.search_backward)
+
+    def show(self):
+        super().show()
+        self.activateWindow()
+        self.search_box.setFocus()
+
+    def hide(self):
+        super().hide()
+        self.search_box.setText("")
+
+    def getText(self):
+        return self.search_box.text()
 
 
 class DownloadManager(QWidget):
