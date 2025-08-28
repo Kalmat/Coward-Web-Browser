@@ -188,7 +188,7 @@ class MainWindow(QMainWindow):
         font = self.toggleTab_btn.font()
         font.setPointSize(font.pointSize() + 2)
         self.toggleTab_btn.setFont(font)
-        self.toggleTab_btn.triggered.connect(lambda: self.toggle_tabbar(toggle=True))
+        self.toggleTab_btn.triggered.connect(lambda: self.toggle_tabbar(clicked=True))
         self.navtb.addAction(self.toggleTab_btn)
 
         # creating back action
@@ -220,18 +220,10 @@ class MainWindow(QMainWindow):
         self.reload_btn.triggered.connect(self.reloadPage)
         self.navtb.addAction(self.reload_btn)
 
-        # creating home action
-        # self.home_btn = QAction("⌂", self)
-        # font = self.home_btn.font()
-        # font.setPointSize(font.pointSize() + 16)
-        # self.home_btn.setFont(font)
-        # self.home_btn.setToolTip("Home page")
-        # self.home_btn.triggered.connect(self.navigate_home)
-        # self.navtb.addAction(self.home_btn)
-
         # adding a separator
         # self.navtb.addSeparator()
 
+        # adding a space in between to allow moving the window in all sizes
         spacer = QLabel()
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         spacer.setMinimumWidth(20)
@@ -255,6 +247,7 @@ class MainWindow(QMainWindow):
         # self.navtb.addAction(self.stop_btn)
         # self.navtb.addAction(self.stop_btn)
 
+        # adding a spinner as loading indicator
         self.spinContainer = QWidget()
         self.spinContainer.setFixedSize(48, 48)
         self.spinner = QtWaitingSpinner(self.spinContainer)
@@ -262,6 +255,7 @@ class MainWindow(QMainWindow):
         self.spinner.setColor(QColor(128, 128, 128))
         self.navtb.addWidget(self.spinContainer)
 
+        # adding a space in between to allow moving the window in all sizes
         spacer = QLabel()
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         spacer.setMinimumWidth(0)
@@ -374,7 +368,7 @@ class MainWindow(QMainWindow):
         self.newTabContextMenu.addAction(self.newWindow_action)
 
         # set tabbar configuration according to orientation
-        self.toggle_tabbar(toggle=False)
+        self.toggle_tabbar(clicked=False)
 
         # making document mode true
         self.tabs.setDocumentMode(True)
@@ -493,18 +487,19 @@ class MainWindow(QMainWindow):
             qurl = QUrl(self.homePage)
 
         # creating a QWebEngineView object
-        # This is needed to keep cookies and cache (PyQt6 only, not in PyQt5)
         browser = QWebEngineView()
+        # The profile and all its settings is needed to keep cookies and cache (PyQt6 only, not in PyQt5)
         profile = QWebEngineProfile(self.storageName, browser)
         # self.pageProfile.setCachePath(self.cachePath)
         if self.lastCache:
-            # apply custom cache location to delete all previous cache when app is closed, but keeping these ones
+            # apply custom cache location to delete all previous cache when app is closed, but keeping these
             profile.setPersistentStoragePath(self.lastCache)
         # self.pageProfile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
         profile.setPersistentCookiesPolicy(QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies)
         # profile.setPersistentPermissionsPolicy(QWebEngineProfile.PersistentPermissionsPolicy.StoreOnDisk)
         profile.setPersistentPermissionsPolicy(QWebEngineProfile.PersistentPermissionsPolicy.AskEveryTime)
         profile.defaultProfile().cookieStore().setCookieFilter(self.cookie_filter)
+        # (AFAIK) profile must be applied in a new page, not at browser level
         page = QWebEnginePage(profile, browser)
         browser.setPage(page)
 
@@ -647,6 +642,8 @@ class MainWindow(QMainWindow):
             self.update_urlbar(qurl, self.tabs.currentWidget())
 
             # reload url (saves time at start, while not taking much if already loaded)
+            # must find a way to reload the first time only, while keeping icon and title
+            # we could even kill browser widget after a given time, recreating it when it is clicked again
             # self.tabs.currentWidget().reload()
 
             browser: QWebEngineView = self.tabs.currentWidget()
@@ -715,11 +712,6 @@ class MainWindow(QMainWindow):
             # updating index-dependent signals when tab is moved
             for j in range(tabIndex, self.tabs.count() - 1):
                 self.update_index_dependent_signals(j)
-
-    # action to load the home page
-    def navigate_home(self):
-        # go to home page
-        self.tabs.currentWidget().load(QUrl(self.homePage))
 
     # method for navigate to url
     def navigate_to_url(self):
@@ -818,9 +810,9 @@ class MainWindow(QMainWindow):
         self.inspector.setWindowTitle("Web Inspector - " + p.title())
         self.inspector.show()
 
-    def toggle_tabbar(self, toggle=True):
+    def toggle_tabbar(self, clicked=True):
 
-        if toggle:
+        if clicked:
             self.h_tabbar = not self.h_tabbar
 
             for i in range(self.tabs.count() - 1):
@@ -868,12 +860,14 @@ class MainWindow(QMainWindow):
 
         if self.search_widget.isVisible():
             self.search_widget.hide()
+            self.search_btn.setText("⌕")
 
         else:
             x = self.x() + self.width() - 660
             y = self.y() + self.navtb.height()
             self.search_widget.move(x, y)
             self.search_widget.show()
+            self.search_btn.setText("🔍")
 
     def searchPage(self, checked, forward):
         textToFind = self.search_widget.getText()
@@ -958,19 +952,19 @@ class MainWindow(QMainWindow):
     def manage_downloads(self):
 
         if self.dl_manager.isVisible():
-            self.dl_manager.hide()
             self.dl_btn.setText("🡣")
+            self.dl_manager.hide()
 
         else:
             self.show_dl_manager()
 
     def show_dl_manager(self):
 
+        self.dl_btn.setText("⬇")
         self.dl_manager.show()
         x = self.x() + self.width() - self.dl_manager.width()
         y = self.y() + self.navtb.height()
         self.dl_manager.move(x, y)
-        self.dl_btn.setText("🡡")
 
     # adding action to download files
     def download_file(self, item: QWebEngineDownloadRequest):
