@@ -710,8 +710,8 @@ class MainWindow(QMainWindow):
                     self.tabs.setCurrentIndex(self.tabs.currentIndex() - 1)
 
             # updating index-dependent signals when tab is moved
-            for j in range(tabIndex, self.tabs.count() - 1):
-                self.update_index_dependent_signals(j)
+            for i in range(tabIndex, self.tabs.count() - 1):
+                self.update_index_dependent_signals(i)
 
     # method for navigate to url
     def navigate_to_url(self):
@@ -742,8 +742,9 @@ class MainWindow(QMainWindow):
             self.showFullScreen()
 
         else:
-            self.navtb.setVisible(True)
-            self.tabs.tabBar().setVisible(True)
+            if not self.autoHide:
+                self.navtb.setVisible(True)
+                self.tabs.tabBar().setVisible(True)
             request.accept()
             self.showNormal()
 
