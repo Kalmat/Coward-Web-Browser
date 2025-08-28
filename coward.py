@@ -774,7 +774,7 @@ class MainWindow(QMainWindow):
         self.newTabContextMenu.exec(self.tabs.mapToGlobal(pos))
 
     def openLinkRequested(self, request):
-        print("NEW REQ", request, request.destination(), request.isUserInitiated(), request.requestedGeometry())
+        # print("NEW REQ", request, request.destination(), request.isUserInitiated(), request.requestedGeometry())
 
         if request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewWindow:
             self.show_in_new_window([[request.requestedUrl(), 1.0, True]])
