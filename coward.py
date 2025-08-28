@@ -425,7 +425,7 @@ class MainWindow(QMainWindow):
             self.show_in_new_window(new_tabs)
 
         # keep track of open popups:
-        self.popups = []
+        # self.popups = []
 
         # adding add tab action
         self.add_tab_action()
@@ -511,8 +511,8 @@ class MainWindow(QMainWindow):
             profile.setPersistentStoragePath(self.lastCache)
         # self.pageProfile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
         profile.setPersistentCookiesPolicy(QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies)
-        # profile.setPersistentPermissionsPolicy(QWebEngineProfile.PersistentPermissionsPolicy.StoreOnDisk)
-        profile.setPersistentPermissionsPolicy(QWebEngineProfile.PersistentPermissionsPolicy.AskEveryTime)
+        profile.setPersistentPermissionsPolicy(QWebEngineProfile.PersistentPermissionsPolicy.StoreOnDisk)
+        # profile.setPersistentPermissionsPolicy(QWebEngineProfile.PersistentPermissionsPolicy.AskEveryTime)
         profile.defaultProfile().cookieStore().setCookieFilter(self.cookie_filter)
         # (AFAIK) profile must be applied in a new page, not at browser level
         page = QWebEnginePage(profile, browser)
@@ -803,14 +803,14 @@ class MainWindow(QMainWindow):
             self.instances.append(w)
             w.show()
 
-    def show_in_new_dialog(self, request):
-
-        popup = QWebEngineView()
-        geom = request.requestedGeometry()
-        popup.setGeometry(50 if geom.x() < 50 else geom.x(), 50 if geom.y() < 50 else geom.y(), geom.width(), geom.height())
-        popup.load(request.requestedUrl())
-        self.popups.append(popup)
-        popup.show()
+    # def show_in_new_dialog(self, request):
+    #
+    #     popup = QWebEngineView()
+    #     geom = request.requestedGeometry()
+    #     popup.setGeometry(50 if geom.x() < 50 else geom.x(), 50 if geom.y() < 50 else geom.y(), geom.width(), geom.height())
+    #     popup.load(request.requestedUrl())
+    #     self.popups.append(popup)
+    #     popup.show()
 
     def inspect_page(self, p):
 
