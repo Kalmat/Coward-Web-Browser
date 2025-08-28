@@ -1,6 +1,6 @@
 # Coward
 
-This is an evolution of the many 'Simple Web Browser' examples based on PyQt5 you can find on the Internet, adding:
+This is an evolution of the many 'Simple Web Browser' examples built with PyQt5/PyQt6 you can find on the Internet, adding:
 
 - Tabs, which can be added, moved and removed
 - Vertical and Horizontal tabs positioning
@@ -16,13 +16,14 @@ This is an evolution of the many 'Simple Web Browser' examples based on PyQt5 yo
 
 Rationally, this will never be a good replacement for any of the commercial web browsers around. It is intended to serve as a reference for those looking for:
 - Pieces of working code to complete their own projects
+- Safe browsing: all data is stored locally, and easily wiped with just one click
 - A way to run a reasonably-functional browser in those environments in which they can only install Python ;)
 
 #### Known issues (due to QtWebEngine limitations or web sites constraints)
 
 - Some videos from some web sites will not offer HD quality option
-- Live videos will not load unless QtWebEngine is compiled in your own system, then including all codecs
-- Some pages will not properly load or will remain unresponsive
+- Live videos will not load unless QtWebEngine is compiled in your own system, adding all required codecs
+- Some videos with strict DRM protection will not play
 
 ### Support
 
