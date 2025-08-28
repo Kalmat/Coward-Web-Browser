@@ -380,7 +380,7 @@ class MainWindow(QMainWindow):
         self.tabs.tabBarClicked.connect(self.tab_clicked)
 
         # adding action when tab close is requested
-        self.tabs.tabCloseRequested.connect(self.close_current_tab)
+        self.tabs.tabCloseRequested.connect(self.tab_closed)
 
         # making tabs as central widget
         self.tabs.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
@@ -479,6 +479,21 @@ class MainWindow(QMainWindow):
                 self.hoverVWidget.show()
 
     # method for adding new tab
+    def add_new_tab(self, qurl=None):
+        self.tabs.removeTab(self.tabs.count() - 1)
+        i = self.add_tab(qurl)
+        self.add_tab_action()
+        self.tabs.setCurrentIndex(i)
+
+    def add_tab_action(self):
+        self.addtab_btn = QLabel()
+        i = self.tabs.addTab(self.addtab_btn, " ✚ ")
+        self.tabs.tabBar().setTabButton(i, QTabBar.ButtonPosition.RightSide, None)
+        self.tabs.widget(i).setDisabled(True)
+        self.tabs.tabBar().setTabToolTip(i, "New tab")
+        self.tabs.tabBar().setTabToolTip(i, "New tab")
+
+    # method to update the url when tab is changed
     def add_tab(self, qurl=None, zoom=1.0, label="Loading..."):
 
         # if url is blank
@@ -583,36 +598,33 @@ class MainWindow(QMainWindow):
             new_icon = QIcon(icon.pixmap(QSize(32, 32)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
         self.tabs.tabBar().setTabIcon(i, new_icon)
 
-    def show_feature_request(self, origin, feature, page, browser):
-        self.lastFeatureRequestData = [origin, feature, page, browser]
-        self.feature_dlg.setMessage(self.feature_dlg.getInitMessage() % (origin.toString(), str(feature).replace("Feature.", "")))
-        self.feature_dlg.exec()
+    def navigate_to_url(self):
 
-    def accept_feature(self):
-        origin, feature, page, browser = self.lastFeatureRequestData
-        page.setFeaturePermission(origin, feature, QWebEnginePage.PermissionPolicy.PermissionGrantedByUser)
+        # get the line edit text and convert it to QUrl object
+        qurl = QUrl(self.urlbar.text())
 
-    def reject_feature(self):
-        origin, feature, page, browser = self.lastFeatureRequestData
-        page.setFeaturePermission(origin, feature, QWebEnginePage.PermissionPolicy.PermissionDeniedByUser)
+        # if scheme is blank
+        if not qurl.isValid() or "." not in qurl.url() or " " in qurl.url():
+            # search in Google
+            # qurl.setUrl("https://www.google.es/search?q=%s&safe=off" % self.urlbar.text())
+            # search in DuckDuckGo (safer)
+            qurl.setUrl(
+                "https://duckduckgo.com/?t=h_&hps=1&start=1&q=%s&ia=web&kae=d" % self.urlbar.text().replace(" ", "+"))
 
-    def add_tab_action(self):
+        elif qurl.scheme() == "":
+            # set scheme
+            qurl.setScheme("https")
 
-        self.addtab_btn = QLabel()
-        i = self.tabs.addTab(self.addtab_btn, " ✚ ")
-        self.tabs.tabBar().setTabButton(i, QTabBar.ButtonPosition.RightSide, None)
-        self.tabs.widget(i).setDisabled(True)
-        self.tabs.tabBar().setTabToolTip(i, "New tab")
-        self.tabs.tabBar().setTabToolTip(i, "New tab")
+        # set the url
+        self.tabs.currentWidget().load(qurl)
 
-    def add_new_tab(self, qurl=None):
+    # slot to mark all text in urlbar when tab is changed
+    @pyqtSlot("QWidget*", "QWidget*")
+    def on_focusChanged(self, old, now):
+        if self.urlbar == now:
+            # this is needed to avoid other mouse events to interfere with this
+            QTimer.singleShot(100, self.urlbar.selectAll)
 
-        self.tabs.removeTab(self.tabs.count() - 1)
-        i = self.add_tab(qurl)
-        self.add_tab_action()
-        self.tabs.setCurrentIndex(i)
-
-    # method to update the url when tab is changed
     def update_urlbar(self, qurl, browser: QWidget = None):
 
         # If this signal is not from the current tab, ignore
@@ -627,10 +639,39 @@ class MainWindow(QMainWindow):
         self.back_btn.setEnabled(browser.history().canGoBack())
         self.next_btn.setEnabled(browser.history().canGoForward())
 
-    @pyqtSlot("QWidget*", "QWidget*")
-    def on_focusChanged(self, old, now):
-        if self.urlbar == now:
-            QTimer.singleShot(100, self.urlbar.selectAll)
+    def fullscr(self, request):
+
+        if request.toggleOn():
+            self.navtb.setVisible(False)
+            self.tabs.tabBar().setVisible(False)
+            self.hoverHWidget.setVisible(False)
+            self.hoverVWidget.setVisible(False)
+            request.accept()
+            self.showFullScreen()
+
+        else:
+            if self.autoHide:
+                self.hoverHWidget.setVisible(True)
+                if not self.h_tabbar:
+                    self.hoverVWidget.setVisible(False)
+            else:
+                self.navtb.setVisible(True)
+                self.tabs.tabBar().setVisible(True)
+            request.accept()
+            self.showNormal()
+
+    def show_feature_request(self, origin, feature, page, browser):
+        self.lastFeatureRequestData = [origin, feature, page, browser]
+        self.feature_dlg.setMessage(self.feature_dlg.getInitMessage() % (origin.toString(), str(feature).replace("Feature.", "")))
+        self.feature_dlg.exec()
+
+    def accept_feature(self):
+        origin, feature, page, browser = self.lastFeatureRequestData
+        page.setFeaturePermission(origin, feature, QWebEnginePage.PermissionPolicy.PermissionGrantedByUser)
+
+    def reject_feature(self):
+        origin, feature, page, browser = self.lastFeatureRequestData
+        page.setFeaturePermission(origin, feature, QWebEnginePage.PermissionPolicy.PermissionDeniedByUser)
 
     def current_tab_changed(self, i):
 
@@ -666,18 +707,6 @@ class MainWindow(QMainWindow):
                 self.urlbar.repaint()
                 self.add_new_tab()
 
-    def update_index_dependent_signals(self, tabIndex):
-        browser = self.tabs.widget(tabIndex)
-        browser.loadStarted.disconnect()
-        browser.loadStarted.connect(lambda b=browser, index=tabIndex: self.onLoadStarted(b, index))
-        browser.loadFinished.disconnect()
-        browser.loadFinished.connect(lambda a, b=browser, index=tabIndex: self.onLoadFinished(a, b, index))
-        page = browser.page()
-        page.titleChanged.disconnect()
-        page.titleChanged.connect(lambda title, index=tabIndex: self.title_changed(title, index))
-        page.iconChanged.disconnect()
-        page.iconChanged.connect(lambda icon, index=tabIndex: self.icon_changed(icon, index))
-
     def tab_moved(self, to_index, from_index):
 
         # updating index-dependent signals when tab is moved
@@ -693,7 +722,7 @@ class MainWindow(QMainWindow):
             # origin tab
             self.update_index_dependent_signals(from_index)
 
-    def close_current_tab(self, tabIndex):
+    def tab_closed(self, tabIndex):
 
         if not self.deleteCache:
 
@@ -714,39 +743,17 @@ class MainWindow(QMainWindow):
                 self.update_index_dependent_signals(i)
 
     # method for navigate to url
-    def navigate_to_url(self):
-
-        # get the line edit text and convert it to QUrl object
-        qurl = QUrl(self.urlbar.text())
-
-        # if scheme is blank
-        if not qurl.isValid() or "." not in qurl.url() or " " in qurl.url():
-            # search in Google
-            # qurl.setUrl("https://www.google.es/search?q=%s&safe=off" % self.urlbar.text())
-            # search in DuckDuckGo (safer)
-            qurl.setUrl("https://duckduckgo.com/?t=h_&hps=1&start=1&q=%s&ia=web&kae=d" % self.urlbar.text().replace(" ", "+"))
-
-        elif qurl.scheme() == "":
-            # set scheme
-            qurl.setScheme("https")
-
-        # set the url
-        self.tabs.currentWidget().load(qurl)
-
-    def fullscr(self, request):
-
-        if request.toggleOn():
-            self.navtb.setVisible(False)
-            self.tabs.tabBar().setVisible(False)
-            request.accept()
-            self.showFullScreen()
-
-        else:
-            if not self.autoHide:
-                self.navtb.setVisible(True)
-                self.tabs.tabBar().setVisible(True)
-            request.accept()
-            self.showNormal()
+    def update_index_dependent_signals(self, tabIndex):
+        browser = self.tabs.widget(tabIndex)
+        browser.loadStarted.disconnect()
+        browser.loadStarted.connect(lambda b=browser, index=tabIndex: self.onLoadStarted(b, index))
+        browser.loadFinished.disconnect()
+        browser.loadFinished.connect(lambda a, b=browser, index=tabIndex: self.onLoadFinished(a, b, index))
+        page = browser.page()
+        page.titleChanged.disconnect()
+        page.titleChanged.connect(lambda title, index=tabIndex: self.title_changed(title, index))
+        page.iconChanged.disconnect()
+        page.iconChanged.connect(lambda icon, index=tabIndex: self.icon_changed(icon, index))
 
     def showContextMenu(self, point):
         tabIndex = self.tabs.tabBar().tabAt(point)
@@ -759,7 +766,7 @@ class MainWindow(QMainWindow):
         text = self.tabs.tabBar().tabToolTip(i).replace("\n(Right-click to close)", "")
         self.close_action.setText('Close tab: "' + text + '"')
         self.close_action.triggered.disconnect()
-        self.close_action.triggered.connect(lambda: self.close_current_tab(i))
+        self.close_action.triggered.connect(lambda: self.tab_closed(i))
         tab_rect = self.tabs.tabBar().tabRect(i)
         tab_width = tab_rect.width()
         tab_height = tab_rect.height()
