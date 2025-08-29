@@ -14,9 +14,9 @@ QTabBar::tab {
     border: none;
     border-left: 1px;
     border-image: url('%s') 2 repeat;
-    min-width: 48px;
+    min-width: %spx;
     max-width: 240px;
-    height: 40px;
+    height: %spx;
     padding: 3px;
 }
 

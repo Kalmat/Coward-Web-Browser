@@ -8,7 +8,7 @@ This is an evolution of the many 'Simple Web Browser' examples built with PyQt5/
 - "Expanded" view, which enables auto-hide in all navigation and tab bars (not the same as fullscreen or maximized)
 - Custom or standard title bar, whilst still allowing to move and resize window
 - Enable / Disable cookies
-- Wipe all cookies and history
+- Wipe all cookies, history, permissions and cache
 - Download pages
 - Download files
 - Open a page in new tab

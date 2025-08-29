@@ -14,11 +14,6 @@ from PyQt6.QtWebEngineCore import *
 from PyQt6.QtWebEngineWidgets import *
 from PyQt6.QtWidgets import *
 
-# Using a local copy of this code since it is not in PyPi
-# The library available in PyPi, which is a fork from this one, unfortunately supports PyQt5 only
-# Thanks to z3ntu for sharing (https://github.com/z3ntu/QtWaitingSpinner)
-from _waitingspinnerwidget import QtWaitingSpinner
-
 
 # main window
 class MainWindow(QMainWindow):
@@ -77,21 +72,13 @@ class MainWindow(QMainWindow):
         app.setStyleSheet(style)
 
         # This is required by sidegrips to make them invisible (hide dots)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
 
         # Icons
         # as images
         self.web_ico = QIcon(resource_path("res/web.png"))
         # as path for qss files (path separator inverted: "/")
         self.tabsep_ico_inv = resource_path("res/tabsep.png", True)
-
-        # tab bar styles
-        with open(resource_path("qss/h_tabs.qss"), "r") as f:
-            self.h_tab_style = f.read()
-            self.h_tab_style = self.h_tab_style % self.tabsep_ico_inv
-
-        with open(resource_path("qss/v_tabs.qss"), "r") as f:
-            self.v_tab_style = f.read()
 
         # Set tracking mouse ON if needed
         # self.setMouseTracking(True)
@@ -111,6 +98,7 @@ class MainWindow(QMainWindow):
             _ = self.config["h_tabbar"]
             _ = self.config["custom_title"]
             _ = self.config["auto_hide"]
+            _ = self.config["icon_size"]
             _ = self.config["new_wins"]
 
         except:
@@ -122,6 +110,7 @@ class MainWindow(QMainWindow):
                            "h_tabbar": False,
                            "custom_title": True,
                            "auto_hide": False,
+                           "icon_size": 24,
                            "new_wins": []
                            }
 
@@ -144,6 +133,20 @@ class MainWindow(QMainWindow):
         self.setGeometry(x, y, w, h)
         self.setMinimumWidth(48*16)
         self.setMinimumHeight(96)
+
+        # set icon size (also affects to tabs and actions sizes)
+        # since some "icons" are actually characters, we should also adjust fonts or stick to values between 24 and 32
+        self.icon_size = max(24, min(32, self.config["icon_size"]))
+        self.action_size = self.icon_size + max(16, self.icon_size // 2)
+
+        # tab bar styles
+        with open(resource_path("qss/h_tabs.qss"), "r") as f:
+            self.h_tab_style = f.read()
+            self.h_tab_style = self.h_tab_style % (self.tabsep_ico_inv, self.action_size, int(self.action_size * 0.75))
+
+        with open(resource_path("qss/v_tabs.qss"), "r") as f:
+            self.v_tab_style = f.read()
+            self.v_tab_style = self.v_tab_style % (self.action_size, self.action_size)
 
         # Enable/Disable cookies
         self.cookies = self.config["cookies"]
@@ -172,16 +175,16 @@ class MainWindow(QMainWindow):
         self.search_widget.hide()
 
         # creating a toolbar for navigation
-        self.navtb = TitleBar(self, self.custom_titlebar, [self.dl_manager, self.search_widget], None, self.leaveNavBarSig)
+        self.navtab = TitleBar(self, self.custom_titlebar, [], None, self.leaveNavBarSig)
         with open(resource_path("qss/titlebar.qss")) as f:
             navStyle = f.read()
-        self.navtb.setStyleSheet(navStyle)
+        self.navtab.setStyleSheet(navStyle)
 
-        self.navtb.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
-        self.navtb.setMovable(False)
-        self.navtb.setFloatable(False)
-        self.navtb.setFloatable(False)
-        self.addToolBar(self.navtb)
+        self.navtab.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
+        self.navtab.setMovable(False)
+        self.navtab.setFloatable(False)
+        self.navtab.setFloatable(False)
+        self.addToolBar(self.navtab)
 
         # adding toggle vertical / horizontal tabbar button
         self.toggleTab_btn = QAction("", self)
@@ -189,7 +192,7 @@ class MainWindow(QMainWindow):
         font.setPointSize(font.pointSize() + 2)
         self.toggleTab_btn.setFont(font)
         self.toggleTab_btn.triggered.connect(lambda: self.toggle_tabbar(clicked=True))
-        self.navtb.addAction(self.toggleTab_btn)
+        self.navtab.addAction(self.toggleTab_btn)
 
         # creating back action
         self.back_btn = QAction("🡠", self)
@@ -199,7 +202,7 @@ class MainWindow(QMainWindow):
         self.back_btn.setDisabled(True)
         self.back_btn.setToolTip("Back to previous page")
         self.back_btn.triggered.connect(self.goBack)
-        self.navtb.addAction(self.back_btn)
+        self.navtab.addAction(self.back_btn)
 
         # adding next button
         self.next_btn = QAction("🡢", self)
@@ -209,16 +212,18 @@ class MainWindow(QMainWindow):
         self.next_btn.setDisabled(True)
         self.next_btn.setToolTip("Forward to next page")
         self.next_btn.triggered.connect(self.goForward)
-        self.navtb.addAction(self.next_btn)
+        self.navtab.addAction(self.next_btn)
 
-        # adding reload button
-        self.reload_btn = QAction("⟳", self)
+        # adding reload / stop button
+        self.reload_char = "⟳"
+        self.stop_char = "⤬"
+        self.reload_btn = QAction(self.reload_char, self)
         font = self.reload_btn.font()
-        font.setPointSize(font.pointSize() + 14)
+        font.setPointSize(font.pointSize() + 10)
         self.reload_btn.setFont(font)
         self.reload_btn.setToolTip("Reload page")
         self.reload_btn.triggered.connect(self.reloadPage)
-        self.navtb.addAction(self.reload_btn)
+        self.navtab.addAction(self.reload_btn)
 
         # adding a separator
         # self.navtb.addSeparator()
@@ -228,66 +233,56 @@ class MainWindow(QMainWindow):
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         spacer.setMinimumWidth(20)
         spacer.setMaximumWidth(200)
-        self.navtb.addWidget(spacer)
+        self.navtab.addWidget(spacer)
 
         # creating a line edit widget for URL
         self.urlbar = LineEdit()
+        self.urlbar.setMaximumHeight(self.action_size - 6)
         self.urlbar.setTextMargins(10, 0, 0, 0)
         self.urlbar.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.urlbar.returnPressed.connect(self.navigate_to_url)
-        self.navtb.addWidget(self.urlbar)
-
-        # similarly adding stop action
-        # self.stop_btn = QAction("⤫", self)
-        # font = self.stop_btn.font()
-        # font.setPointSize(font.pointSize() + 8)
-        # self.stop_btn.setFont(font)
-        # self.stop_btn.setToolTip("Stop loading current page")
-        # self.stop_btn.triggered.connect(lambda: self.tabs.currentWidget().stop())
-        # self.navtb.addAction(self.stop_btn)
-        # self.navtb.addAction(self.stop_btn)
-
-        # adding a spinner as loading indicator
-        self.spinContainer = QWidget()
-        self.spinContainer.setFixedSize(48, 48)
-        self.spinner = QtWaitingSpinner(self.spinContainer)
-        self.spinner.setInnerRadius(5)
-        self.spinner.setColor(QColor(128, 128, 128))
-        self.navtb.addWidget(self.spinContainer)
+        self.navtab.addWidget(self.urlbar)
 
         # adding a space in between to allow moving the window in all sizes
         spacer = QLabel()
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         spacer.setMinimumWidth(0)
-        spacer.setMaximumWidth(200 - self.spinContainer.width())
-        self.navtb.addWidget(spacer)
+        spacer.setMaximumWidth(200)
+        self.navtab.addWidget(spacer)
 
         # adding search option
-        self.search_btn = QAction("⌕", self)
+        self.search_on_char = "⌕"
+        self.search_off_char = "🔍"
+        self.search_btn = QAction(self.search_on_char, self)
+        self.setObjectName("search")
         font = self.search_btn.font()
         font.setPointSize(font.pointSize() + 6)
         self.search_btn.setFont(font)
         self.search_btn.setToolTip("Search text in this page")
         self.search_btn.triggered.connect(self.manage_search)
-        self.navtb.addAction(self.search_btn)
+        self.navtab.addAction(self.search_btn)
 
         # adding auto-hide mgt.
-        self.auto_btn = QAction("⇱" if self.autoHide else "⇲", self)
+        self.auto_on_char = "⇱"
+        self.auto_off_char = "⇲"
+        self.auto_btn = QAction(self.auto_on_char if self.autoHide else self.auto_off_char, self)
         font = self.auto_btn.font()
         font.setPointSize(font.pointSize() + 6)
         self.auto_btn.setFont(font)
         self.auto_btn.setToolTip("Auto-hide is now " + ("Enabled" if self.autoHide else "Disabled"))
         self.auto_btn.triggered.connect(self.manage_autohide)
-        self.navtb.addAction(self.auto_btn)
+        self.navtab.addAction(self.auto_btn)
 
         # adding downloads mgt.
-        self.dl_btn = QAction("🡣", self)
+        self.dl_on_char = "🡣"
+        self.dl_off_char = "⬇"
+        self.dl_btn = QAction(self.dl_on_char, self)
         font = self.dl_btn.font()
         font.setPointSize(font.pointSize() + 6)
         self.dl_btn.setFont(font)
         self.dl_btn.setToolTip("Show / hide downloads")
         self.dl_btn.triggered.connect(self.manage_downloads)
-        self.navtb.addAction(self.dl_btn)
+        self.navtab.addAction(self.dl_btn)
 
         # adding cookie mgt.
         self.cookie_btn = QAction("", self)
@@ -296,7 +291,7 @@ class MainWindow(QMainWindow):
         self.cookie_btn.setFont(font)
         self.manage_cookies(clicked=False)
         self.cookie_btn.triggered.connect(lambda: self.manage_cookies(clicked=True))
-        self.navtb.addAction(self.cookie_btn)
+        self.navtab.addAction(self.cookie_btn)
 
         # adding cleaning mgt.
         self.clean_btn = QAction("🧹", self)
@@ -304,12 +299,12 @@ class MainWindow(QMainWindow):
         font.setPointSize(font.pointSize() + 6)
         self.clean_btn.setFont(font)
         self.clean_btn.setToolTip("Erase history and cookies")
-        self.clean_btn.triggered.connect(lambda: self.clean_dlg.exec())
-        self.navtb.addAction(self.clean_btn)
+        self.clean_btn.triggered.connect(self.show_clean_dlg)
+        self.navtab.addAction(self.clean_btn)
 
         if self.custom_titlebar:
 
-            self.navtb.addSeparator()
+            self.navtab.addSeparator()
 
             self.min_btn = QAction("―", self)
             self.min_btn.setToolTip("Minimize")
@@ -317,7 +312,7 @@ class MainWindow(QMainWindow):
             font.setPointSize(font.pointSize() + 2)
             self.min_btn.setFont(font)
             self.min_btn.triggered.connect(self.showMinimized)
-            self.navtb.addAction(self.min_btn)
+            self.navtab.addAction(self.min_btn)
 
             self.max_btn = QAction(" ⃞ ", self)
             self.max_btn.setToolTip("Maximize")
@@ -325,7 +320,7 @@ class MainWindow(QMainWindow):
             font.setPointSize(font.pointSize() + 4)
             self.max_btn.setFont(font)
             self.max_btn.triggered.connect(self.showMaxRestore)
-            self.navtb.addAction(self.max_btn)
+            self.navtab.addAction(self.max_btn)
 
             self.closewin_btn = QAction("🕱", self)
             self.closewin_btn.setToolTip("Quit, coward")
@@ -333,7 +328,7 @@ class MainWindow(QMainWindow):
             font.setPointSize(font.pointSize() + 8)
             self.closewin_btn.setFont(font)
             self.closewin_btn.triggered.connect(self.close)
-            self.navtb.addAction(self.closewin_btn)
+            self.navtab.addAction(self.closewin_btn)
 
         # creating a tab widget
         self.tabs = QTabWidget(self)
@@ -344,14 +339,14 @@ class MainWindow(QMainWindow):
         self.tabs.setTabPosition(QTabWidget.TabPosition.North if self.h_tabbar else QTabWidget.TabPosition.West)
         self.tabs.tabBar().setContentsMargins(0, 0, 0, 0)
         self.tabs.tabBar().setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
-        self.tabs.tabBar().setIconSize(QSize(32, 32))
+        self.tabs.tabBar().setIconSize(QSize(self.icon_size, self.icon_size))
         self.tabs.tabBar().tabMoved.connect(self.tab_moved)
 
         # creating a context menu to allow closing tabs when close button is hidden
         self.tabs.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tabs.customContextMenuRequested.connect(self.showContextMenu)
         self.tabsContextMenu = QMenu()
-        self.tabsContextMenu.setMinimumHeight(54)
+        self.tabsContextMenu.setMinimumHeight(self.action_size + 6)
         self.tabsContextMenu.setContentsMargins(0, 5, 0, 0)
         self.close_action = QAction()
         self.close_action.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxCritical))
@@ -359,7 +354,7 @@ class MainWindow(QMainWindow):
 
         # creating a context menu to allow closing tabs when close button is hidden
         self.newTabContextMenu = QMenu()
-        self.newTabContextMenu.setMinimumHeight(54)
+        self.newTabContextMenu.setMinimumHeight(self.action_size + 6)
         self.newTabContextMenu.setContentsMargins(0, 5, 0, 0)
         self.newWindow_action = QAction()
         self.newWindow_action.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarNormalButton))
@@ -402,7 +397,6 @@ class MainWindow(QMainWindow):
             new_wins = self.config["new_wins"]
 
         # open all tabs in main / child window
-        self.spinner.start()
         current = 0
         if tabs:
             for tab in tabs:
@@ -424,38 +418,31 @@ class MainWindow(QMainWindow):
         for new_tabs in new_wins:
             self.show_in_new_window(new_tabs)
 
-        # keep track of open popups:
-        # self.popups = []
+        # keep track of open popups and assure their persintence
+        self.popups = []
 
         # adding add tab action
         self.add_tab_action()
 
-        # class variables
-        self.maxNormal = self.isMaximized()
-
-        # Prepare clean all warning dialog
-        self.clean_dlg = Dialog(self, message="This will erase all your history and stored cookies.\n\n"
-                                              "Are you sure you want to proceed?\n")
-        self.clean_dlg.accepted.connect(self.clean_all)
-        self.clean_dlg.rejected.connect(self.clean_dlg.close)
-
-        # Prepare feature request dialog
-        self.feature_dlg = Dialog(self, message="This site:\n%s\n\n"
-                                                "is asking for your permission to %s.\n\n"
-                                                "Click 'OK' to accept, or 'Cancel' to deny\n")
-        self.feature_dlg.accepted.connect(self.accept_feature)
-        self.feature_dlg.rejected.connect(self.reject_feature)
-
         # set hover areas for auto-hide mode
         # auto-hide navigation bar
-        self.hoverHWidget = HoverWidget(self, self.navtb, self.enterHHoverSig)
-        self.navtb.setFixedHeight(52)
-        self.hoverHWidget.setGeometry(48, 0, self.width(), 20)
+        self.hoverHWidget = HoverWidget(self, self.navtab, self.enterHHoverSig)
+        self.navtab.setFixedHeight(self.action_size + 4)
+        self.hoverHWidget.setGeometry(self.action_size, 0, self.width(), 20)
         self.hoverHWidget.hide()
         # auto-hide tab bar
         self.hoverVWidget = HoverWidget(self, self.tabs.tabBar(), self.enterVHoverSig)
-        self.hoverVWidget.setGeometry(0, 48, 20, self.height())
+        self.hoverVWidget.setGeometry(0, self.action_size, 20, self.height())
         self.hoverVWidget.hide()
+
+        # Prepare feature request dialog
+        self.feature_dlg = Dialog(self,
+                                  message="This site:\n%s\n\n"
+                                          "is asking for your permission to %s.\n\n"
+                                          "Click 'OK' to accept, or 'Cancel' to deny\n",
+                                  radius=8)
+        self.feature_dlg.accepted.connect(self.accept_feature)
+        self.feature_dlg.rejected.connect(self.reject_feature)
 
         # define signals for auto-hide events
         self.enterHHoverSig.connect(self.enterHHover)
@@ -467,14 +454,26 @@ class MainWindow(QMainWindow):
         self.enterTabBarSig.connect(self.enterTabBar)
         self.leaveTabBarSig.connect(self.leaveTabBar)
 
+        # class variables
+        self.maxNormal = self.isMaximized()
+
+        # finally, add widgets which must be moved together with main window when applying custom title bar
+        self.otherWidgetsToMove = [self.dl_manager, self.search_widget]
+        self.navtab.setOtherWidgetsToMove(self.otherWidgetsToMove)
+
+    def targetDlgPos(self):
+        return QPoint(self.x() + 100,
+                      self.y() + self.navtab.height() + (self.tabs.tabBar().height() if self.h_tabbar else 0))
+
     def show(self):
         super().show()
+
         if self.autoHide:
-            self.navtb.hide()
-            self.hoverHWidget.setGeometry(48, 0, self.width(), 20)
+            self.navtab.hide()
+            self.hoverHWidget.setGeometry(self.action_size, 0, self.width(), 20)
             self.hoverHWidget.show()
             self.tabs.tabBar().hide()
-            self.hoverVWidget.setGeometry(0, 48, 20, self.height())
+            self.hoverVWidget.setGeometry(0, self.action_size, 20, self.height())
             if not self.h_tabbar:
                 self.hoverVWidget.show()
 
@@ -578,13 +577,13 @@ class MainWindow(QMainWindow):
     def onLoadStarted(self, browser, index):
         self.tabs.setTabIcon(index, self.web_ico)
         if browser == self.tabs.currentWidget():
-            if not self.spinner.isSpinning:
-                self.spinner.start()
+            self.reload_btn.setText(self.stop_char)
+            self.reload_btn.setToolTip("Stop loading page")
 
     def onLoadFinished(self, a0, browser, index):
         if browser == self.tabs.currentWidget():
-            if self.spinner.isSpinning:
-                self.spinner.stop()
+            self.reload_btn.setText(self.reload_char)
+            self.reload_btn.setToolTip("Reload page")
 
     def title_changed(self, title, i):
         self.tabs.tabBar().setTabText(i, (("  " + title[:20]) if len(title) > 20 else title) if self.h_tabbar else "")
@@ -595,7 +594,7 @@ class MainWindow(QMainWindow):
             new_icon = icon
         else:
             # icon rotation is required if not using custom painter in TabBar class
-            new_icon = QIcon(icon.pixmap(QSize(32, 32)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
+            new_icon = QIcon(icon.pixmap(QSize(self.icon_size, self.icon_size)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
         self.tabs.tabBar().setTabIcon(i, new_icon)
 
     def navigate_to_url(self):
@@ -608,8 +607,7 @@ class MainWindow(QMainWindow):
             # search in Google
             # qurl.setUrl("https://www.google.es/search?q=%s&safe=off" % self.urlbar.text())
             # search in DuckDuckGo (safer)
-            qurl.setUrl(
-                "https://duckduckgo.com/?t=h_&hps=1&start=1&q=%s&ia=web&kae=d" % self.urlbar.text().replace(" ", "+"))
+            qurl.setUrl("https://duckduckgo.com/?t=h_&hps=1&start=1&q=%s&ia=web&kae=d" % self.urlbar.text().replace(" ", "+"))
 
         elif qurl.scheme() == "":
             # set scheme
@@ -617,13 +615,6 @@ class MainWindow(QMainWindow):
 
         # set the url
         self.tabs.currentWidget().load(qurl)
-
-    # slot to mark all text in urlbar when tab is changed
-    @pyqtSlot("QWidget*", "QWidget*")
-    def on_focusChanged(self, old, now):
-        if self.urlbar == now:
-            # this is needed to avoid other mouse events to interfere with this
-            QTimer.singleShot(100, self.urlbar.selectAll)
 
     def update_urlbar(self, qurl, browser: QWidget = None):
 
@@ -642,7 +633,7 @@ class MainWindow(QMainWindow):
     def fullscr(self, request):
 
         if request.toggleOn():
-            self.navtb.setVisible(False)
+            self.navtab.setVisible(False)
             self.tabs.tabBar().setVisible(False)
             self.hoverHWidget.setVisible(False)
             self.hoverVWidget.setVisible(False)
@@ -655,7 +646,7 @@ class MainWindow(QMainWindow):
                 if not self.h_tabbar:
                     self.hoverVWidget.setVisible(False)
             else:
-                self.navtb.setVisible(True)
+                self.navtab.setVisible(True)
                 self.tabs.tabBar().setVisible(True)
             request.accept()
             self.showNormal()
@@ -663,38 +654,37 @@ class MainWindow(QMainWindow):
     def show_feature_request(self, origin, feature, page, browser):
         self.lastFeatureRequestData = [origin, feature, page, browser]
         self.feature_dlg.setMessage(self.feature_dlg.getInitMessage() % (origin.toString(), str(feature).replace("Feature.", "")))
+        self.feature_dlg.move(self.targetDlgPos())
         self.feature_dlg.exec()
 
     def accept_feature(self):
+        self.feature_dlg.close()
         origin, feature, page, browser = self.lastFeatureRequestData
         page.setFeaturePermission(origin, feature, QWebEnginePage.PermissionPolicy.PermissionGrantedByUser)
 
     def reject_feature(self):
+        self.feature_dlg.close()
         origin, feature, page, browser = self.lastFeatureRequestData
         page.setFeaturePermission(origin, feature, QWebEnginePage.PermissionPolicy.PermissionDeniedByUser)
 
     def current_tab_changed(self, i):
 
         if i < self.tabs.count() - 1:
-            # get the url
-            qurl = self.tabs.currentWidget().url()
-
-            # update the url
-            self.update_urlbar(qurl, self.tabs.currentWidget())
 
             # reload url (saves time at start, while not taking much if already loaded)
             # must find a way to reload the first time only, while keeping icon and title
             # we could even kill browser widget after a given time, recreating it when it is clicked again
             # self.tabs.currentWidget().reload()
 
-            browser: QWebEngineView = self.tabs.currentWidget()
-            page: QWebEnginePage = browser.page()
-            if page.isLoading():
-                if not self.spinner.isSpinning:
-                    self.spinner.start()
+            # update the url
+            self.update_urlbar(self.tabs.currentWidget().url(), self.tabs.currentWidget())
+
+            if self.tabs.currentWidget().page().isLoading():
+                self.reload_btn.setText(self.stop_char)
+                self.reload_btn.setToolTip("Stop loading page")
             else:
-                if self.spinner.isSpinning:
-                    self.spinner.stop()
+                self.reload_btn.setText(self.reload_char)
+                self.reload_btn.setToolTip("Reload page")
 
         if self.search_widget.isVisible():
             self.search_widget.hide()
@@ -703,7 +693,7 @@ class MainWindow(QMainWindow):
 
         if app.mouseButtons() == Qt.MouseButton.LeftButton:
             if i == self.tabs.count() - 1:
-                self.urlbar.setText("")
+                self.urlbar.setText(self.homePage)
                 self.urlbar.repaint()
                 self.add_new_tab()
 
@@ -789,11 +779,11 @@ class MainWindow(QMainWindow):
         elif request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewTab:
             self.add_new_tab(request.requestedUrl())
 
-        # This will allow popups... something we don't want, of course
-        # elif request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewDialog:
-        #     if request.isUserInitiated():
-        #         self.show_in_new_window([[request.requestedUrl(), 1.0, True]])
+        elif request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewDialog:
+            if request.isUserInitiated():
+                self.show_in_new_dialog(request)
         #     else:
+        #         # This would allow popups... something we don't want, of course
         #         self.show_in_new_dialog(request)
 
     def show_in_new_window(self, tabs=None):
@@ -803,14 +793,14 @@ class MainWindow(QMainWindow):
             self.instances.append(w)
             w.show()
 
-    # def show_in_new_dialog(self, request):
-    #
-    #     popup = QWebEngineView()
-    #     geom = request.requestedGeometry()
-    #     popup.setGeometry(50 if geom.x() < 50 else geom.x(), 50 if geom.y() < 50 else geom.y(), geom.width(), geom.height())
-    #     popup.load(request.requestedUrl())
-    #     self.popups.append(popup)
-    #     popup.show()
+    def show_in_new_dialog(self, request):
+
+        popup = QWebEngineView()
+        geom = request.requestedGeometry()
+        popup.setGeometry(50 if geom.x() < 50 else geom.x(), 50 if geom.y() < 50 else geom.y(), geom.width(), geom.height())
+        popup.load(request.requestedUrl())
+        self.popups.append(popup)
+        popup.show()
 
     def inspect_page(self, p):
 
@@ -832,7 +822,7 @@ class MainWindow(QMainWindow):
                     new_icon = icon
                 else:
                     self.tabs.tabBar().setTabText(i, "")
-                    new_icon = QIcon(icon.pixmap(QSize(32, 32)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
+                    new_icon = QIcon(icon.pixmap(QSize(self.icon_size, self.icon_size)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
                 self.tabs.tabBar().setTabIcon(i, new_icon)
 
         self.tabs.setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)
@@ -862,20 +852,25 @@ class MainWindow(QMainWindow):
         self.tabs.currentWidget().forward()
 
     def reloadPage(self):
-        self.tabs.currentWidget().reload()
+        if self.reload_btn.text() == self.reload_char:
+            self.tabs.currentWidget().reload()
+        else:
+            self.tabs.currentWidget().stop()
 
     def manage_search(self):
 
         if self.search_widget.isVisible():
             self.search_widget.hide()
-            self.search_btn.setText("⌕")
+            self.search_btn.setText(self.search_on_char)
 
         else:
-            x = self.x() + self.width() - 660
-            y = self.y() + self.navtb.height()
+            actRect = self.navtab.actionGeometry(self.search_btn)
+            actPos = self.navtab.mapToGlobal(self.navtab.actionGeometry(self.search_btn).topLeft())
+            x = actPos.x() + actRect.width() - self.search_widget.width()
+            y = self.y() + self.navtab.height()
             self.search_widget.move(x, y)
             self.search_widget.show()
-            self.search_btn.setText("🔍")
+            self.search_btn.setText(self.search_off_char)
 
     def searchPage(self, checked, forward):
         textToFind = self.search_widget.getText()
@@ -888,18 +883,18 @@ class MainWindow(QMainWindow):
     def manage_autohide(self):
 
         self.autoHide = not self.autoHide
-        self.auto_btn.setText("⇱" if self.autoHide else "⇲")
+        self.auto_btn.setText(self.auto_on_char if self.autoHide else self.auto_off_char, self)
         self.auto_btn.setToolTip("Auto-hide is now " + ("Enabled" if self.autoHide else "Disabled"))
 
         if self.autoHide:
-            self.navtb.hide()
+            self.navtab.hide()
             self.hoverHWidget.show()
             self.tabs.tabBar().hide()
             if not self.h_tabbar:
                 self.hoverVWidget.show()
 
         else:
-            self.navtb.show()
+            self.navtab.show()
             self.hoverHWidget.hide()
             self.tabs.tabBar().show()
             self.hoverVWidget.hide()
@@ -907,7 +902,7 @@ class MainWindow(QMainWindow):
     def enterHHover(self):
         if self.autoHide:
             self.hoverHWidget.hide()
-            self.navtb.show()
+            self.navtab.show()
             if self.h_tabbar:
                 self.tabs.tabBar().show()
 
@@ -934,11 +929,11 @@ class MainWindow(QMainWindow):
         if self.autoHide:
             if self.h_tabbar:
                 if not self.underMouse():
-                    self.navtb.hide()
+                    self.navtab.hide()
                     self.tabs.tabBar().hide()
                     self.hoverHWidget.show()
             else:
-                self.navtb.hide()
+                self.navtab.hide()
                 self.hoverHWidget.show()
 
     @pyqtSlot()
@@ -949,8 +944,8 @@ class MainWindow(QMainWindow):
     def leaveTabBar(self):
         if self.autoHide:
             if self.h_tabbar:
-                if not self.navtb.rect().contains(self.mapFromGlobal(QCursor.pos())):
-                    self.navtb.hide()
+                if not self.navtab.rect().contains(self.mapFromGlobal(QCursor.pos())):
+                    self.navtab.hide()
                     self.tabs.tabBar().hide()
                     self.hoverHWidget.show()
             else:
@@ -960,7 +955,7 @@ class MainWindow(QMainWindow):
     def manage_downloads(self):
 
         if self.dl_manager.isVisible():
-            self.dl_btn.setText("🡣")
+            self.dl_btn.setText(self.dl_on_char)
             self.dl_manager.hide()
 
         else:
@@ -968,10 +963,10 @@ class MainWindow(QMainWindow):
 
     def show_dl_manager(self):
 
-        self.dl_btn.setText("⬇")
+        self.dl_btn.setText(self.dl_off_char)
         self.dl_manager.show()
         x = self.x() + self.width() - self.dl_manager.width()
-        y = self.y() + self.navtb.height()
+        y = self.y() + self.navtab.height()
         self.dl_manager.move(x, y)
 
     # adding action to download files
@@ -993,7 +988,18 @@ class MainWindow(QMainWindow):
         # )
         return self.cookies
 
-    def clean_all(self):
+    def show_clean_dlg(self):
+        # Prepare clean all warning dialog
+        self.clean_dlg = Dialog(self,
+                                message="This will erase all your history and stored cookies.\n\n"
+                                        "Are you sure you want to proceed?\n",
+                                radius=8)
+        self.clean_dlg.accepted.connect(self.accept_clean)
+        self.clean_dlg.rejected.connect(self.reject_clean)
+        self.clean_dlg.move(self.targetDlgPos())
+        self.clean_dlg.exec()
+
+    def accept_clean(self):
 
         self.clean_dlg.close()
 
@@ -1024,6 +1030,9 @@ class MainWindow(QMainWindow):
 
         self.add_tab_action()
         self.tabs.setCurrentIndex(currIndex)
+
+    def reject_clean(self):
+        self.clean_dlg.close()
 
     @property
     def gripSize(self):
@@ -1090,8 +1099,6 @@ class MainWindow(QMainWindow):
             self.max_btn.setToolTip("Restore")
 
     def resizeEvent(self, event):
-        # propagate event
-        QMainWindow.resizeEvent(self, event)
 
         if self.custom_titlebar:
             # update grip areas
@@ -1104,26 +1111,24 @@ class MainWindow(QMainWindow):
 
         if self.autoHide:
             # update hover areas
-            self.hoverHWidget.setGeometry(48, 0, self.width(), 20)
-            self.hoverVWidget.setGeometry(0, 48, 20, self.height())
+            self.hoverHWidget.setGeometry(self.action_size, 0, self.width(), 20)
+            self.hoverVWidget.setGeometry(0, self.action_size, 20, self.height())
 
         if self.dl_manager.isVisible():
             # reposition download list
             x = self.x() + self.width() - self.dl_manager.width()
-            y = self.y() + self.navtb.height()
+            y = self.y() + self.navtab.height()
             self.dl_manager.move(x, y)
 
         if self.search_widget.isVisible():
             # reposition search widget
-            x = self.x() + self.width() - 660
-            y = self.y() + self.navtb.height()
+            actRect = self.navtab.actionGeometry(self.search_btn)
+            actPos = self.navtab.mapToGlobal(self.navtab.actionGeometry(self.search_btn).topLeft())
+            x = actPos.x() + actRect.width() - self.search_widget.width()
+            y = self.y() + self.navtab.height()
             self.search_widget.move(x, y)
 
     def closeEvent(self, a0, QMouseEvent=None):
-
-        # stop animations
-        self.spinner.stop()
-        self.spinner.close()
 
         # stop existing downloads:
         self.dl_manager.close()
@@ -1197,6 +1202,7 @@ class SearchWidget(QWidget):
         self.setWindowFlag(Qt.WindowType.Tool, True)
         self.setStyleSheet("background: #323232; color: white; border: 1px solid lightgrey;")
         self.setFixedSize(300, 54)
+        self.setContentsMargins(10, 0, 0, 0)
 
         self.searchCallback = searchCallback
         with open(resource_path("qss/small_button.qss")) as f:
@@ -1260,10 +1266,17 @@ class DownloadManager(QWidget):
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
         self.setWindowFlag(Qt.WindowType.Tool, True)
 
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        effect = QGraphicsDropShadowEffect()
+        effect.setColor(QApplication.palette().color(QPalette.ColorRole.Shadow))
+        effect.setBlurRadius(50)
+        effect.setOffset(5)
+        self.setGraphicsEffect(effect)
+
         self.setWindowTitle("Coward - Downloads")
         self.setStyleSheet("background: #323232; color: white;")
         self.mainLayout = QVBoxLayout()
-        self.mainLayout.setContentsMargins(5, 5, 5, 5)
+        self.mainLayout.setContentsMargins(0, 0, 5, 5)
         self.mainLayout.setSpacing(10)
         self.setLayout(self.mainLayout)
 
@@ -1276,10 +1289,10 @@ class DownloadManager(QWidget):
 
         self.downloads = {}
 
-        self.pause_ico = "||"
-        self.cancel_ico = "ℵ"
-        self.resume_ico = "⟳"
-        self.folder_ico = "🗀"
+        self.pause_char = "||"
+        self.cancel_char = "ℵ"
+        self.resume_char = "⟳"
+        self.folder_char = "🗀"
 
         # to avoid garbage, downloads will be stored in system Temp folder, then moved to selected location
         self.tempFolder = os.path.join(os.getenv("SystemDrive"), os.path.sep, "Windows", "Temp", "Coward")
@@ -1358,7 +1371,7 @@ class DownloadManager(QWidget):
 
         pause = QPushButton()
         pause.setStyleSheet(buttonStyle)
-        pause.setText(self.pause_ico)
+        pause.setText(self.pause_char)
         pause.setObjectName("pause")
         pause.setToolTip("Pause Download")
         pause.clicked.connect(lambda checked, b=pause, i=item, l=location: self.pause(checked, b, i, l))
@@ -1366,7 +1379,7 @@ class DownloadManager(QWidget):
 
         close_loc = QPushButton()
         close_loc.setStyleSheet(buttonStyle)
-        close_loc.setText(self.cancel_ico)
+        close_loc.setText(self.cancel_char)
         close_loc.setObjectName("close_loc")
         close_loc.setToolTip("Cancel Download")
         close_loc.clicked.connect(lambda checked, b=close_loc, i=item, l=location: self.close_loc(checked, b, i, l))
@@ -1399,7 +1412,7 @@ class DownloadManager(QWidget):
             pause = widget.findChild(QPushButton, "pause")
             pause.hide()
             close_loc = widget.findChild(QPushButton, "close_loc")
-            close_loc.setText(self.folder_ico)
+            close_loc.setText(self.folder_char)
             close_loc.setToolTip("Open file location")
             prog = widget.findChild(QProgressBar, "prog")
             prog.hide()
@@ -1432,20 +1445,20 @@ class DownloadManager(QWidget):
 
     def pause(self, checked, button, item, location):
 
-        if button.text() == self.pause_ico:
+        if button.text() == self.pause_char:
             try:
                 item.pause()
             except:
                 pass
-            button.setText(self.resume_ico)
+            button.setText(self.resume_char)
 
-        elif button.text() == self.resume_ico:
+        elif button.text() == self.resume_char:
             dl_data = self.downloads.get(str(item.id()), [])
             if dl_data:
                 _, _, _, _, widget = dl_data
 
                 item.resume()
-                button.setText(self.pause_ico)
+                button.setText(self.pause_char)
                 name = widget.findChild(QLabel, "name")
                 font = name.font()
                 font.setStrikeOut(False)
@@ -1453,11 +1466,11 @@ class DownloadManager(QWidget):
                 prog = widget.findChild(QProgressBar, "prog")
                 prog.show()
                 close_loc = widget.findChild(QPushButton, "close_loc")
-                close_loc.setText(self.cancel_ico)
+                close_loc.setText(self.cancel_char)
 
     def close_loc(self, checked, button, item, location):
 
-        if button.text() == self.folder_ico:
+        if button.text() == self.folder_char:
             if os.path.isfile(location):
                 subprocess.Popen(r'explorer /select, "%s"' % location)
             else:
@@ -1471,7 +1484,7 @@ class DownloadManager(QWidget):
                     font.setStrikeOut(True)
                     name.setFont(font)
 
-        elif button.text() == self.cancel_ico:
+        elif button.text() == self.cancel_char:
             try:
                 item.cancel()
             except:
@@ -1511,30 +1524,84 @@ class LineEdit(QLineEdit):
 
     def focusInEvent(self, event):
         # this delay is needed to avoid other mouse events to interfere with selectAll() command
-        QTimer.singleShot(200, self.selectAll)
         super(LineEdit, self).focusInEvent(event)
+        QTimer.singleShot(200, self.selectAll)
 
 
 class Dialog(QDialog):
 
-    def __init__(self, parent, title="", message="", buttons=None):
+    def __init__(self, parent, title="", message="", buttons=None, pos_offset=None, radius=0):
         super().__init__(parent)
 
-        self.setWindowTitle(title or "Warning!")
-        self.setWindowIcon(QIcon(resource_path("res/coward.png")))
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
+        self.pos_offset = QPoint(pos_offset.x(), pos_offset.y() - radius * 2) if pos_offset is not None else None
+        self.radius = radius
 
-        self.buttonBox = QDialogButtonBox(buttons or (QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel))
-        self.buttonBox.accepted.connect(self.accept)
-        self.buttonBox.rejected.connect(self.reject)
+        self.setWindowTitle(title)
+        self.setWindowIcon(QIcon(resource_path("res/coward.png")))
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint | Qt.WindowType.FramelessWindowHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        # This creates a shadow for the dialog, but not very fancy
+        # effect = QGraphicsDropShadowEffect()
+        # effect.setColor(QApplication.palette().color(QPalette.ColorRole.Shadow))
+        # effect.setBlurRadius(20)
+        # effect.setOffset(5)
+        # self.setGraphicsEffect(effect)
+
+        self.setContentsMargins(0, 0, 0, 0)
+
+        self.widget = QWidget(self)
+        self.widget.setStyleSheet("background: #323232; color: lightgrey;"
+                                  "border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;")
+        self.widget.setContentsMargins(30, 30, 30, 10)
 
         self.init_message = message
         self.message = QLabel(message or "Lorem ipsum consectetuer adipisci est")
 
+        self.buttonBox = QDialogButtonBox(buttons or (QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel))
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+        self.buttonBox.setContentsMargins(0, 20, 0, 0)
+
         layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 5, 5)
+        layout.setSpacing(0)
         layout.addWidget(self.message)
         layout.addWidget(self.buttonBox)
-        self.setLayout(layout)
+        self.widget.setLayout(layout)
+
+        self.mainLayout = QHBoxLayout()
+        self.mainLayout.addWidget(self.widget)
+        self.setLayout(self.mainLayout)
+
+    # def exec(self):
+    #     # thanks to Maxim Paperno: https://stackoverflow.com/questions/58145272/qdialog-with-rounded-corners-have-black-corners-instead-of-being-translucent
+    #
+    #     if self.radius != 0:
+    #
+    #         # it is necessary to show widget first, in order to get its real size
+    #         self.show()
+    #         self.hide()
+    #
+    #         # prepare painter and mask to draw rounded corners
+    #         rect = QRect(QPoint(0, 0), self.geometry().size())
+    #         b = QBitmap(rect.size())
+    #         b.fill(QColor(Qt.GlobalColor.color0))
+    #         painter = QPainter(b)
+    #         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    #         painter.setBrush(Qt.GlobalColor.color1)
+    #         painter.drawRoundedRect(rect, self.radius, self.radius, Qt.SizeMode.AbsoluteSize)
+    #         painter.end()
+    #         self.setMask(b)
+    #
+    #     # run the dialog
+    #     super().exec()
+
+    def move(self, position, y=None):
+        if y is not None:
+            position = QPoint(position, y)
+        super().move(QPoint(position.x(), position.y() - self.radius - 4))
 
     def setMessage(self, new_message):
         self.message.setText(new_message)
@@ -1588,6 +1655,9 @@ class TitleBar(QToolBar):
             self.parent().setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
             self.setAutoFillBackground(True)
             self.setBackgroundRole(QPalette.ColorRole.Highlight)
+
+    def setOtherWidgetsToMove(self, other_widgets_to_move):
+        self.other_move = other_widgets_to_move
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton and self.isCustom:
@@ -1644,8 +1714,8 @@ class TabBar(QTabBar):
     #
     #         textGap = 8
     #         if i < self.count() - 1:
-    #             painter.drawImage(QRect(r.x() + 8, r.y() + ((r.height() - 32) // 2), 32, 32), QImage(opt.icon.pixmap(QSize(32, 32))))
-    #             textGap = 48
+    #             painter.drawImage(QRect(r.x() + 8, r.y() + ((r.height() - 32) // 2), self.icon_size, self.icon_size), QImage(opt.icon.pixmap(QSize(self.icon_size, self.icon_size))))
+    #             textGap = self.action_size
     #
     #         if self.parent().tabPosition() == QTabWidget.TabPosition.North or i == self.count() - 1:
     #             painter.drawText(QRect(r.x() + textGap, r.y(), r.width(), r.height()), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, opt.text)
