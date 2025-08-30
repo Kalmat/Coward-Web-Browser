@@ -19,6 +19,14 @@ Rationally, this will never be a good replacement for any of the commercial web 
 - Safe browsing: all data is stored locally, and easily wiped with just one click
 - A way to run a reasonably-functional browser in those environments in which they can only install Python ;)
 
+#### Keyboard shortcuts
+
+- `Ctrl` `F`    Open search box
+- `Ctrl` `T`    Open new tab
+- `Ctrl` `N`    Open new window
+- `Ctrl` `N`    Open new incognito window
+- `Ctrl` `D`    Close current tab (if not last)
+
 #### Known issues (due to QtWebEngine limitations or web sites constraints)
 
 QtWebEngine built-in codecs for audio and video have some limitations:

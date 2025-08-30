@@ -33,7 +33,7 @@ class MainWindow(QMainWindow):
     leaveTabBarSig = pyqtSignal()
 
     # constructor
-    def __init__(self, parent=None, new_win=False, init_tabs=None):
+    def __init__(self, parent=None, new_win=False, init_tabs=None, incognito=None):
         super(MainWindow, self).__init__(parent)
 
         # prepare cache folders and variables
@@ -135,7 +135,12 @@ class MainWindow(QMainWindow):
             self.v_tab_style = self.v_tab_style % (self.action_size, self.action_size)
 
         # Enable/Disable cookies
-        self.cookies = self.settings.value("General/cookies", True) in (True, "true")
+        if new_win and incognito is not None:
+            self.cookies = False
+            self.is_incognito = incognito
+        else:
+            self.cookies = self.settings.value("General/cookies", True) in (True, "true")
+            self.is_incognito = False
 
         # vertical / horizontal tabbar
         self.h_tabbar = self.settings.value("Appearance/h_tabbar", False) in (True, "true")
@@ -509,32 +514,37 @@ class MainWindow(QMainWindow):
         # creating a QWebEngineView object
         browser = QWebEngineView()
 
-        # The profile and all its settings is needed to keep cookies and cache (PyQt6 only, not in PyQt5)
-        profile = QWebEngineProfile(self.storageName, browser)
-        # QtWebEngine creates this folder, but we will not use it... deleting it
-        shutil.rmtree(os.path.dirname(os.path.dirname(profile.persistentStoragePath())))
+        if not self.is_incognito:
 
-        # profile cache settings
-        profile.setCachePath(self.cachePath)
-        # this can be redundant since it is a custom storage (not off-the-record)
-        profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
+            # The profile and all its settings is needed to keep cookies and cache (PyQt6 only, not in PyQt5)
+            profile = QWebEngineProfile(self.storageName, browser)
+            # QtWebEngine creates this folder, but we will not use it... deleting it
+            shutil.rmtree(os.path.dirname(os.path.dirname(profile.persistentStoragePath())))
 
-        # profile permissions settings
-        profile.setPersistentPermissionsPolicy(QWebEngineProfile.PersistentPermissionsPolicy.StoreOnDisk)
-        if self.lastCache:
-            # apply temporary cache location to delete all previous cache when app is closed, but keeping these
-            profile.setPersistentStoragePath(self.lastCache)
+            # profile cache settings
+            profile.setCachePath(self.cachePath)
+            # this can be redundant since it is a custom storage (not off-the-record)
+            profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
+
+            # profile permissions settings
+            profile.setPersistentPermissionsPolicy(QWebEngineProfile.PersistentPermissionsPolicy.StoreOnDisk)
+            if self.lastCache:
+                # apply temporary cache location to delete all previous cache when app is closed, but keeping these
+                profile.setPersistentStoragePath(self.lastCache)
+            else:
+                # apply application cache location
+                profile.setPersistentStoragePath(self.cachePath)
+
+            # profile cookies settings
+            profile.setPersistentCookiesPolicy(QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies)
+            profile.defaultProfile().cookieStore().setCookieFilter(self.cookie_filter)
+
+            # (AFAIK) profile must be applied in a new page, not at browser level
+            page = QWebEnginePage(profile, browser)
+            browser.setPage(page)
+
         else:
-            # apply application cache location
-            profile.setPersistentStoragePath(self.cachePath)
-
-        # profile cookies settings
-        profile.setPersistentCookiesPolicy(QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies)
-        profile.defaultProfile().cookieStore().setCookieFilter(self.cookie_filter)
-
-        # (AFAIK) profile must be applied in a new page, not at browser level
-        page = QWebEnginePage(profile, browser)
-        browser.setPage(page)
+            page = browser.page()
 
         # Enabling fullscreen
         browser.settings().setAttribute(QWebEngineSettings.WebAttribute.FullScreenSupportEnabled, True)
@@ -805,11 +815,12 @@ class MainWindow(QMainWindow):
         #         # This would allow popups... something we don't want, of course
         #         self.show_in_new_dialog(request)
 
-    def show_in_new_window(self, tabs=None):
+    def show_in_new_window(self, tabs=None, incognito=None):
 
         if not self.isNewWin:
-            w = MainWindow(new_win=True, init_tabs=tabs)
-            self.instances.append(w)
+            w = MainWindow(new_win=True, init_tabs=tabs, incognito=incognito)
+            if not incognito:
+                self.instances.append(w)
             w.show()
 
     def show_in_new_dialog(self, request):
@@ -1159,9 +1170,25 @@ class MainWindow(QMainWindow):
                 text = self.tabs.currentWidget().url().toString()
                 self.urlbar.setText(self.tabs.currentWidget().url().toString())
                 self.urlbar.setCursorPosition(len(text))
+
         elif a0.key() == Qt.Key.Key_F:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
                 self.manage_search()
+
+        elif a0.key() == Qt.Key.Key_T:
+            if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                self.add_new_tab()
+
+        elif a0.key() == Qt.Key.Key_N:
+            if a0.modifiers() == Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier:
+                self.show_in_new_window(incognito=False)
+            elif a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                self.show_in_new_window()
+
+        elif a0.key() == Qt.Key.Key_D:
+            if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                if self.tabs.count() > 1 and self.tabs.currentIndex() != self.tabs.count() - 1:
+                    self.tab_closed(self.tabs.currentIndex())
 
     def closeEvent(self, a0, QMouseEvent=None):
 
@@ -1366,22 +1393,22 @@ class DownloadManager(QWidget):
         layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
         name = QLabel()
-        name.setText(title)
         name.setObjectName("name")
+        name.setText(title)
         name.setToolTip(location)
         layout.addWidget(name, 0, 0)
 
         prog = QProgressBar()
+        prog.setObjectName("prog")
         prog.setTextVisible(False)
         prog.setFixedHeight(10)
         prog.setMinimum(0)
         prog.setMaximum(100)
-        prog.setObjectName("prog")
         layout.addWidget(prog, 1, 0)
 
         pause = QPushButton()
-        pause.setText(self.pause_char)
         pause.setObjectName("pause")
+        pause.setText(self.pause_char)
         pause.setToolTip("Pause download")
         pause.clicked.connect(lambda checked, b=pause, i=item, l=location: self.pause(checked, b, i, l))
         layout.addWidget(pause, 0, 1)
