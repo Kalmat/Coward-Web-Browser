@@ -1,7 +1,7 @@
 QWidget {
     font-family: "MS Shell Dlg 2";
     font-size: 10pt;
-    background: #323232;
+    background: #646464;
     color: white;
     border: none;
 }
@@ -10,13 +10,6 @@ QLabel#name {
     background: #646464;
     color: white;
     border: none;
-}
-
-QWidget {
-    background: #323232;
-    color: lightgrey;"
-    border-bottom-left-radius: 8px;
-    border-bottom-right-radius: 8px;
 }
 
 QWidget#dl_item {
@@ -37,6 +30,7 @@ QPushButton {
 
 QPushButton:hover {
     background: lightgrey;
+    color: black;
 }
 
 QProgressBar {

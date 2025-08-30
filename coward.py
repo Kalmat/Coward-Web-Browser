@@ -503,7 +503,7 @@ class MainWindow(QMainWindow):
 
         # if url is blank
         if qurl is None:
-            # creating a google url
+            # creating a default home url
             qurl = QUrl(self.homePage)
 
         # creating a QWebEngineView object
@@ -516,7 +516,7 @@ class MainWindow(QMainWindow):
 
         # profile cache settings
         profile.setCachePath(self.cachePath)
-        # this can be redundant since it is not off-the-record
+        # this can be redundant since it is a custom storage (not off-the-record)
         profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
 
         # profile permissions settings
