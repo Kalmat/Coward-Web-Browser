@@ -1358,7 +1358,6 @@ class DownloadManager(QWidget):
 
     def _add(self, item, title, location, tempfile):
 
-        # self.init_label.setText("Downloads")
         self.init_label.hide()
 
         widget = QWidget()
@@ -1386,14 +1385,14 @@ class DownloadManager(QWidget):
         pause = QPushButton()
         pause.setText(self.pause_char)
         pause.setObjectName("pause")
-        pause.setToolTip("Pause Download")
+        pause.setToolTip("Pause download")
         pause.clicked.connect(lambda checked, b=pause, i=item, l=location: self.pause(checked, b, i, l))
         layout.addWidget(pause, 0, 1)
 
         close_loc = QPushButton()
         close_loc.setText(self.cancel_char)
         close_loc.setObjectName("close_loc")
-        close_loc.setToolTip("Cancel Download")
+        close_loc.setToolTip("Cancel download")
         close_loc.clicked.connect(lambda checked, b=close_loc, i=item, l=location: self.close_loc(checked, b, i, l))
         layout.addWidget(close_loc, 0, 2)
 

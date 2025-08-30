@@ -6,13 +6,13 @@ QWidget {
     border: none;
 }
 
-QLabel#name {
+QWidget#dl_item {
     background: #646464;
     color: white;
     border: none;
 }
 
-QWidget#dl_item {
+QLabel#name {
     background: #646464;
     color: white;
     border: none;
