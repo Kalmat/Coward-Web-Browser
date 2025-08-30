@@ -98,7 +98,7 @@ class MainWindow(QMainWindow):
                                   )
 
         # custom / standard title bar
-        self.custom_titlebar = self.settings.value("General/custom_title", True) in (True, "true")
+        self.custom_titlebar = self.settings.value("Appearance/custom_title", True) in (True, "true")
         self.autoHide = self.settings.value("Appearance/auto_hide", False) in (True, "true")
 
         # set initial position and size
@@ -779,7 +779,6 @@ class MainWindow(QMainWindow):
         self.newTabContextMenu.exec(self.tabs.mapToGlobal(pos))
 
     def openLinkRequested(self, request):
-        # print("NEW REQ", request, request.destination(), request.isUserInitiated(), request.requestedGeometry())
 
         if request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewWindow:
             self.show_in_new_window([[request.requestedUrl(), 1.0, True]])
@@ -892,9 +891,7 @@ class MainWindow(QMainWindow):
 
     def manage_autohide(self):
 
-        print(self.autoHide)
         self.autoHide = not self.autoHide
-        print("IN", self.autoHide)
         self.auto_btn.setText(self.auto_on_char if self.autoHide else self.auto_off_char)
         self.auto_btn.setToolTip("Auto-hide is now " + ("Enabled" if self.autoHide else "Disabled"))
 
@@ -1164,8 +1161,8 @@ class MainWindow(QMainWindow):
         if not self.isNewWin:
             # only main instance may save settings
             self.settings.setValue("General/cookies", self.cookies)
-            self.settings.setValue("General/custom_title", self.custom_titlebar)
-            self.settings.setValue("General/h_tabbar", self.h_tabbar)
+            self.settings.setValue("Appearance/custom_title", self.custom_titlebar)
+            self.settings.setValue("Appearance/h_tabbar", self.h_tabbar)
             self.settings.setValue("Appearance/auto_hide", self.autoHide)
             self.settings.setValue("Appearance/icon_size", self.icon_size)
             self.settings.setValue("Window/pos", self.pos())
@@ -1197,27 +1194,10 @@ class MainWindow(QMainWindow):
 
             self.settings.setValue("Session/new_wins", new_wins)
 
-            # restart app to wipe all cache folders but the last one
+            # restart app to wipe all cache folders but the last one (not possible while running since it's locked)
             if self.deleteCache:
                 QCoreApplication.quit()
                 status = QProcess.startDetached(sys.executable, sys.argv + ["--delete_cache"] + [self.lastCache])
-
-
-class WebEnginePage(QWebEnginePage):
-    external_windows = []
-
-    def __init__(self, *__args):
-        super().__init__(*__args)
-
-    def acceptNavigationRequest(self, url, _type, isMainFrame):
-        print("NAV REQ", _type)
-        # if _type == QWebEngineNavigationRequest.NavigationType.OtherNavigation:
-        #     w = QWebEngineView()
-        #     w.setUrl(url)
-        #     w.show()
-        #     self.external_windows.append(w)
-        #     return False
-        return super().acceptNavigationRequest(url, _type, isMainFrame)
 
 
 class SearchWidget(QWidget):
