@@ -271,17 +271,6 @@ class MainWindow(QMainWindow):
         self.search_off_act = self.navtab.addWidget(self.search_off_btn)
         self.search_off_act.setVisible(False)
 
-        # adding auto-hide mgt.
-        self.auto_on_char = "⇱"
-        self.auto_off_char = "⇲"
-        self.auto_btn = QAction(self.auto_on_char if self.autoHide else self.auto_off_char, self.navtab)
-        font = self.auto_btn.font()
-        font.setPointSize(font.pointSize() + 6)
-        self.auto_btn.setFont(font)
-        self.auto_btn.setToolTip("Auto-hide is now " + ("Enabled" if self.autoHide else "Disabled"))
-        self.auto_btn.triggered.connect(self.manage_autohide)
-        self.navtab.addAction(self.auto_btn)
-
         # adding downloads mgt.
         self.dl_on_btn = QToolButton(self.navtab)
         self.dl_on_btn.setObjectName("dl_on")
@@ -303,6 +292,19 @@ class MainWindow(QMainWindow):
         self.dl_off_btn.clicked.connect(self.manage_downloads)
         self.dl_off_act = self.navtab.addWidget(self.dl_off_btn)
         self.dl_off_act.setVisible(False)
+
+        self.navtab.addSeparator()
+
+        # adding auto-hide mgt.
+        self.auto_on_char = "⇱"
+        self.auto_off_char = "⇲"
+        self.auto_btn = QAction(self.auto_on_char if self.autoHide else self.auto_off_char, self.navtab)
+        font = self.auto_btn.font()
+        font.setPointSize(font.pointSize() + 6)
+        self.auto_btn.setFont(font)
+        self.auto_btn.setToolTip("Auto-hide is now " + ("Enabled" if self.autoHide else "Disabled"))
+        self.auto_btn.triggered.connect(self.manage_autohide)
+        self.navtab.addAction(self.auto_btn)
 
         self.navtab.addSeparator()
 
@@ -1430,6 +1432,7 @@ class DownloadManager(QWidget):
 
         widget = QWidget()
         widget.setObjectName("dl_item")
+        widget.setFixedSize(330, 54)
         layout = QGridLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
