@@ -1,5 +1,4 @@
 # based on: https://www.geeksforgeeks.org/python/creating-a-tabbed-browser-using-pyqt5/
-import json
 import os
 import re
 import shutil
@@ -96,6 +95,9 @@ class MainWindow(QMainWindow):
                                   ".kalmat",
                                   "Coward" + ("_debug" if "python" in sys.executable else "")
                                   )
+
+        self.cachePath = os.path.join(os.path.dirname(self.settings.fileName()), ".cache", self.storageName)
+        print(self.cachePath)
 
         # custom / standard title bar
         self.custom_titlebar = self.settings.value("Appearance/custom_title", True) in (True, "true")
@@ -412,7 +414,6 @@ class MainWindow(QMainWindow):
         else:
             self.add_tab()
         self.tabs.setCurrentIndex(current)
-        self.cachePath = os.path.join(os.path.dirname(self.tabs.currentWidget().page().profile().persistentStoragePath()), self.storageName)
 
         self.update_urlbar(self.tabs.currentWidget().url(), self.tabs.currentWidget())
         # this will load the active tab only, saving time at start
@@ -514,6 +515,8 @@ class MainWindow(QMainWindow):
         if self.lastCache:
             # apply custom cache location to delete all previous cache when app is closed, but keeping these
             profile.setPersistentStoragePath(self.lastCache)
+        else:
+            profile.setPersistentStoragePath(self.cachePath)
         # self.pageProfile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
         profile.setPersistentCookiesPolicy(QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies)
         profile.setPersistentPermissionsPolicy(QWebEngineProfile.PersistentPermissionsPolicy.StoreOnDisk)
