@@ -1398,7 +1398,7 @@ class DownloadManager(QWidget):
         layout.setColumnStretch(2, 0)
 
         widget.setLayout(layout)
-        self.mainLayout.insertWidget(1, widget)
+        self.mainLayout.insertWidget(0, widget)
         self.downloads[str(item.id())] = [item, title, location, tempfile, widget]
 
     def updateDownload(self, dl_id):
