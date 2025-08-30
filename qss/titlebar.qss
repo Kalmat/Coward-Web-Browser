@@ -60,18 +60,6 @@ QToolButton#search_on:hover {
     background: #646464;
 }
 
-QToolButton#toggle_tab {
-    background: #323232;
-    color: white;
-    width: 48px;
-    height: 48px;
-    border: none;
-}
-
-QToolButton#toggle_tab:hover {
-    background: #646464;
-}
-
 QToolButton#search_off {
     background: #646464;
     color: white;

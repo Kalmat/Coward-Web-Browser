@@ -95,3 +95,15 @@ QToolButton#dl_off {
 QToolButton#dl_off:hover {
     background: green;
 }
+
+QToolButton#incognito {
+    background: green;
+    color: white;
+    width: 48px;
+    height: 48px;
+    border: none;
+}
+
+QToolButton#incognito:hover {
+    background: green;
+}

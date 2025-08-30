@@ -188,11 +188,11 @@ class MainWindow(QMainWindow):
         font.setPointSize(font.pointSize() + 2)
         self.toggleTab_btn.setFont(font)
         self.toggleTab_btn.clicked.connect(lambda: self.toggle_tabbar(clicked=True))
-        self.navtab.insertWidget(None, self.toggleTab_btn)
+        self.navtab.addWidget(self.toggleTab_btn)
         if self.isIncognito:
             self.toggleTab_btn.setDisabled(True)
-        else:
-            self.navtab.addSeparator()
+
+        self.navtab.addSeparator()
 
         # creating back action
         self.back_btn = QAction("🡠", self.navtab)
@@ -325,14 +325,17 @@ class MainWindow(QMainWindow):
         self.navtab.addAction(self.clean_btn)
 
         # adding open incognito window 🕶️🕶🥷👻
-        if not self.isIncognito:
-            self.ninja_btn = QAction("👻", self.navtab)
-            font = self.ninja_btn.font()
-            font.setPointSize(font.pointSize() + 6)
-            self.ninja_btn.setFont(font)
-            self.ninja_btn.setToolTip("Open new window in incognito mode")
-            self.ninja_btn.triggered.connect(lambda: self.show_in_new_window(incognito=True))
-            self.navtab.addAction(self.ninja_btn)
+        self.ninja_btn = QToolButton( self.navtab)
+        self.ninja_btn.setObjectName("incognito")
+        self.ninja_btn.setText("👻")
+        font = self.ninja_btn.font()
+        font.setPointSize(font.pointSize() + 6)
+        self.ninja_btn.setFont(font)
+        self.ninja_btn.setToolTip("Open new window in incognito mode")
+        self.ninja_btn.clicked.connect(lambda: self.show_in_new_window(incognito=True))
+        self.navtab.addWidget(self.ninja_btn)
+        if self.isIncognito:
+            self.ninja_btn.setDisabled(True)
 
         if self.custom_titlebar:
 
@@ -439,8 +442,6 @@ class MainWindow(QMainWindow):
         else:
             self.add_tab()
         self.tabs.setCurrentIndex(current)
-        if self.isIncognito:
-            self.tabs.tabBar().hide()
 
         self.update_urlbar(self.tabs.currentWidget().url(), self.tabs.currentWidget())
         # this will load the active tab only, saving time at start
@@ -503,6 +504,9 @@ class MainWindow(QMainWindow):
 
         # need to show first to have actual geometries
         self.toggleTab_btn.setFixedSize(self.tabs.tabBar().width() - 3, self.navtab.height())
+
+        if self.isIncognito:
+            self.tabs.tabBar().hide()
 
         if self.autoHide:
             self.navtab.hide()
