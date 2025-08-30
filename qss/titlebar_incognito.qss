@@ -1,5 +1,5 @@
 QToolBar {
-    background: #323232;
+    background: darkgreen;
     color: white;
     border: none;
     height: 48px;
@@ -18,13 +18,13 @@ QLineEdit {
 QLabel#spacer {
     font-family: "MS Shell Dlg 2";
     font-size: 10pt;
-    background: #323232;
+    background: darkgreen;
     color: white;
     border: none;
 }
 
 QToolButton {
-    background: #323232;
+    background: darkgreen;
     color: white;
     width: 48px;
     height: 48px;
@@ -32,12 +32,12 @@ QToolButton {
 }
 
 QToolButton:disabled {
-    background: #323232;
+    background: darkgreen;
     color: grey;
 }
 
 QToolButton:hover {
-    background: #646464;
+    background: green;
 }
 
 QToolBar::separator {
@@ -49,7 +49,7 @@ QToolBar::separator {
 }
 
 QToolButton#search_on {
-    background: #323232;
+    background: darkgreen;
     color: white;
     width: 48px;
     height: 48px;
@@ -57,23 +57,11 @@ QToolButton#search_on {
 }
 
 QToolButton#search_on:hover {
-    background: #646464;
-}
-
-QToolButton#toggle_tab {
-    background: #323232;
-    color: white;
-    width: 48px;
-    height: 48px;
-    border: none;
-}
-
-QToolButton#toggle_tab:hover {
-    background: #646464;
+    background: green;
 }
 
 QToolButton#search_off {
-    background: #646464;
+    background: green;
     color: white;
     width: 48px;
     height: 48px;
@@ -81,11 +69,11 @@ QToolButton#search_off {
 }
 
 QToolButton#search_off:hover {
-    background: #646464;
+    background: green;
 }
 
 QToolButton#dl_on {
-    background: #323232;
+    background: darkgreen;
     color: white;
     width: 48px;
     height: 48px;
@@ -93,11 +81,11 @@ QToolButton#dl_on {
 }
 
 QToolButton#dl_on:hover {
-    background: #646464;
+    background: green;
 }
 
 QToolButton#dl_off {
-    background: #646464;
+    background: green;
     color: white;
     width: 48px;
     height: 48px;
@@ -105,5 +93,5 @@ QToolButton#dl_off {
 }
 
 QToolButton#dl_off:hover {
-    background: #646464;
+    background: green;
 }

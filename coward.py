@@ -136,11 +136,11 @@ class MainWindow(QMainWindow):
 
         # Enable/Disable cookies
         if new_win and incognito is not None:
-            self.cookies = False
-            self.is_incognito = incognito
+            self.isIncognito = incognito
+            self.cookies = True
         else:
+            self.isIncognito = False
             self.cookies = self.settings.value("General/cookies", True) in (True, "true")
-            self.is_incognito = False
 
         # vertical / horizontal tabbar
         self.h_tabbar = self.settings.value("Appearance/h_tabbar", False) in (True, "true")
@@ -167,8 +167,12 @@ class MainWindow(QMainWindow):
 
         # creating a toolbar for navigation
         self.navtab = TitleBar(self, self.custom_titlebar, [], None, self.leaveNavBarSig)
-        with open(resource_path("qss/titlebar.qss")) as f:
-            navStyle = f.read()
+        if self.isIncognito:
+            with open(resource_path("qss/titlebar_incognito.qss")) as f:
+                navStyle = f.read()
+        else:
+            with open(resource_path("qss/titlebar.qss")) as f:
+                navStyle = f.read()
         self.navtab.setStyleSheet(navStyle)
 
         self.navtab.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
@@ -178,12 +182,17 @@ class MainWindow(QMainWindow):
         self.addToolBar(self.navtab)
 
         # adding toggle vertical / horizontal tabbar button
-        self.toggleTab_btn = QAction("", self.navtab)
+        self.toggleTab_btn = QToolButton(self.navtab)
+        self.toggleTab_btn.setObjectName("toggle_tab")
         font = self.toggleTab_btn.font()
         font.setPointSize(font.pointSize() + 2)
         self.toggleTab_btn.setFont(font)
-        self.toggleTab_btn.triggered.connect(lambda: self.toggle_tabbar(clicked=True))
-        self.navtab.addAction(self.toggleTab_btn)
+        self.toggleTab_btn.clicked.connect(lambda: self.toggle_tabbar(clicked=True))
+        self.navtab.insertWidget(None, self.toggleTab_btn)
+        if self.isIncognito:
+            self.toggleTab_btn.setDisabled(True)
+        else:
+            self.navtab.addSeparator()
 
         # creating back action
         self.back_btn = QAction("🡠", self.navtab)
@@ -295,6 +304,8 @@ class MainWindow(QMainWindow):
         self.dl_off_act = self.navtab.addWidget(self.dl_off_btn)
         self.dl_off_act.setVisible(False)
 
+        self.navtab.addSeparator()
+
         # adding cookie mgt.
         self.cookie_btn = QAction("", self.navtab)
         font = self.cookie_btn.font()
@@ -312,6 +323,16 @@ class MainWindow(QMainWindow):
         self.clean_btn.setToolTip("Erase history and cookies")
         self.clean_btn.triggered.connect(self.show_clean_dlg)
         self.navtab.addAction(self.clean_btn)
+
+        # adding open incognito window 🕶️🕶🥷👻
+        if not self.isIncognito:
+            self.ninja_btn = QAction("👻", self.navtab)
+            font = self.ninja_btn.font()
+            font.setPointSize(font.pointSize() + 6)
+            self.ninja_btn.setFont(font)
+            self.ninja_btn.setToolTip("Open new window in incognito mode")
+            self.ninja_btn.triggered.connect(lambda: self.show_in_new_window(incognito=True))
+            self.navtab.addAction(self.ninja_btn)
 
         if self.custom_titlebar:
 
@@ -393,7 +414,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.tabs)
 
         # open all windows and their tabs
-        if self.isNewWin:
+        if self.isNewWin or self.isIncognito:
             # get open tabs for child window instance
             tabs = self.init_tabs
 
@@ -418,6 +439,8 @@ class MainWindow(QMainWindow):
         else:
             self.add_tab()
         self.tabs.setCurrentIndex(current)
+        if self.isIncognito:
+            self.tabs.tabBar().hide()
 
         self.update_urlbar(self.tabs.currentWidget().url(), self.tabs.currentWidget())
         # this will load the active tab only, saving time at start
@@ -478,13 +501,16 @@ class MainWindow(QMainWindow):
     def show(self):
         super().show()
 
+        # need to show first to have actual geometries
+        self.toggleTab_btn.setFixedSize(self.tabs.tabBar().width() - 3, self.navtab.height())
+
         if self.autoHide:
             self.navtab.hide()
             self.hoverHWidget.setGeometry(self.action_size, 0, self.width(), 20)
             self.hoverHWidget.show()
             self.tabs.tabBar().hide()
             self.hoverVWidget.setGeometry(0, self.action_size, 20, self.height())
-            if not self.h_tabbar:
+            if not self.h_tabbar and not self.isIncognito:
                 self.hoverVWidget.show()
 
     # method for adding new tab
@@ -514,7 +540,7 @@ class MainWindow(QMainWindow):
         # creating a QWebEngineView object
         browser = QWebEngineView()
 
-        if not self.is_incognito:
+        if not self.isIncognito:
 
             # The profile and all its settings is needed to keep cookies and cache (PyQt6 only, not in PyQt5)
             profile = QWebEngineProfile(self.storageName, browser)
@@ -819,8 +845,7 @@ class MainWindow(QMainWindow):
 
         if not self.isNewWin:
             w = MainWindow(new_win=True, init_tabs=tabs, incognito=incognito)
-            if not incognito:
-                self.instances.append(w)
+            self.instances.append(w)
             w.show()
 
     def show_in_new_dialog(self, request):
@@ -866,13 +891,14 @@ class MainWindow(QMainWindow):
 
         if self.autoHide:
             if self.h_tabbar:
-                self.tabs.tabBar().show()
+                if not self.isIncognito:
+                    self.tabs.tabBar().show()
             if hasattr(self, "hoverHWidget"):
                 self.hoverHWidget.show()
             if hasattr(self, "hoverVWidget"):
                 if self.h_tabbar:
                     self.hoverVWidget.hide()
-                else:
+                elif not self.isIncognito:
                     self.hoverVWidget.show()
 
     def goBack(self):
@@ -922,13 +948,14 @@ class MainWindow(QMainWindow):
             self.navtab.hide()
             self.hoverHWidget.show()
             self.tabs.tabBar().hide()
-            if not self.h_tabbar:
+            if not self.h_tabbar and not self.isIncognito:
                 self.hoverVWidget.show()
 
         else:
             self.navtab.show()
             self.hoverHWidget.hide()
-            self.tabs.tabBar().show()
+            if not self.isIncognito:
+                self.tabs.tabBar().show()
             self.hoverVWidget.hide()
 
     def enterHHover(self):
@@ -936,7 +963,8 @@ class MainWindow(QMainWindow):
             self.hoverHWidget.hide()
             self.navtab.show()
             if self.h_tabbar:
-                self.tabs.tabBar().show()
+                if not self.isIncognito:
+                    self.tabs.tabBar().show()
 
     @pyqtSlot()
     def leaveHHover(self):
@@ -946,7 +974,8 @@ class MainWindow(QMainWindow):
     def enterVHover(self):
         if self.autoHide:
             self.hoverVWidget.hide()
-            self.tabs.tabBar().show()
+            if not self.isIncognito:
+                self.tabs.tabBar().show()
 
     @pyqtSlot()
     def leaveVHover(self):
@@ -982,7 +1011,8 @@ class MainWindow(QMainWindow):
                     self.hoverHWidget.show()
             else:
                 self.tabs.tabBar().hide()
-                self.hoverVWidget.show()
+                if not self.isIncognito:
+                    self.hoverVWidget.show()
 
     def manage_downloads(self):
 
@@ -1177,13 +1207,16 @@ class MainWindow(QMainWindow):
 
         elif a0.key() == Qt.Key.Key_T:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
-                self.add_new_tab()
+                if not self.isIncognito:
+                    self.add_new_tab()
 
         elif a0.key() == Qt.Key.Key_N:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier:
-                self.show_in_new_window(incognito=False)
+                if not self.isIncognito:
+                    self.show_in_new_window(incognito=True)
             elif a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
-                self.show_in_new_window()
+                if not self.isIncognito:
+                    self.show_in_new_window()
 
         elif a0.key() == Qt.Key.Key_D:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
@@ -1218,15 +1251,19 @@ class MainWindow(QMainWindow):
             # only open windows when main instance is closed will be remembered
             new_wins = []
             for w in self.instances:
-                # check if window is still open
-                if w.isVisible():
 
-                    # saving open tabs for each instance
-                    new_tabs = []
-                    for i in range(w.tabs.count() - 1):
-                        browser = w.tabs.widget(i)
-                        new_tabs.append([browser.url().toString(), browser.page().zoomFactor(), i == w.tabs.currentIndex()])
-                    new_wins.append(new_tabs)
+                # won't keep any incognito data
+                if not w.isIncognito:
+
+                    # check if window is still open
+                    if w.isVisible():
+
+                        # saving open tabs for each instance
+                        new_tabs = []
+                        for i in range(w.tabs.count() - 1):
+                            browser = w.tabs.widget(i)
+                            new_tabs.append([browser.url().toString(), browser.page().zoomFactor(), i == w.tabs.currentIndex()])
+                        new_wins.append(new_tabs)
 
                 # closing all other open child windows
                 w.close()
