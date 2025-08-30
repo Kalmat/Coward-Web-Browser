@@ -30,11 +30,3 @@ QMenu::item {
 QMenu::item:selected {
     background: #646464;
 }
-
-QLabel {
-    font-family: "MS Shell Dlg 2";
-    font-size: 10pt;
-    background: #323232;
-    color: white;
-    border: none;
-}

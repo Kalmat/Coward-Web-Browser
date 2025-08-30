@@ -227,6 +227,7 @@ class MainWindow(QMainWindow):
 
         # adding a space in between to allow moving the window in all sizes
         spacer = QLabel()
+        spacer.setObjectName("spacer")
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         spacer.setMinimumWidth(20)
         spacer.setMaximumWidth(200)
@@ -242,6 +243,7 @@ class MainWindow(QMainWindow):
 
         # adding a space in between to allow moving the window in all sizes
         spacer = QLabel()
+        spacer.setObjectName("spacer")
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         spacer.setMinimumWidth(0)
         spacer.setMaximumWidth(200)
@@ -1259,7 +1261,7 @@ class SearchWidget(QWidget):
 
         # adding a separator
         separator = QLabel()
-        separator.setFixedSize(3, 32)
+        separator.setObjectName("sep")
         separator.setPixmap(QPixmap(resource_path("res/tabsep.png")))
         self.mainLayout.addWidget(separator)
 

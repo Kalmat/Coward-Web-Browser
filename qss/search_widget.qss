@@ -13,6 +13,14 @@ QLineEdit {
     border-radius:4px;
 }
 
+QLabel#sep {
+    background: #323232;
+    color: white;
+    border: none;
+    width: 3px;
+    height: 32px;
+}
+
 QPushButton {
     font-family: "MS Shell Dlg 2";
     font-size: 9pt;
