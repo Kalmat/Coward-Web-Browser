@@ -31,6 +31,7 @@ The only possible solutions (not easy at all) are:
 - In addition to that, for pages requiring widevine:
   - Get `widevinecdm.dll` file. Check if you have a copy in your system or download a (safe) one
   - Set the environment variable: `QTWEBENGINE_CHROMIUM_FLAGS=--widevine-path="path/to/widevinecdm.dll"` (replace "path/to/" by the actual folder containing the .dll file)
+  - Alternatively to setting this variable, create a folder named `widevine` within the coward-browser folder, and place the .dll there  
 
 ### Support
 
