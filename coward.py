@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import *
 
 # to play some media which uses non-built-in codecs, QtWebEngine must be built with option -webengine-proprietary-codecs
 # https://doc.qt.io/qt-6/qtwebengine-features.html#audio-and-video-codecs
-# in addition to that, for some sites using DRM-protection and widevine, this variable must also be set:
+# in addition to that, for some sites using widevine (DRM protection), this variable must also be set:
 os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = '--widevine-path="%s"' % os.path.join(os.getcwd(), "widevine", "widevinecdm.dll")
 
 
@@ -88,44 +88,20 @@ class MainWindow(QMainWindow):
         # Set tracking mouse ON if needed
         # self.setMouseTracking(True)
 
-        # get or create settings
         self.screenSize = self.screen().availableGeometry()
-        try:
-            # open settings file
-            with open("coward.json", "r") as f:
-                self.config = json.loads(f.read())
 
-            # check settings structure
-            _ = self.config["tabs"]
-            _ = self.config["pos"]
-            _ = self.config["size"]
-            _ = self.config["cookies"]
-            _ = self.config["h_tabbar"]
-            _ = self.config["custom_title"]
-            _ = self.config["auto_hide"]
-            _ = self.config["icon_size"]
-            _ = self.config["new_wins"]
-
-        except:
-            # create a default settings file in case of error
-            self.config = {"tabs": [[self.homePage, 1.0, True]],
-                           "pos": (100, 100),
-                           "size": (min(self.screenSize.width() // 2, 1024), min(self.screenSize.height() - 200, 1024)),
-                           "cookies": True,
-                           "h_tabbar": False,
-                           "custom_title": True,
-                           "auto_hide": False,
-                           "icon_size": 24,
-                           "new_wins": []
-                           }
+        # get settings
+        self.settings = QSettings(QSettings.Format.IniFormat, QSettings.Scope.UserScope, ".kalmat", "Coward")
 
         # custom / standard title bar
-        self.custom_titlebar = self.config["custom_title"]
-        self.autoHide = self.config["auto_hide"]
+        self.custom_titlebar = self.settings.value("General/custom_title", True) in (True, "true")
+        self.autoHide = self.settings.value("Appearance/auto_hide", False) in (True, "true")
 
         # set initial position and size
-        x, y = self.config["pos"]
-        w, h = self.config["size"]
+        pos = self.settings.value("Window/pos", QPoint(100, 100))
+        x, y = pos.x(), pos.y()
+        size = self.settings.value("Window/size", QSize(min(self.screenSize.width() // 2, 1024), min(self.screenSize.height() - 200, 1024)))
+        w, h = size.width(), size.height()
         gap = 0 if self.custom_titlebar else 50
         if self.isNewWin:
             x += 50
@@ -141,7 +117,7 @@ class MainWindow(QMainWindow):
 
         # set icon size (also affects to tabs and actions sizes)
         # since some "icons" are actually characters, we should also adjust fonts or stick to values between 24 and 32
-        self.icon_size = max(24, min(32, self.config["icon_size"]))
+        self.icon_size = max(24, min(32, int(self.settings.value("Appearance/icon_size", 24))))
         self.action_size = self.icon_size + max(16, self.icon_size // 2)
 
         # tab bar styles
@@ -154,10 +130,10 @@ class MainWindow(QMainWindow):
             self.v_tab_style = self.v_tab_style % (self.action_size, self.action_size)
 
         # Enable/Disable cookies
-        self.cookies = self.config["cookies"]
+        self.cookies = self.settings.value("General/cookies", True) in (True, "true")
 
         # vertical / horizontal tabbar
-        self.h_tabbar = self.config["h_tabbar"]
+        self.h_tabbar = self.settings.value("Appearance/h_tabbar", False) in (True, "true")
 
         if self.custom_titlebar:
             self.sideGrips = [
@@ -416,10 +392,10 @@ class MainWindow(QMainWindow):
 
         else:
             # get open tabs for  main instance window
-            tabs = self.config["tabs"]
+            tabs = self.settings.value("Session/tabs", [[self.homePage, 1.0, True]])
 
             # get child windows instances and their open tabs
-            new_wins = self.config["new_wins"]
+            new_wins = self.settings.value("Session/new_wins", []) or []
 
         # open all tabs in main / child window
         current = 0
@@ -912,8 +888,10 @@ class MainWindow(QMainWindow):
 
     def manage_autohide(self):
 
+        print(self.autoHide)
         self.autoHide = not self.autoHide
-        self.auto_btn.setText(self.auto_on_char if self.autoHide else self.auto_off_char, self)
+        print("IN", self.autoHide)
+        self.auto_btn.setText(self.auto_on_char if self.autoHide else self.auto_off_char)
         self.auto_btn.setToolTip("Auto-hide is now " + ("Enabled" if self.autoHide else "Disabled"))
 
         if self.autoHide:
@@ -1181,16 +1159,20 @@ class MainWindow(QMainWindow):
         # Save current browser contents and settings
         if not self.isNewWin:
             # only main instance may save settings
+            self.settings.setValue("General/cookies", self.cookies)
+            self.settings.setValue("General/custom_title", self.custom_titlebar)
+            self.settings.setValue("General/h_tabbar", self.h_tabbar)
+            self.settings.setValue("Appearance/auto_hide", self.autoHide)
+            self.settings.setValue("Appearance/icon_size", self.icon_size)
+            self.settings.setValue("Window/pos", self.pos())
+            self.settings.setValue("Window/size", self.size())
+
+            # save open tabs
             tabs = []
             for i in range(self.tabs.count() - 1):
                 browser = self.tabs.widget(i)
                 tabs.append([browser.url().toString(), browser.page().zoomFactor(), i == self.tabs.currentIndex()])
-            self.config["tabs"] = tabs
-            self.config["pos"] = [self.pos().x(), self.pos().y()]
-            self.config["size"] = [self.size().width(), self.size().height()]
-            self.config["cookies"] = self.cookies
-            self.config["h_tabbar"] = self.h_tabbar
-            self.config["auto_hide"] = self.autoHide
+            self.settings.setValue("Session/tabs",  tabs)
 
             # save other open windows
             # only open windows when main instance is closed will be remembered
@@ -1209,10 +1191,7 @@ class MainWindow(QMainWindow):
                 # closing all other open child windows
                 w.close()
 
-            self.config["new_wins"] = new_wins
-
-            with open("coward.json", "w") as f:
-                f.write(json.dumps(self.config, indent=4))
+            self.settings.setValue("Session/new_wins", new_wins)
 
             # restart app to wipe all cache folders but the last one
             if self.deleteCache:
