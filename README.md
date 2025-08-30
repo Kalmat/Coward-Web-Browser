@@ -21,9 +21,16 @@ Rationally, this will never be a good replacement for any of the commercial web 
 
 #### Known issues (due to QtWebEngine limitations or web sites constraints)
 
-- Some videos from some web sites will not offer HD quality option
-- Live videos will not load unless QtWebEngine is compiled in your own system, adding all required codecs
-- Some videos with strict DRM protection will not play
+QtWebEngine built-in codecs for audio and video have some limitations:
+- Some videos will not offer HD quality option
+- Media using proprietary codecs (e.g. H.264 and MP3) will not play 
+- Media with DRM protection will fail to load
+
+The only possible solutions (not easy at all) are:
+- Build QtWebEngine with option -webengine-proprietary-codecs ([see here](https://doc.qt.io/qt-6/qtwebengine-features.html#audio-and-video-codecs))
+- In addition to that, for pages requiring widevine:
+  - Get `widevinecdm.dll` file. Check if you have a copy in your system or download a (safe) one
+  - Set the environment variable: `QTWEBENGINE_CHROMIUM_FLAGS=--widevine-path="path/to/widevinecdm.dll"` (replace "path/to/" by the actual folder containing the .dll file)
 
 ### Support
 

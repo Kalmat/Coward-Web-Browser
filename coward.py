@@ -14,6 +14,11 @@ from PyQt6.QtWebEngineCore import *
 from PyQt6.QtWebEngineWidgets import *
 from PyQt6.QtWidgets import *
 
+# to play some media which uses non-built-in codecs, QtWebEngine must be built with option -webengine-proprietary-codecs
+# https://doc.qt.io/qt-6/qtwebengine-features.html#audio-and-video-codecs
+# in addition to that, for some sites using DRM-protection and widevine, this variable must also be set:
+os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = '--widevine-path="%s"' % os.path.join(os.getcwd(), "widevine", "widevinecdm.dll")
+
 
 # main window
 class MainWindow(QMainWindow):
