@@ -97,7 +97,6 @@ class MainWindow(QMainWindow):
                                   )
 
         self.cachePath = os.path.join(os.path.dirname(self.settings.fileName()), ".cache", self.storageName)
-        print(self.cachePath)
 
         # custom / standard title bar
         self.custom_titlebar = self.settings.value("Appearance/custom_title", True) in (True, "true")
@@ -511,7 +510,9 @@ class MainWindow(QMainWindow):
         browser = QWebEngineView()
         # The profile and all its settings is needed to keep cookies and cache (PyQt6 only, not in PyQt5)
         profile = QWebEngineProfile(self.storageName, browser)
-        # self.pageProfile.setCachePath(self.cachePath)
+        # QtWebEngine creates this folder, but we will not use it... deleting it
+        shutil.rmtree(os.path.dirname(os.path.dirname(profile.persistentStoragePath())))
+        profile.setCachePath(self.cachePath)
         if self.lastCache:
             # apply custom cache location to delete all previous cache when app is closed, but keeping these
             profile.setPersistentStoragePath(self.lastCache)
