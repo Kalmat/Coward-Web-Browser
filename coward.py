@@ -508,21 +508,30 @@ class MainWindow(QMainWindow):
 
         # creating a QWebEngineView object
         browser = QWebEngineView()
+
         # The profile and all its settings is needed to keep cookies and cache (PyQt6 only, not in PyQt5)
         profile = QWebEngineProfile(self.storageName, browser)
         # QtWebEngine creates this folder, but we will not use it... deleting it
         shutil.rmtree(os.path.dirname(os.path.dirname(profile.persistentStoragePath())))
+
+        # profile cache settings
         profile.setCachePath(self.cachePath)
+        # this can be redundant since it is not off-the-record
+        profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
+
+        # profile permissions settings
+        profile.setPersistentPermissionsPolicy(QWebEngineProfile.PersistentPermissionsPolicy.StoreOnDisk)
         if self.lastCache:
-            # apply custom cache location to delete all previous cache when app is closed, but keeping these
+            # apply temporary cache location to delete all previous cache when app is closed, but keeping these
             profile.setPersistentStoragePath(self.lastCache)
         else:
+            # apply application cache location
             profile.setPersistentStoragePath(self.cachePath)
-        # self.pageProfile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
+
+        # profile cookies settings
         profile.setPersistentCookiesPolicy(QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies)
-        profile.setPersistentPermissionsPolicy(QWebEngineProfile.PersistentPermissionsPolicy.StoreOnDisk)
-        # profile.setPersistentPermissionsPolicy(QWebEngineProfile.PersistentPermissionsPolicy.AskEveryTime)
         profile.defaultProfile().cookieStore().setCookieFilter(self.cookie_filter)
+
         # (AFAIK) profile must be applied in a new page, not at browser level
         page = QWebEnginePage(profile, browser)
         browser.setPage(page)
