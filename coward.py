@@ -701,8 +701,8 @@ class MainWindow(QMainWindow):
 
         if app.mouseButtons() == Qt.MouseButton.LeftButton:
             if i == self.tabs.count() - 1:
-                self.urlbar.setText(self.homePage)
-                self.urlbar.repaint()
+                # this is needed to immediately refresh url bar content (maybe locked by qwebengineview?)
+                QTimer.singleShot(1, lambda: self.urlbar.setText(self.homePage))
                 self.add_new_tab()
 
     def tab_moved(self, to_index, from_index):
