@@ -187,7 +187,7 @@ class MainWindow(QMainWindow):
         self.addToolBar(self.navtab)
 
         # adding toggle vertical / horizontal tabbar button
-        self.toggleTab_btn = QAction("", self)
+        self.toggleTab_btn = QAction("", self.navtab)
         font = self.toggleTab_btn.font()
         font.setPointSize(font.pointSize() + 2)
         self.toggleTab_btn.setFont(font)
@@ -195,9 +195,9 @@ class MainWindow(QMainWindow):
         self.navtab.addAction(self.toggleTab_btn)
 
         # creating back action
-        self.back_btn = QAction("🡠", self)
+        self.back_btn = QAction("🡠", self.navtab)
         font = self.back_btn.font()
-        font.setPointSize(font.pointSize() + 8)
+        font.setPointSize(font.pointSize() + 6)
         self.back_btn.setFont(font)
         self.back_btn.setDisabled(True)
         self.back_btn.setToolTip("Back to previous page")
@@ -205,9 +205,9 @@ class MainWindow(QMainWindow):
         self.navtab.addAction(self.back_btn)
 
         # adding next button
-        self.next_btn = QAction("🡢", self)
+        self.next_btn = QAction("🡢", self.navtab)
         font = self.next_btn.font()
-        font.setPointSize(font.pointSize() + 8)
+        font.setPointSize(font.pointSize() + 6)
         self.next_btn.setFont(font)
         self.next_btn.setDisabled(True)
         self.next_btn.setToolTip("Forward to next page")
@@ -217,16 +217,13 @@ class MainWindow(QMainWindow):
         # adding reload / stop button
         self.reload_char = "⟳"
         self.stop_char = "⤬"
-        self.reload_btn = QAction(self.reload_char, self)
+        self.reload_btn = QAction(self.reload_char, self.navtab)
         font = self.reload_btn.font()
         font.setPointSize(font.pointSize() + 10)
         self.reload_btn.setFont(font)
         self.reload_btn.setToolTip("Reload page")
         self.reload_btn.triggered.connect(self.reloadPage)
         self.navtab.addAction(self.reload_btn)
-
-        # adding a separator
-        # self.navtb.addSeparator()
 
         # adding a space in between to allow moving the window in all sizes
         spacer = QLabel()
@@ -251,21 +248,31 @@ class MainWindow(QMainWindow):
         self.navtab.addWidget(spacer)
 
         # adding search option
-        self.search_on_char = "⌕"
-        self.search_off_char = "🔍"
-        self.search_btn = QAction(self.search_on_char, self)
-        self.setObjectName("search")
-        font = self.search_btn.font()
-        font.setPointSize(font.pointSize() + 6)
-        self.search_btn.setFont(font)
-        self.search_btn.setToolTip("Search text in this page")
-        self.search_btn.triggered.connect(self.manage_search)
-        self.navtab.addAction(self.search_btn)
+        self.search_on_btn = QToolButton(self.navtab)
+        self.search_on_btn.setObjectName("search_on")
+        font = self.search_on_btn.font()
+        font.setPointSize(font.pointSize() + 8)
+        self.search_on_btn.setFont(font)
+        self.search_on_btn.setText("⌕")
+        self.search_on_btn.setToolTip("Search text in this page")
+        self.search_on_btn.clicked.connect(self.manage_search)
+        self.search_on_act = self.navtab.addWidget(self.search_on_btn)
+
+        self.search_off_btn = QToolButton(self.navtab)
+        self.search_off_btn.setObjectName("search_off")
+        font = self.search_off_btn.font()
+        font.setPointSize(font.pointSize() + 8)
+        self.search_off_btn.setFont(font)
+        self.search_off_btn.setText("⌕")
+        self.search_off_btn.setToolTip("Search text in this page")
+        self.search_off_btn.clicked.connect(self.manage_search)
+        self.search_off_act = self.navtab.addWidget(self.search_off_btn)
+        self.search_off_act.setVisible(False)
 
         # adding auto-hide mgt.
         self.auto_on_char = "⇱"
         self.auto_off_char = "⇲"
-        self.auto_btn = QAction(self.auto_on_char if self.autoHide else self.auto_off_char, self)
+        self.auto_btn = QAction(self.auto_on_char if self.autoHide else self.auto_off_char, self.navtab)
         font = self.auto_btn.font()
         font.setPointSize(font.pointSize() + 6)
         self.auto_btn.setFont(font)
@@ -274,18 +281,29 @@ class MainWindow(QMainWindow):
         self.navtab.addAction(self.auto_btn)
 
         # adding downloads mgt.
-        self.dl_on_char = "🡣"
-        self.dl_off_char = "⬇"
-        self.dl_btn = QAction(self.dl_on_char, self)
-        font = self.dl_btn.font()
+        self.dl_on_btn = QToolButton(self.navtab)
+        self.dl_on_btn.setObjectName("dl_on")
+        font = self.dl_on_btn.font()
         font.setPointSize(font.pointSize() + 6)
-        self.dl_btn.setFont(font)
-        self.dl_btn.setToolTip("Show / hide downloads")
-        self.dl_btn.triggered.connect(self.manage_downloads)
-        self.navtab.addAction(self.dl_btn)
+        self.dl_on_btn.setFont(font)
+        self.dl_on_btn.setText("🡣")
+        self.dl_on_btn.setToolTip("Show / hide downloads")
+        self.dl_on_btn.clicked.connect(self.manage_downloads)
+        self.dl_on_act = self.navtab.addWidget(self.dl_on_btn)
+
+        self.dl_off_btn = QToolButton(self.navtab)
+        self.dl_off_btn.setObjectName("dl_off")
+        font = self.dl_off_btn.font()
+        font.setPointSize(font.pointSize() + 6)
+        self.dl_off_btn.setFont(font)
+        self.dl_off_btn.setText("🡣")
+        self.dl_off_btn.setToolTip("Show / hide downloads")
+        self.dl_off_btn.clicked.connect(self.manage_downloads)
+        self.dl_off_act = self.navtab.addWidget(self.dl_off_btn)
+        self.dl_off_act.setVisible(False)
 
         # adding cookie mgt.
-        self.cookie_btn = QAction("", self)
+        self.cookie_btn = QAction("", self.navtab)
         font = self.cookie_btn.font()
         font.setPointSize(font.pointSize() + 4)
         self.cookie_btn.setFont(font)
@@ -294,7 +312,7 @@ class MainWindow(QMainWindow):
         self.navtab.addAction(self.cookie_btn)
 
         # adding cleaning mgt.
-        self.clean_btn = QAction("🧹", self)
+        self.clean_btn = QAction("🧹", self.navtab)
         font = self.clean_btn.font()
         font.setPointSize(font.pointSize() + 6)
         self.clean_btn.setFont(font)
@@ -306,7 +324,7 @@ class MainWindow(QMainWindow):
 
             self.navtab.addSeparator()
 
-            self.min_btn = QAction("―", self)
+            self.min_btn = QAction("―", self.navtab)
             self.min_btn.setToolTip("Minimize")
             font = self.min_btn.font()
             font.setPointSize(font.pointSize() + 2)
@@ -314,7 +332,7 @@ class MainWindow(QMainWindow):
             self.min_btn.triggered.connect(self.showMinimized)
             self.navtab.addAction(self.min_btn)
 
-            self.max_btn = QAction(" ⃞ ", self)
+            self.max_btn = QAction(" ⃞ ", self.navtab)
             self.max_btn.setToolTip("Maximize")
             font = self.max_btn.font()
             font.setPointSize(font.pointSize() + 4)
@@ -322,7 +340,7 @@ class MainWindow(QMainWindow):
             self.max_btn.triggered.connect(self.showMaxRestore)
             self.navtab.addAction(self.max_btn)
 
-            self.closewin_btn = QAction("🕱", self)
+            self.closewin_btn = QAction("🕱", self.navtab)
             self.closewin_btn.setToolTip("Quit, coward")
             font = self.closewin_btn.font()
             font.setPointSize(font.pointSize() + 8)
@@ -483,6 +501,7 @@ class MainWindow(QMainWindow):
         i = self.add_tab(qurl)
         self.add_tab_action()
         self.tabs.setCurrentIndex(i)
+        self.update_urlbar(self.tabs.currentWidget().url(), self.tabs.currentWidget())
 
     def add_tab_action(self):
         self.addtab_btn = QLabel()
@@ -615,6 +634,7 @@ class MainWindow(QMainWindow):
 
         # set the url
         self.tabs.currentWidget().load(qurl)
+        self.tabs.currentWidget().load(qurl)
 
     def update_urlbar(self, qurl, browser: QWidget = None):
 
@@ -687,6 +707,7 @@ class MainWindow(QMainWindow):
                 self.reload_btn.setToolTip("Reload page")
 
         if self.search_widget.isVisible():
+            self.tabs.currentWidget().findText("")
             self.search_widget.hide()
 
     def tab_clicked(self, i):
@@ -860,17 +881,19 @@ class MainWindow(QMainWindow):
     def manage_search(self):
 
         if self.search_widget.isVisible():
+            self.tabs.currentWidget().findText("")
             self.search_widget.hide()
-            self.search_btn.setText(self.search_on_char)
+            self.search_off_act.setVisible(False)
+            self.search_on_act.setVisible(True)
 
         else:
-            actRect = self.navtab.actionGeometry(self.search_btn)
-            actPos = self.navtab.mapToGlobal(self.navtab.actionGeometry(self.search_btn).topLeft())
-            x = actPos.x() + actRect.width() - self.search_widget.width()
+            actPos = self.navtab.mapToGlobal(self.navtab.actionGeometry(self.auto_btn).topLeft())
+            x = actPos.x() - self.search_widget.width()
             y = self.y() + self.navtab.height()
             self.search_widget.move(x, y)
             self.search_widget.show()
-            self.search_btn.setText(self.search_off_char)
+            self.search_off_act.setVisible(True)
+            self.search_on_act.setVisible(False)
 
     def searchPage(self, checked, forward):
         textToFind = self.search_widget.getText()
@@ -955,15 +978,19 @@ class MainWindow(QMainWindow):
     def manage_downloads(self):
 
         if self.dl_manager.isVisible():
-            self.dl_btn.setText(self.dl_on_char)
+            self.dl_on_act.setVisible(True)
+            self.dl_off_act.setVisible(False)
             self.dl_manager.hide()
 
         else:
+            self.dl_on_act.setVisible(False)
+            self.dl_off_act.setVisible(True)
             self.show_dl_manager()
 
     def show_dl_manager(self):
 
-        self.dl_btn.setText(self.dl_off_char)
+        self.dl_on_act.setVisible(False)
+        self.dl_off_act.setVisible(True)
         self.dl_manager.show()
         x = self.x() + self.width() - self.dl_manager.width()
         y = self.y() + self.navtab.height()
@@ -1122,11 +1149,21 @@ class MainWindow(QMainWindow):
 
         if self.search_widget.isVisible():
             # reposition search widget
-            actRect = self.navtab.actionGeometry(self.search_btn)
-            actPos = self.navtab.mapToGlobal(self.navtab.actionGeometry(self.search_btn).topLeft())
+            actRect = self.navtab.actionGeometry(self.search_on_btn)
+            actPos = self.navtab.mapToGlobal(self.navtab.actionGeometry(self.search_on_btn).topLeft())
             x = actPos.x() + actRect.width() - self.search_widget.width()
             y = self.y() + self.navtab.height()
             self.search_widget.move(x, y)
+
+    def keyPressEvent(self, a0: QKeyEvent):
+        if a0.key() == Qt.Key.Key_Escape:
+            if self.urlbar.hasFocus():
+                text = self.tabs.currentWidget().url().toString()
+                self.urlbar.setText(self.tabs.currentWidget().url().toString())
+                self.urlbar.setCursorPosition(len(text))
+        elif a0.key() == Qt.Key.Key_F:
+            if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                self.manage_search()
 
     def closeEvent(self, a0, QMouseEvent=None):
 
@@ -1200,13 +1237,13 @@ class SearchWidget(QWidget):
 
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
         self.setWindowFlag(Qt.WindowType.Tool, True)
-        self.setStyleSheet("background: #323232; color: white; border: 1px solid lightgrey;")
+
+        with open(resource_path("qss/search_widget.qss")) as f:
+            self.setStyleSheet(f.read())
         self.setFixedSize(300, 54)
         self.setContentsMargins(10, 0, 0, 0)
 
         self.searchCallback = searchCallback
-        with open(resource_path("qss/small_button.qss")) as f:
-            self.buttonStyle = f.read()
 
         # create a horizontal layout
         self.mainLayout = QHBoxLayout()
@@ -1216,20 +1253,18 @@ class SearchWidget(QWidget):
 
         # text box to fill in target search
         self.search_box = QLineEdit()
-        self.search_box.setStyleSheet("background: #161616; color: white; border: none; border-radius:4px;")
         self.search_box.setFixedSize(200, 24)
         self.search_box.returnPressed.connect(lambda checked=False, forward=True: self.searchCallback(checked, forward))
         self.mainLayout.addWidget(self.search_box)
 
         # adding a separator
         separator = QLabel()
-        separator.setFixedSize(1, 32)
+        separator.setFixedSize(3, 32)
         separator.setPixmap(QPixmap(resource_path("res/tabsep.png")))
         self.mainLayout.addWidget(separator)
 
         # search forward button
         self.search_forward = QPushButton("▼")
-        self.search_forward.setStyleSheet(self.buttonStyle)
         font = self.search_forward.font()
         font.setPointSize(font.pointSize() + 10)
         self.search_forward.setFont(font)
@@ -1238,7 +1273,6 @@ class SearchWidget(QWidget):
 
         # search backward button
         self.search_backward = QPushButton("▲")
-        self.search_backward.setStyleSheet(self.buttonStyle)
         font = self.search_backward.font()
         font.setPointSize(font.pointSize() + 10)
         self.search_backward.setFont(font)
@@ -1274,14 +1308,14 @@ class DownloadManager(QWidget):
         self.setGraphicsEffect(effect)
 
         self.setWindowTitle("Coward - Downloads")
-        self.setStyleSheet("background: #323232; color: white;")
+        with open(resource_path("qss/download_manager.qss")) as f:
+            self.setStyleSheet(f.read())
         self.mainLayout = QVBoxLayout()
         self.mainLayout.setContentsMargins(0, 0, 5, 5)
         self.mainLayout.setSpacing(10)
         self.setLayout(self.mainLayout)
 
         self.init_label = QLabel("No Donwloads active yet...")
-        # self.init_label.setStyleSheet("background: #323232; color: white; border: none;")
         self.init_label.setContentsMargins(10, 0, 0, 0)
         self.init_label.setFixedWidth(460)
         self.init_label.setFixedHeight(60)
@@ -1342,10 +1376,11 @@ class DownloadManager(QWidget):
 
     def _add(self, item, title, location, tempfile):
 
-        self.init_label.setText("Downloads")
+        # self.init_label.setText("Downloads")
+        self.init_label.hide()
 
         widget = QWidget()
-        widget.setStyleSheet("background: #646464; color: white;")
+        widget.setObjectName("dl_item")
         layout = QGridLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
@@ -1366,11 +1401,7 @@ class DownloadManager(QWidget):
         prog.setObjectName("prog")
         layout.addWidget(prog, 1, 0)
 
-        with open(resource_path("qss/small_button.qss")) as f:
-            buttonStyle = f.read()
-
         pause = QPushButton()
-        pause.setStyleSheet(buttonStyle)
         pause.setText(self.pause_char)
         pause.setObjectName("pause")
         pause.setToolTip("Pause Download")
@@ -1378,7 +1409,6 @@ class DownloadManager(QWidget):
         layout.addWidget(pause, 0, 1)
 
         close_loc = QPushButton()
-        close_loc.setStyleSheet(buttonStyle)
         close_loc.setText(self.cancel_char)
         close_loc.setObjectName("close_loc")
         close_loc.setToolTip("Cancel Download")
@@ -1549,11 +1579,12 @@ class Dialog(QDialog):
         # effect.setOffset(5)
         # self.setGraphicsEffect(effect)
 
+        with open(resource_path("qss/dialog.qss")) as f:
+            self.setStyleSheet(f.read())
+
         self.setContentsMargins(0, 0, 0, 0)
 
         self.widget = QWidget(self)
-        self.widget.setStyleSheet("background: #323232; color: lightgrey;"
-                                  "border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;")
         self.widget.setContentsMargins(30, 30, 30, 10)
 
         self.init_message = message

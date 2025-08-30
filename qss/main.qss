@@ -3,44 +3,6 @@ QMainWindow {
     font-size: 10pt;
 }
 
-QToolBar {
-    background: #323232;
-    color: white;
-    height: 48px;
-    border: none;
-}
-
-QToolButton {
-    background: #323232;
-    color: white;
-    width: 48px;
-    height: 48px;
-    border: none;
-}
-
-QToolButton:disabled {
-    background: #323232;
-    color: grey;
-}
-
-QToolButton:hover {
-    background: #646464;
-}
-
-QToolButton:checked {
-    color: grey;
-}
-
-QLineEdit {
-    font-family: "MS Shell Dlg 2";
-    font-size: 10pt;
-    background: #161616;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    height: 40px;
-}
-
 QToolTip {
     font-family: "MS Shell Dlg 2";
     font-size: 8pt;
@@ -55,7 +17,7 @@ QMenu {
     font-family: "MS Shell Dlg 2";
     font-size: 10pt;
     background: #323232;
-    color: white;
+    color: red;
     border: none;
     padding: 10px;
 }
@@ -69,64 +31,10 @@ QMenu::item:selected {
     background: #646464;
 }
 
-QMenu::item:disabled {
-    color: #646464;
-}
-
 QLabel {
     font-family: "MS Shell Dlg 2";
     font-size: 10pt;
     background: #323232;
     color: white;
     border: none;
-}
-
-QPushButton {
-    font-family: "MS Shell Dlg 2";
-    font-size: 10pt;
-    background: #323232;
-    color: white;
-    border-top: 1px solid #969696;
-    border-left: 1px solid #969696;
-    border-bottom: 1px solid black;
-    border-right: 1px solid black;
-    min-width: 64px;
-    min-height: 24px;
-    border-radius: 4px;
-}
-
-QPushButton:hover {
-    background: #646464;
-}
-
-QDialog {
-    font-family: "MS Shell Dlg 2";
-    font-size: 10pt;
-    background: #323232;
-    color: white;
-    border: none;
-    border-bottom: 4px solid {shadow};
-    border-radius: 8px;
-}
-
-QStatusBar {
-    font-family: "MS Shell Dlg 2";
-    font-size: 10pt;
-    background: #323232;
-    color: white;
-    border: none;
-    max-height: 24px;
-}
-
-QProgressBar {
-    font-family: "MS Shell Dlg 2";
-    font-size: 10pt;
-    background: #646464;
-    color: white;
-    border: 1px solid grey;
-    max-height: 20px;
-}
-
-QProgressBar::chunk {
-    background-color: lightgrey;
 }

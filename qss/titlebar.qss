@@ -5,6 +5,16 @@ QToolBar {
     height: 48px;
 }
 
+QLineEdit {
+    font-family: "MS Shell Dlg 2";
+    font-size: 10pt;
+    background: #161616;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    height: 40px;
+}
+
 QToolButton {
     background: #323232;
     color: white;
@@ -26,4 +36,52 @@ QToolBar::separator {
     background: #646464;
     width: 2px;
     max-height: 24px;
+}
+
+QToolButton#search_on {
+    background: #323232;
+    color: white;
+    width: 48px;
+    height: 48px;
+    border: none;
+}
+
+QToolButton#search_on:hover {
+    background: #646464;
+}
+
+QToolButton#search_off {
+    background: #646464;
+    color: white;
+    width: 48px;
+    height: 48px;
+    border: none;
+}
+
+QToolButton#search_off:hover {
+    background: #646464;
+}
+
+QToolButton#dl_on {
+    background: #323232;
+    color: white;
+    width: 48px;
+    height: 48px;
+    border: none;
+}
+
+QToolButton#dl_on:hover {
+    background: #646464;
+}
+
+QToolButton#dl_off {
+    background: #646464;
+    color: white;
+    width: 48px;
+    height: 48px;
+    border: none;
+}
+
+QToolButton#dl_off:hover {
+    background: #646464;
 }

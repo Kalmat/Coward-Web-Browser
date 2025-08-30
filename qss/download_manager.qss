@@ -1,0 +1,53 @@
+QWidget {
+    font-family: "MS Shell Dlg 2";
+    font-size: 10pt;
+    background: #323232;
+    color: white;
+    border: none;
+}
+
+QLabel#name {
+    background: #646464;
+    color: white;
+    border: none;
+}
+
+QWidget {
+    background: #323232;
+    color: lightgrey;"
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+QWidget#dl_item {
+    background: #646464;
+    color: white;
+    border: none;
+}
+
+QPushButton {
+    font-family: "MS Shell Dlg 2";
+    font-size: 9pt;
+    background: #323232;
+    color: white;
+    border: none;
+    min-width: 20px;
+    min-height: 20px;
+}
+
+QPushButton:hover {
+    background: lightgrey;
+}
+
+QProgressBar {
+    font-family: "MS Shell Dlg 2";
+    font-size: 10pt;
+    background: #646464;
+    color: white;
+    border: 1px solid grey;
+    max-height: 20px;
+}
+
+QProgressBar::chunk {
+    background-color: lightgrey;
+}
