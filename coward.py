@@ -91,7 +91,11 @@ class MainWindow(QMainWindow):
         self.screenSize = self.screen().availableGeometry()
 
         # get settings
-        self.settings = QSettings(QSettings.Format.IniFormat, QSettings.Scope.UserScope, ".kalmat", "Coward")
+        self.settings = QSettings(QSettings.Format.IniFormat,
+                                  QSettings.Scope.UserScope,
+                                  ".kalmat",
+                                  "Coward" + ("_debug" if "python" in sys.executable else "")
+                                  )
 
         # custom / standard title bar
         self.custom_titlebar = self.settings.value("General/custom_title", True) in (True, "true")
