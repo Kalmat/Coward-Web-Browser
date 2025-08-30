@@ -1366,8 +1366,6 @@ class DownloadManager(QWidget):
         layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
         name = QLabel()
-        name.setFixedWidth(300)
-        name.setFixedHeight(30)
         name.setText(title)
         name.setObjectName("name")
         name.setToolTip(location)
@@ -1375,7 +1373,6 @@ class DownloadManager(QWidget):
 
         prog = QProgressBar()
         prog.setTextVisible(False)
-        prog.setFixedWidth(300)
         prog.setFixedHeight(10)
         prog.setMinimum(0)
         prog.setMaximum(100)

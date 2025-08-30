@@ -16,6 +16,8 @@ QLabel#name {
     background: #646464;
     color: white;
     border: none;
+    width: 300px;
+    height: 30px;
 }
 
 QPushButton {
@@ -39,6 +41,8 @@ QProgressBar {
     background: #646464;
     color: white;
     border: 1px solid grey;
+    width: 300px;
+    height: 10px;
 }
 
 QProgressBar::chunk {
