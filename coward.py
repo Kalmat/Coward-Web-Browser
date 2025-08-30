@@ -621,7 +621,6 @@ class MainWindow(QMainWindow):
 
         # set the url
         self.tabs.currentWidget().load(qurl)
-        self.tabs.currentWidget().load(qurl)
 
     def update_urlbar(self, qurl, browser: QWidget = None):
 
