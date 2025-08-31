@@ -333,9 +333,9 @@ class MainWindow(QMainWindow):
         self.ninja_btn.setFont(font)
         self.ninja_btn.setToolTip("Open new window in incognito mode")
         self.ninja_btn.clicked.connect(lambda: self.show_in_new_window(incognito=True))
-        self.navtab.addWidget(self.ninja_btn)
-        if self.isIncognito:
-            self.ninja_btn.setDisabled(True)
+        self.ninja_act = self.navtab.addWidget(self.ninja_btn)
+        if self.isNewWin:
+            self.ninja_act.setVisible(False)
 
         if self.custom_titlebar:
 
