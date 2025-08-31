@@ -953,7 +953,7 @@ class MainWindow(QMainWindow):
 
         if self.autoHide:
             self.navtab.hide()
-            if not self.hoverVWidget.isVisible() and not self.hoverHWidget.underMouse():
+            if not self.hoverHWidget.isVisible() and not self.hoverHWidget.underMouse():
                 # this... fails???? WHY?????
                 # if nav tab is under mouse it will not hide, so trying to show hoverHWidget in the same position fails
                 self.hoverHWidget.show()
