@@ -950,6 +950,7 @@ class MainWindow(QMainWindow):
         self.auto_btn.setText(self.auto_on_char if self.autoHide else self.auto_off_char)
         self.auto_btn.setToolTip("Auto-hide is now " + ("Enabled" if self.autoHide else "Disabled"))
 
+        print("IN", self.autoHide)
         if self.autoHide:
             self.navtab.hide()
             self.hoverHWidget.show()
@@ -958,11 +959,17 @@ class MainWindow(QMainWindow):
                 self.hoverVWidget.show()
 
         else:
+            print("1")
             self.navtab.show()
+            print("2")
             self.hoverHWidget.hide()
+            print("3")
             if not self.isIncognito:
+                print("4")
                 self.tabs.tabBar().show()
+            print("5")
             self.hoverVWidget.hide()
+            print("6")
 
     def enterHHover(self):
         if self.autoHide:
@@ -1230,9 +1237,16 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, a0, QMouseEvent=None):
 
-        # stop existing downloads:
-        self.dl_manager.close()
+        # close all other widgets
         self.dl_manager.cancelAllDownloads()
+        self.dl_manager.close()
+        self.search_widget.close()
+        self.feature_dlg.close()
+        try:
+            # this one may not exist
+            self.clean_dlg.close()
+        except:
+            pass
 
         # Save current browser contents and settings
         if not self.isNewWin:
