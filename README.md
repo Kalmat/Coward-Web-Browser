@@ -33,18 +33,18 @@ Rationally, this will never be a good replacement for any of the commercial web 
 | `Esc`                | Exit fullscreen               |
 | `Esc`                | Cancel url input (in url bar) |
 
-#### Mouse combos
+#### Mouse shortcuts
 
-| Combo           | Action                               |
-|-----------------|--------------------------------------|
-| `Left-Button`   | Click                                |
-| `Left-Button`   | Open new Tab (in "+" option)         |
-| `Right-Button`  | Contextual Menu                      |
-| `Right-Button`  | Close Tab Menu (in tab icon)         |
-| `Right-Button`  | Open new Window Menu (in "+" option) |
-| `Wheel`         | Scroll                               |
-| `Ctrl` `Wheel`  | Zoom In / Out                        |
-| `Ctrl` `Wheel`  | Tab Up / Down (in tab bar)           |
+| Shortcut                       | Action                               |
+|--------------------------------|--------------------------------------|
+| `Button` `Left`                | Click                                |
+| `Button` `Left`                | Open new Tab (in "+" option)         |
+| `Button` `Right`               | Contextual Menu                      |
+| `Button` `Right`               | Close Tab Menu (in tab icon)         |
+| `Button` `Right`               | Open new Window Menu (in "+" option) |
+| `Wheel` `Up` / `Down`          | Scroll Up / Down                     |
+| `Ctrl` `Wheel` `Up` / `Down`   | Zoom In / Out                        |
+| `Ctrl` `Wheel` `Up` / `Down`   | Select tab Up / Down (in tab bar)    |
 
 #### Known issues (due to QtWebEngine limitations or web sites constraints)
 
