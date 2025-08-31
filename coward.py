@@ -777,6 +777,7 @@ class MainWindow(QMainWindow):
         # if there is only one tab
         if self.tabs.count() == 2 and user_requested:
             if self.isNewWin:
+                # close additional window only
                 self.close()
             else:
                 # close application
@@ -1212,7 +1213,6 @@ class MainWindow(QMainWindow):
                 self.urlbar.setCursorPosition(len(text))
 
             elif self.isFullScreen():
-                # Escape is not catched by main window... WTF????
                 if not self.prevAutoHide:
                     self.manage_autohide()
                 self.showNormal()

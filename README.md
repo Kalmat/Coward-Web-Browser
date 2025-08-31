@@ -30,6 +30,7 @@ Rationally, this will never be a good replacement for any of the commercial web 
 | `Ctrl` `W`         | Close current tab             |
 | `Alt` `F4`         | Close current window          |
 | `F11`              | Enter fullscreen              |
+| `Esc`              | Exit fullscreen               |
 | `Esc`              | Cancel url input (in url bar) |
 
 #### Known issues (due to QtWebEngine limitations or web sites constraints)
