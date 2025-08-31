@@ -927,7 +927,8 @@ class MainWindow(QMainWindow):
             self.search_on_act.setVisible(True)
 
         else:
-            actPos = self.navtab.mapToGlobal(self.navtab.actionGeometry(self.auto_btn).topLeft())
+            refWidget = self.dl_on_btn if self.dl_on_btn.isVisible() else self.dl_off_btn
+            actPos = self.mapToGlobal(refWidget.geometry().topLeft())
             x = actPos.x() - self.search_widget.width()
             y = self.y() + self.navtab.height()
             self.search_widget.move(x, y)
@@ -1193,8 +1194,8 @@ class MainWindow(QMainWindow):
 
         if self.search_widget.isVisible():
             # reposition search widget
-            actRect = self.navtab.actionGeometry(self.search_on_btn)
-            actPos = self.navtab.mapToGlobal(self.navtab.actionGeometry(self.search_on_btn).topLeft())
+            actRect = self.search_off_btn.geometry()
+            actPos = self.mapToGlobal(self.search_off_btn.geometry().topLeft())
             x = actPos.x() + actRect.width() - self.search_widget.width()
             y = self.y() + self.navtab.height()
             self.search_widget.move(x, y)
