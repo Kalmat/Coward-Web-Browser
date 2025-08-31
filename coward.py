@@ -777,9 +777,12 @@ class MainWindow(QMainWindow):
         if not self.deleteCache:
 
             # if there is only one tab
-            if self.tabs.count() < 2:
-                # close application
-                QCoreApplication.quit()
+            if self.tabs.count() == 2:
+                if self.isIncognito:
+                    self.close()
+                else:
+                    # close application
+                    QCoreApplication.quit()
 
             else:
                 # else remove the tab
@@ -1224,8 +1227,7 @@ class MainWindow(QMainWindow):
 
         elif a0.key() == Qt.Key.Key_D:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
-                if self.tabs.count() > 1 and self.tabs.currentIndex() != self.tabs.count() - 1:
-                    self.tab_closed(self.tabs.currentIndex())
+                self.tab_closed(self.tabs.currentIndex())
 
     def closeEvent(self, a0, QMouseEvent=None):
 
