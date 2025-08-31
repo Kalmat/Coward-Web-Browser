@@ -337,7 +337,10 @@ class MainWindow(QMainWindow):
         self.ninja_btn.clicked.connect(lambda: self.show_in_new_window(incognito=True))
         self.ninja_act = self.navtab.addWidget(self.ninja_btn)
         if self.isNewWin:
-            self.ninja_act.setVisible(False)
+            if self.isIncognito:
+                self.ninja_act.setDisabled(True)
+            else:
+                self.ninja_act.setVisible(False)
 
         if self.custom_titlebar:
 
@@ -955,7 +958,7 @@ class MainWindow(QMainWindow):
             self.navtab.hide()
             if not self.hoverHWidget.isVisible() and not self.hoverHWidget.underMouse():
                 # this... fails???? WHY?????
-                # if nav tab is under mouse it will not hide, so trying to show hoverHWidget in the same position fails
+                # Hypothesis: if nav tab is under mouse it will not hide, so trying to show hoverHWidget in the same position fails
                 self.hoverHWidget.show()
             self.tabs.tabBar().hide()
             if not self.h_tabbar and not self.isIncognito:
