@@ -1402,8 +1402,8 @@ class DownloadManager(QWidget):
 
         self.init_label = QLabel("No Donwloads active yet...")
         self.init_label.setContentsMargins(10, 0, 0, 0)
-        self.init_label.setFixedWidth(460)
-        self.init_label.setFixedHeight(60)
+        self.init_label.setFixedWidth(330)
+        self.init_label.setFixedHeight(54)
         self.mainLayout.addWidget(self.init_label)
 
         self.downloads = {}
