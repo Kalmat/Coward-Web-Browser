@@ -331,7 +331,6 @@ class MainWindow(QMainWindow):
         self.ninja_btn.setText("👻")
         font = self.ninja_btn.font()
         font.setPointSize(font.pointSize() + 6)
-        font.setPointSize(font.pointSize() + 6)
         self.ninja_btn.setFont(font)
         self.ninja_btn.setToolTip("Open new window in incognito mode")
         self.ninja_btn.clicked.connect(lambda: self.show_in_new_window(incognito=True))
