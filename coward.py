@@ -772,28 +772,26 @@ class MainWindow(QMainWindow):
             # origin tab
             self.update_index_dependent_signals(from_index)
 
-    def tab_closed(self, tabIndex):
+    def tab_closed(self, tabIndex, user_requested=True):
 
-        if not self.deleteCache:
-
-            # if there is only one tab
-            if self.tabs.count() == 2:
-                if self.isIncognito:
-                    self.close()
-                else:
-                    # close application
-                    QCoreApplication.quit()
-
+        # if there is only one tab
+        if self.tabs.count() == 2 and user_requested:
+            if self.isIncognito:
+                self.close()
             else:
-                # else remove the tab
-                self.tabs.widget(tabIndex).deleteLater()
-                self.tabs.removeTab(tabIndex)
-                if self.tabs.currentIndex() == self.tabs.count() - 1:
-                    self.tabs.setCurrentIndex(self.tabs.currentIndex() - 1)
+                # close application
+                QCoreApplication.quit()
 
-            # updating index-dependent signals when tab is moved
-            for i in range(tabIndex, self.tabs.count() - 1):
-                self.update_index_dependent_signals(i)
+        else:
+            # else remove the tab
+            self.tabs.widget(tabIndex).deleteLater()
+            self.tabs.removeTab(tabIndex)
+            if self.tabs.currentIndex() == self.tabs.count() - 1:
+                self.tabs.setCurrentIndex(self.tabs.currentIndex() - 1)
+
+        # updating index-dependent signals when tab is moved
+        for i in range(tabIndex, self.tabs.count() - 1):
+            self.update_index_dependent_signals(i)
 
     # method for navigate to url
     def update_index_dependent_signals(self, tabIndex):
@@ -1092,9 +1090,9 @@ class MainWindow(QMainWindow):
             page: QWebEnginePage = browser.page()
             tabs.append([page.url(), page.zoomFactor()])
             browser.deleteLater()
-            self.tabs.removeTab(0)
+            self.tab_closed(0, False)
 
-        self.tabs.removeTab(0)
+        self.tab_closed(0, False)
 
         for item in tabs:
             url, zoom = item
