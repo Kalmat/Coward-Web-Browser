@@ -1317,6 +1317,9 @@ class MainWindow(QMainWindow):
 
 class SearchWidget(QWidget):
 
+    _width = 300
+    _height = 54
+
     def __init__(self, parent, searchCallback):
         super(SearchWidget, self).__init__(parent)
 
@@ -1325,7 +1328,7 @@ class SearchWidget(QWidget):
 
         with open(resource_path("qss/search_widget.qss")) as f:
             self.setStyleSheet(f.read())
-        self.setFixedSize(300, 54)
+        self.setFixedSize(self._width, self._height)
         self.setContentsMargins(10, 0, 0, 0)
 
         self.searchCallback = searchCallback
@@ -1338,7 +1341,7 @@ class SearchWidget(QWidget):
 
         # text box to fill in target search
         self.search_box = QLineEdit()
-        self.search_box.setFixedSize(200, 24)
+        self.search_box.setFixedSize(self._width - 100, self._height - 30)
         self.search_box.returnPressed.connect(lambda checked=False, forward=True: self.searchCallback(checked, forward))
         self.mainLayout.addWidget(self.search_box)
 
@@ -1360,6 +1363,7 @@ class SearchWidget(QWidget):
         self.search_backward = QPushButton("▲")
         font = self.search_backward.font()
         font.setPointSize(font.pointSize() + 10)
+        font.setPointSize(font.pointSize() + 10)
         self.search_backward.setFont(font)
         self.search_backward.clicked.connect(lambda checked, forward=False: self.searchCallback(checked, forward))
         self.mainLayout.addWidget(self.search_backward)
@@ -1378,6 +1382,9 @@ class SearchWidget(QWidget):
 
 
 class DownloadManager(QWidget):
+
+    _item_width = 356
+    _item_height = 54
 
     def __init__(self, parent=None):
         super(DownloadManager, self).__init__(parent)
@@ -1402,8 +1409,7 @@ class DownloadManager(QWidget):
 
         self.init_label = QLabel("No Donwloads active yet...")
         self.init_label.setContentsMargins(10, 0, 0, 0)
-        self.init_label.setFixedWidth(330)
-        self.init_label.setFixedHeight(54)
+        self.init_label.setFixedSize(self._item_width, self._item_height)
         self.mainLayout.addWidget(self.init_label)
 
         self.downloads = {}
@@ -1465,7 +1471,7 @@ class DownloadManager(QWidget):
 
         widget = QWidget()
         widget.setObjectName("dl_item")
-        widget.setFixedSize(330, 54)
+        widget.setFixedSize(self._item_width, self._item_height)
         layout = QGridLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
