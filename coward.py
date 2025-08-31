@@ -469,15 +469,6 @@ class MainWindow(QMainWindow):
         self.hoverVWidget.setGeometry(0, self.action_size, 20, self.height())
         self.hoverVWidget.hide()
 
-        # Prepare feature request dialog
-        self.feature_dlg = Dialog(self,
-                                  message="This site:\n%s\n\n"
-                                          "is asking for your permission to %s.\n\n"
-                                          "Click 'OK' to accept, or 'Cancel' to deny\n",
-                                  radius=8)
-        self.feature_dlg.accepted.connect(self.accept_feature)
-        self.feature_dlg.rejected.connect(self.reject_feature)
-
         # define signals for auto-hide events
         self.enterHHoverSig.connect(self.enterHHover)
         self.leaveHHoverSig.connect(self.leaveHHover)
@@ -712,6 +703,13 @@ class MainWindow(QMainWindow):
 
     def show_feature_request(self, origin, feature, page, browser):
         self.lastFeatureRequestData = [origin, feature, page, browser]
+        self.feature_dlg = Dialog(self,
+                                  message="This site:\n%s\n\n"
+                                          "is asking for your permission to %s.\n\n"
+                                          "Click 'OK' to accept, or 'Cancel' to deny\n",
+                                  radius=8)
+        self.feature_dlg.accepted.connect(self.accept_feature)
+        self.feature_dlg.rejected.connect(self.reject_feature)
         self.feature_dlg.setMessage(self.feature_dlg.getInitMessage() % (origin.toString(), str(feature).replace("Feature.", "")))
         self.feature_dlg.move(self.targetDlgPos())
         self.feature_dlg.exec()
@@ -1237,13 +1235,16 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, a0, QMouseEvent=None):
 
-        # close all other widgets
+        # close all other widgets and processes
         self.dl_manager.cancelAllDownloads()
         self.dl_manager.close()
         self.search_widget.close()
-        self.feature_dlg.close()
+        # these may not exist
         try:
-            # this one may not exist
+            self.feature_dlg.close()
+        except:
+            pass
+        try:
             self.clean_dlg.close()
         except:
             pass
