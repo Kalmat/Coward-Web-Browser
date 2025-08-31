@@ -230,7 +230,7 @@ class MainWindow(QMainWindow):
         spacer.setObjectName("spacer")
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         spacer.setMinimumWidth(20)
-        spacer.setMaximumWidth(200)
+        spacer.setMaximumWidth(150)
         self.navtab.addWidget(spacer)
 
         # creating a line edit widget for URL
@@ -246,7 +246,7 @@ class MainWindow(QMainWindow):
         spacer.setObjectName("spacer")
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         spacer.setMinimumWidth(0)
-        spacer.setMaximumWidth(200)
+        spacer.setMaximumWidth(150)
         self.navtab.addWidget(spacer)
 
         # adding auto-hide mgt.
