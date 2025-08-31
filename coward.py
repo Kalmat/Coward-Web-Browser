@@ -582,7 +582,7 @@ class MainWindow(QMainWindow):
         # page.fileSystemAccessRequested.connect(lambda request, p=page, b=browser: print("FS ACCESS REQUESTED", request))
         # page.permissionRequested.connect(lambda request, p=page, b=browser: print("PERMISSION REQUESTED", request))
 
-        # Enabling some extra features
+        # Enabling some extra features (allegedly safe ones only)
         # page.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanAccessClipboard, True)
         # browser.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
         # browser.settings().setAttribute(QWebEngineSettings.WebAttribute.AllowRunningInsecureContent, True)
@@ -788,6 +788,8 @@ class MainWindow(QMainWindow):
 
         else:
             # else remove the tab
+            self.tabs.widget(tabIndex).deleteLater()
+            # just removing the tab doesn't destroy associated widget
             self.tabs.widget(tabIndex).deleteLater()
             self.tabs.removeTab(tabIndex)
             if self.tabs.currentIndex() == self.tabs.count() - 1:
