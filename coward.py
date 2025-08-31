@@ -101,6 +101,7 @@ class MainWindow(QMainWindow):
         # custom / standard title bar
         self.custom_titlebar = self.settings.value("Appearance/custom_title", True) in (True, "true")
         self.autoHide = self.settings.value("Appearance/auto_hide", False) in (True, "true")
+        self.prevAutoHide = self.autoHide
 
         # set initial position and size
         pos = self.settings.value("Window/pos", QPoint(100, 100))
@@ -329,6 +330,7 @@ class MainWindow(QMainWindow):
         self.ninja_btn.setObjectName("incognito")
         self.ninja_btn.setText("👻")
         font = self.ninja_btn.font()
+        font.setPointSize(font.pointSize() + 6)
         font.setPointSize(font.pointSize() + 6)
         self.ninja_btn.setFont(font)
         self.ninja_btn.setToolTip("Open new window in incognito mode")
@@ -774,7 +776,7 @@ class MainWindow(QMainWindow):
 
         # if there is only one tab
         if self.tabs.count() == 2 and user_requested:
-            if self.isIncognito:
+            if self.isNewWin:
                 self.close()
             else:
                 # close application
@@ -948,26 +950,22 @@ class MainWindow(QMainWindow):
         self.auto_btn.setText(self.auto_on_char if self.autoHide else self.auto_off_char)
         self.auto_btn.setToolTip("Auto-hide is now " + ("Enabled" if self.autoHide else "Disabled"))
 
-        print("IN", self.autoHide)
         if self.autoHide:
             self.navtab.hide()
-            self.hoverHWidget.show()
+            if not self.hoverVWidget.isVisible() and not self.hoverHWidget.underMouse():
+                # this... fails???? WHY?????
+                # if nav tab is under mouse it will not hide, so trying to show hoverHWidget in the same position fails
+                self.hoverHWidget.show()
             self.tabs.tabBar().hide()
             if not self.h_tabbar and not self.isIncognito:
                 self.hoverVWidget.show()
 
         else:
-            print("1")
             self.navtab.show()
-            print("2")
             self.hoverHWidget.hide()
-            print("3")
             if not self.isIncognito:
-                print("4")
                 self.tabs.tabBar().show()
-            print("5")
             self.hoverVWidget.hide()
-            print("6")
 
     def enterHHover(self):
         if self.autoHide:
@@ -1205,12 +1203,19 @@ class MainWindow(QMainWindow):
             y = self.y() + self.navtab.height()
             self.search_widget.move(x, y)
 
-    def keyPressEvent(self, a0: QKeyEvent):
+    def keyReleaseEvent(self, a0, QKeyEvent=None):
+
         if a0.key() == Qt.Key.Key_Escape:
             if self.urlbar.hasFocus():
                 text = self.tabs.currentWidget().url().toString()
                 self.urlbar.setText(self.tabs.currentWidget().url().toString())
                 self.urlbar.setCursorPosition(len(text))
+
+            elif self.isFullScreen():
+                # Escape is not catched by main window... WTF????
+                if not self.prevAutoHide:
+                    self.manage_autohide()
+                self.showNormal()
 
         elif a0.key() == Qt.Key.Key_F:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
@@ -1229,9 +1234,20 @@ class MainWindow(QMainWindow):
                 if not self.isIncognito:
                     self.show_in_new_window()
 
-        elif a0.key() == Qt.Key.Key_D:
+        elif a0.key() == Qt.Key.Key_W:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
                 self.tab_closed(self.tabs.currentIndex())
+
+        elif a0.key() == Qt.Key.Key_F11:
+            if self.isFullScreen():
+                if not self.prevAutoHide:
+                    self.manage_autohide()
+                self.showNormal()
+            else:
+                self.prevAutoHide = self.autoHide
+                if not self.autoHide:
+                    self.manage_autohide()
+                self.showFullScreen()
 
     def closeEvent(self, a0, QMouseEvent=None):
 
