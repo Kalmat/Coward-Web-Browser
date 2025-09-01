@@ -2,16 +2,26 @@
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import time
 import traceback
 
+import psutil
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from PyQt6.QtWebEngineCore import *
 from PyQt6.QtWebEngineWidgets import *
 from PyQt6.QtWidgets import *
+
+from PyQt6.QtMultimedia import (QAudioOutput, QMediaFormat,
+                                  QMediaPlayer, QAudio)
+from PyQt6.QtMultimediaWidgets import QVideoWidget
+
+
+import ffmpeg
+from streamlink import Streamlink
 
 # to play some media which uses non-built-in codecs, QtWebEngine must be built with option -webengine-proprietary-codecs
 # https://doc.qt.io/qt-6/qtwebengine-features.html#audio-and-video-codecs
@@ -31,6 +41,7 @@ class MainWindow(QMainWindow):
     leaveNavBarSig = pyqtSignal()
     enterTabBarSig = pyqtSignal()
     leaveTabBarSig = pyqtSignal()
+    mediaErrorSignal = pyqtSignal(QWebEnginePage)
 
     # constructor
     def __init__(self, parent=None, new_win=False, init_tabs=None, incognito=None):
@@ -39,7 +50,7 @@ class MainWindow(QMainWindow):
         # prepare cache folders and variables
         self.cachePath = ""
         self.lastCache = ""
-        self.storageName = "coward_" + str(qWebEngineChromiumVersion()) + ("_debug" if "python" in sys.executable else "")
+        self.storageName = "coward_" + str(qWebEngineChromiumVersion()) + ("_debug" if getattr(sys, "frozen", False) else "")
         self.deleteCache = False
 
         # wipe all cache folders except the last one if requested by user
@@ -93,7 +104,7 @@ class MainWindow(QMainWindow):
         self.settings = QSettings(QSettings.Format.IniFormat,
                                   QSettings.Scope.UserScope,
                                   ".kalmat",
-                                  "Coward" + ("_debug" if "python" in sys.executable else "")
+                                  "Coward" + ("_debug" if getattr(sys, "frozen", False) else "")
                                   )
 
         self.cachePath = os.path.join(os.path.dirname(self.settings.fileName()), ".cache", self.storageName)
@@ -120,6 +131,9 @@ class MainWindow(QMainWindow):
         self.setGeometry(x, y, w, h)
         self.setMinimumWidth(48*16)
         self.setMinimumHeight(96)
+
+        # draw rounded corners in case border radius is != 0
+        self.radius = int(self.settings.value("Appearance/border_radius", 0))
 
         # set icon size (also affects to tabs and actions sizes)
         # since some "icons" are actually characters, we should also adjust fonts or stick to values between 24 and 32
@@ -466,11 +480,11 @@ class MainWindow(QMainWindow):
         # auto-hide navigation bar
         self.hoverHWidget = HoverWidget(self, self.navtab, self.enterHHoverSig)
         self.navtab.setFixedHeight(self.action_size + 4)
-        self.hoverHWidget.setGeometry(self.action_size, 0, self.width(), 20)
+        self.hoverHWidget.setGeometry(self.action_size, self.y(), self.width(), 20)
         self.hoverHWidget.hide()
         # auto-hide tab bar
         self.hoverVWidget = HoverWidget(self, self.tabs.tabBar(), self.enterVHoverSig)
-        self.hoverVWidget.setGeometry(0, self.action_size, 20, self.height())
+        self.hoverVWidget.setGeometry(self.x(), self.action_size, 20, self.height())
         self.hoverVWidget.hide()
 
         # define signals for auto-hide events
@@ -482,6 +496,9 @@ class MainWindow(QMainWindow):
         self.leaveNavBarSig.connect(self.leaveNavBar)
         self.enterTabBarSig.connect(self.enterTabBar)
         self.leaveTabBarSig.connect(self.leaveTabBar)
+
+        # signal to show dialog to open an external player for non-compatible media
+        self.mediaErrorSignal.connect(self.show_player_request)
 
         # class variables
         self.maxNormal = self.isMaximized()
@@ -502,6 +519,8 @@ class MainWindow(QMainWindow):
 
         if self.isIncognito:
             self.tabs.tabBar().hide()
+        else:
+            self.tabs.tabBar().show()
 
         if self.autoHide:
             self.navtab.hide()
@@ -509,8 +528,25 @@ class MainWindow(QMainWindow):
             self.hoverHWidget.show()
             self.tabs.tabBar().hide()
             self.hoverVWidget.setGeometry(0, self.action_size, 20, self.height())
-            if not self.h_tabbar and not self.isIncognito:
-                self.hoverVWidget.show()
+            if not self.h_tabbar:
+                if self.isIncognito:
+                    self.hoverVWidget.hide()
+                else:
+                    self.hoverVWidget.show()
+
+        # thanks to Maxim Paperno: https://stackoverflow.com/questions/58145272/qdialog-with-rounded-corners-have-black-corners-instead-of-being-translucent
+        if self.radius != 0:
+
+            # prepare painter and mask to draw rounded corners
+            rect = QRect(QPoint(0, 0), self.geometry().size())
+            b = QBitmap(rect.size())
+            b.fill(QColor(Qt.GlobalColor.color0))
+            painter = QPainter(b)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.setBrush(Qt.GlobalColor.color1)
+            painter.drawRoundedRect(rect, self.radius, self.radius, Qt.SizeMode.AbsoluteSize)
+            painter.end()
+            self.setMask(b)
 
     # method for adding new tab
     def add_new_tab(self, qurl=None):
@@ -565,7 +601,7 @@ class MainWindow(QMainWindow):
             profile.defaultProfile().cookieStore().setCookieFilter(self.cookie_filter)
 
             # (AFAIK) profile must be applied in a new page, not at browser level
-            page = QWebEnginePage(profile, browser)
+            page = WebEnginePage(profile, browser, self.mediaErrorSignal)
             browser.setPage(page)
 
         else:
@@ -644,12 +680,51 @@ class MainWindow(QMainWindow):
         self.tabs.setTabToolTip(i, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
 
     def icon_changed(self, icon, i):
+
+        # works fine but sometimes it takes too long (0,17sec.)... must find another way
+        # icon = self.fixDarkImage(icon, self.icon_size, self.icon_size)
+
         if self.h_tabbar:
             new_icon = icon
         else:
             # icon rotation is required if not using custom painter in TabBar class
             new_icon = QIcon(icon.pixmap(QSize(self.icon_size, self.icon_size)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
         self.tabs.tabBar().setTabIcon(i, new_icon)
+
+    def fixDarkImage(self, image, width, height):
+
+        import imageio
+        import numpy as np
+
+        if isinstance(image, QIcon):
+            isIcon = True
+            pixmap = image.pixmap(QSize(width, height))
+        else:
+            isIcon = False
+            pixmap = image
+
+        pixmap.save("temp", "PNG")
+        f = imageio.imread("temp", mode="F")
+
+        def is_dark(img, thrshld):
+            return np.mean(img) < thrshld
+
+        def changePixmapBackground(pix, width, height):
+            new_pixmap = QPixmap(width, height)
+            new_pixmap.fill(Qt.GlobalColor.lightGray)
+            painter = QPainter(new_pixmap)
+            painter.drawPixmap(0, 0, width, height, pix)
+            painter.end()
+            return new_pixmap
+
+        if is_dark(f, 127):
+            pixmap = changePixmapBackground(pixmap, width, height)
+
+        os.remove("temp")
+        if isIcon:
+            return QIcon(pixmap)
+        else:
+            return pixmap
 
     def navigate_to_url(self):
 
@@ -706,27 +781,45 @@ class MainWindow(QMainWindow):
             self.showNormal()
 
     def show_feature_request(self, origin, feature, page, browser):
-        self.lastFeatureRequestData = [origin, feature, page, browser]
         self.feature_dlg = Dialog(self,
                                   message="This site:\n%s\n\n"
                                           "is asking for your permission to %s.\n\n"
-                                          "Click 'OK' to accept, or 'Cancel' to deny\n",
+                                          "Click 'OK' to accept, or 'Cancel' to deny\n"
+                                          % (page.title() or origin.toString(), str(feature).replace("Feature.", "")),
                                   radius=8)
-        self.feature_dlg.accepted.connect(self.accept_feature)
-        self.feature_dlg.rejected.connect(self.reject_feature)
-        self.feature_dlg.setMessage(self.feature_dlg.getInitMessage() % (origin.toString(), str(feature).replace("Feature.", "")))
+        self.feature_dlg.accepted.connect(lambda o=origin, f=feature, p=page, b=browser: self.accept_feature(o, f, p, b))
+        self.feature_dlg.rejected.connect(lambda o=origin, f=feature, p=page, b=browser: self.reject_feature(o, f, p, b))
         self.feature_dlg.move(self.targetDlgPos())
         self.feature_dlg.exec()
 
-    def accept_feature(self):
+    def accept_feature(self, origin, feature, page, browser):
         self.feature_dlg.close()
-        origin, feature, page, browser = self.lastFeatureRequestData
         page.setFeaturePermission(origin, feature, QWebEnginePage.PermissionPolicy.PermissionGrantedByUser)
 
-    def reject_feature(self):
+    def reject_feature(self, origin, feature, page, browser):
         self.feature_dlg.close()
-        origin, feature, page, browser = self.lastFeatureRequestData
         page.setFeaturePermission(origin, feature, QWebEnginePage.PermissionPolicy.PermissionDeniedByUser)
+
+    @pyqtSlot(QWebEnginePage)
+    def show_player_request(self, page):
+        self.feature_dlg = Dialog(self,
+                                  message="This site:\n%s\n\n"
+                                          "contains non-compatible media.\n"
+                                          "Do you want to try to load it using an external player?\n\n"
+                                          "Click 'OK' to accept, or 'Cancel' to deny\n"
+                                          % (page.title() or page.url().toString()),
+                                  radius=8)
+        self.feature_dlg.accepted.connect(lambda p=page: self.accept_player(p))
+        self.feature_dlg.rejected.connect(lambda p=page: self.reject_player(p))
+        self.feature_dlg.move(self.targetDlgPos())
+        self.feature_dlg.exec()
+
+    def accept_player(self, page):
+        self.feature_dlg.close()
+        page.openInExternalPlayer()
+
+    def reject_player(self, page):
+        self.feature_dlg.close()
 
     def current_tab_changed(self, i):
 
@@ -901,15 +994,20 @@ class MainWindow(QMainWindow):
 
         if self.autoHide:
             if self.h_tabbar:
-                if not self.isIncognito:
+                if self.isIncognito:
+                    self.tabs.tabBar().hide()
+                else:
                     self.tabs.tabBar().show()
             if hasattr(self, "hoverHWidget"):
                 self.hoverHWidget.show()
             if hasattr(self, "hoverVWidget"):
                 if self.h_tabbar:
                     self.hoverVWidget.hide()
-                elif not self.isIncognito:
-                    self.hoverVWidget.show()
+                else:
+                    if self.isIncognito:
+                        self.hoverVWidget.hide()
+                    else:
+                        self.hoverVWidget.show()
 
     def goBack(self):
         self.tabs.currentWidget().back()
@@ -924,6 +1022,7 @@ class MainWindow(QMainWindow):
             self.tabs.currentWidget().stop()
 
     def manage_search(self):
+        print("IN", self.search_widget.isVisible())
 
         if self.search_widget.isVisible():
             self.tabs.currentWidget().findText("")
@@ -949,35 +1048,42 @@ class MainWindow(QMainWindow):
             else:
                 self.tabs.currentWidget().findText(textToFind, QWebEnginePage.FindFlag.FindBackward)
 
-    def manage_autohide(self):
+    def manage_autohide(self, force_show=False):
 
-        self.autoHide = not self.autoHide
+        self.autoHide = False if force_show else not self.autoHide
         self.auto_btn.setText(self.auto_on_char if self.autoHide else self.auto_off_char)
         self.auto_btn.setToolTip("Auto-hide is now " + ("Enabled" if self.autoHide else "Disabled"))
 
         if self.autoHide:
             self.navtab.hide()
+            self.tabs.tabBar().hide()
             if not self.hoverHWidget.isVisible() and not self.hoverHWidget.underMouse():
                 # this... fails???? WHY?????
                 # Hypothesis: if nav tab is under mouse it will not hide, so trying to show hoverHWidget in the same position fails
                 self.hoverHWidget.show()
-            self.tabs.tabBar().hide()
             if not self.h_tabbar and not self.isIncognito:
                 self.hoverVWidget.show()
+            else:
+                self.hoverVWidget.hide()
 
         else:
-            self.navtab.show()
             self.hoverHWidget.hide()
-            if not self.isIncognito:
-                self.tabs.tabBar().show()
             self.hoverVWidget.hide()
+            self.navtab.show()
+            if self.isIncognito:
+                self.tabs.tabBar().hide()
+            else:
+                self.tabs.tabBar().show()
 
+    @pyqtSlot()
     def enterHHover(self):
         if self.autoHide:
             self.hoverHWidget.hide()
             self.navtab.show()
             if self.h_tabbar:
-                if not self.isIncognito:
+                if self.isIncognito:
+                    self.tabs.tabBar().hide()
+                else:
                     self.tabs.tabBar().show()
 
     @pyqtSlot()
@@ -988,7 +1094,9 @@ class MainWindow(QMainWindow):
     def enterVHover(self):
         if self.autoHide:
             self.hoverVWidget.hide()
-            if not self.isIncognito:
+            if self.isIncognito:
+                self.tabs.tabBar().hide()
+            else:
                 self.tabs.tabBar().show()
 
     @pyqtSlot()
@@ -1025,7 +1133,9 @@ class MainWindow(QMainWindow):
                     self.hoverHWidget.show()
             else:
                 self.tabs.tabBar().hide()
-                if not self.isIncognito:
+                if self.isIncognito:
+                    self.hoverVWidget.hide()
+                else:
                     self.hoverVWidget.show()
 
     def manage_downloads(self):
@@ -1189,10 +1299,9 @@ class MainWindow(QMainWindow):
             if -5 < mousePos.y() < 5 or self.screenSize.height() - 5 < mousePos.y() < self.screenSize.height() + 5:
                 self.setGeometry(self.x(), 0, self.width(), self.screenSize.height())
 
-        if self.autoHide:
-            # update hover areas
-            self.hoverHWidget.setGeometry(self.action_size, 0, self.width(), 20)
-            self.hoverVWidget.setGeometry(0, self.action_size, 20, self.height())
+        # update hover areas (doesn't matter if visible or not)
+        self.hoverHWidget.setGeometry(self.action_size, 0, self.width(), 20)
+        self.hoverVWidget.setGeometry(0, self.action_size, 20, self.height())
 
         if self.dl_manager.isVisible():
             # reposition download list
@@ -1208,7 +1317,7 @@ class MainWindow(QMainWindow):
             y = self.y() + self.navtab.height()
             self.search_widget.move(x, y)
 
-    def keyReleaseEvent(self, a0, QKeyEvent=None):
+    def keyReleaseEvent(self, a0):
 
         if a0.key() == Qt.Key.Key_Escape:
             if self.urlbar.hasFocus():
@@ -1253,12 +1362,17 @@ class MainWindow(QMainWindow):
                     self.manage_autohide()
                 self.showFullScreen()
 
-    def closeEvent(self, a0, QMouseEvent=None):
+        elif a0.key() == Qt.Key.Key_A:
+            self.manage_autohide(force_show=True)
+
+    def closeEvent(self, a0):
 
         # close all other widgets and processes
         self.dl_manager.cancelAllDownloads()
         self.dl_manager.close()
         self.search_widget.close()
+        self.hoverHWidget.close()
+        self.hoverVWidget.close()
         # these may not exist
         try:
             self.feature_dlg.close()
@@ -1277,6 +1391,7 @@ class MainWindow(QMainWindow):
             self.settings.setValue("Appearance/h_tabbar", self.h_tabbar)
             self.settings.setValue("Appearance/auto_hide", self.autoHide)
             self.settings.setValue("Appearance/icon_size", self.icon_size)
+            self.settings.setValue("Appearance/border_radius", self.radius)
             self.settings.setValue("Window/pos", self.pos())
             self.settings.setValue("Window/size", self.size())
 
@@ -1636,6 +1751,56 @@ class DownloadManager(QWidget):
             pass
 
 
+class WebEnginePage(QWebEnginePage):
+
+    def __init__(self, profile, parent, mediaErrorSignal=None):
+        super(WebEnginePage, self).__init__(profile, parent)
+
+        self.playerProcess = None
+        self.mediaError = mediaErrorSignal
+
+    def javaScriptConsoleMessage(self, level, message="", lineNumber=0, sourceID=""):
+
+        if level == WebEnginePage.JavaScriptConsoleMessageLevel.ErrorMessageLevel:
+            # this is totally empirical and based in just one use case... can it be more "scientific"?
+            if "Player" in message and "ErrorNotSupported" in message:
+                self.mediaError.emit(self)
+
+    def _kill_process(self, proc_pid):
+        # Thanks to Jovik: https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
+        process = psutil.Process(proc_pid)
+        for proc in process.children(recursive=True):
+            proc.kill()
+        process.kill()
+
+    def openInExternalPlayer(self):
+        # Thanks to pullmyteeth: https://stackoverflow.com/questions/404744/determining-application-path-in-a-python-exe-generated-by-pyinstaller
+        if getattr(sys, "frozen", False):
+            app_location = os.path.dirname(sys.executable)
+        else:
+            app_location = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), 'dist')
+        s_path = os.path.join(app_location, 'externalplayer', 'streamlink', 'bin', 'streamlink.exe')
+        p_path = os.path.join(app_location, 'externalplayer', 'mpv', 'mpv.exe')
+
+        if os.path.exists(s_path) and os.path.exists(p_path):
+            cmd = s_path + ' --player ' + p_path + ' %s 720p,480p,best' % self.url().toString()
+            if self.playerProcess is not None and self.playerProcess.poll() is None:
+                self._kill_process(self.playerProcess.pid)
+            self.playerProcess = subprocess.Popen(cmd, shell=True)
+        # ISSUE: how to pack it all? within pyinstaller (is it allowed by authors)? Downloaded by user?
+        # Solution: use streamlink python module, but don't know how to run it and launch MPV player
+        # session = Streamlink()
+        # session.set_option("player", p_path)
+        # plugin_name, plugin_class, resolved_url = session.resolve_url(self.url().toString())
+        # plugin = plugin_class(session, resolved_url, options={"plugin-option": 123})
+        # streams = plugin.streams()
+        # # fd = streams["best"].open()
+
+    def closeEvent(self, event):
+        if self.playerProcess is not None and self.playerProcess.poll() is None:
+            self._kill_process(self.playerProcess.pid)
+
+
 class LineEdit(QLineEdit):
 
     def __init__(self, parent=None):
@@ -1657,16 +1822,10 @@ class Dialog(QDialog):
 
         self.setWindowTitle(title)
         self.setWindowIcon(QIcon(resource_path("res/coward.png")))
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint | Qt.WindowType.FramelessWindowHint)
-        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-        # This creates a shadow for the dialog, but not very fancy
-        # effect = QGraphicsDropShadowEffect()
-        # effect.setColor(QApplication.palette().color(QPalette.ColorRole.Shadow))
-        # effect.setBlurRadius(20)
-        # effect.setOffset(5)
-        # self.setGraphicsEffect(effect)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint | Qt.WindowType.FramelessWindowHint)
 
         with open(resource_path("qss/dialog.qss")) as f:
             self.setStyleSheet(f.read())
@@ -1694,29 +1853,6 @@ class Dialog(QDialog):
         self.mainLayout = QHBoxLayout()
         self.mainLayout.addWidget(self.widget)
         self.setLayout(self.mainLayout)
-
-    # def exec(self):
-    #     # thanks to Maxim Paperno: https://stackoverflow.com/questions/58145272/qdialog-with-rounded-corners-have-black-corners-instead-of-being-translucent
-    #
-    #     if self.radius != 0:
-    #
-    #         # it is necessary to show widget first, in order to get its real size
-    #         self.show()
-    #         self.hide()
-    #
-    #         # prepare painter and mask to draw rounded corners
-    #         rect = QRect(QPoint(0, 0), self.geometry().size())
-    #         b = QBitmap(rect.size())
-    #         b.fill(QColor(Qt.GlobalColor.color0))
-    #         painter = QPainter(b)
-    #         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-    #         painter.setBrush(Qt.GlobalColor.color1)
-    #         painter.drawRoundedRect(rect, self.radius, self.radius, Qt.SizeMode.AbsoluteSize)
-    #         painter.end()
-    #         self.setMask(b)
-    #
-    #     # run the dialog
-    #     super().exec()
 
     def move(self, position, y=None):
         if y is not None:
@@ -1793,8 +1929,7 @@ class TitleBar(QToolBar):
             self.parent().move(event.globalPosition().toPoint() - self.offset)
             for item in self.other_offsets:
                 w, offset = item
-                if w.isVisible():
-                    w.move(event.globalPosition().toPoint() - self.offset + offset)
+                w.move(event.globalPosition().toPoint() - self.offset + offset)
 
     def mouseReleaseEvent(self, event):
         self.moving = False
