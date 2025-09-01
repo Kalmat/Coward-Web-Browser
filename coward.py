@@ -1007,7 +1007,6 @@ class MainWindow(QMainWindow):
             self.tabs.currentWidget().stop()
 
     def manage_search(self):
-        print("IN", self.search_widget.isVisible())
 
         if self.search_widget.isVisible():
             self.tabs.currentWidget().findText("")
@@ -2036,7 +2035,7 @@ def app_location():
     if is_packaged():
         location = os.path.dirname(sys.executable)
     else:
-        location = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), 'dist')
+        location = os.path.dirname(sys.modules["__main__"].__file__)
     return location
 
 
@@ -2113,7 +2112,7 @@ app = QApplication(sys.argv + ['-platform', 'windows:darkmode=1'])
 app.setApplicationName("Coward")
 app.setWindowIcon(QIcon(resource_path("res/coward.png")))
 
-if not hasattr(sys, "_MEIPASS"):
+if not is_packaged():
     # change application icon even when running as Python script
     force_icon('kalmat.coward.nav.01')
 
