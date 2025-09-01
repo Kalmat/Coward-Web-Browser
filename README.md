@@ -63,7 +63,7 @@ Include additional codecs and software within QtWebEngine installation
 - In addition to that, for pages requiring widevine:
   - Get `widevinecdm.dll` file. Check if you have a copy in your system or download a (safe) one
   - Set the environment variable: `QTWEBENGINE_CHROMIUM_FLAGS=--widevine-path="path/to/widevinecdm.dll"` (replace "path/to/" by the actual folder containing the .dll file)
-  - Alternatively to setting this variable, create a folder named `widevine` inside the foler in which you placed coward script and/or executable, and place the .dll there
+  - Alternatively to setting this variable, create a folder named `externalplayer` inside the folder in which you placed coward script and/or executable, inside this one create another named `widevine`, and place the .dll there
 
 #### Alternative 2
 Use an external player (MPV works quite well and it's really lightweight), together with a tool to stream content onto it (streamlink is fantastic for that)

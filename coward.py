@@ -2,7 +2,6 @@
 import os
 import re
 import shutil
-import signal
 import subprocess
 import sys
 import time
@@ -14,19 +13,6 @@ from PyQt6.QtGui import *
 from PyQt6.QtWebEngineCore import *
 from PyQt6.QtWebEngineWidgets import *
 from PyQt6.QtWidgets import *
-
-from PyQt6.QtMultimedia import (QAudioOutput, QMediaFormat,
-                                  QMediaPlayer, QAudio)
-from PyQt6.QtMultimediaWidgets import QVideoWidget
-
-
-import ffmpeg
-from streamlink import Streamlink
-
-# to play some media which uses non-built-in codecs, QtWebEngine must be built with option -webengine-proprietary-codecs
-# https://doc.qt.io/qt-6/qtwebengine-features.html#audio-and-video-codecs
-# in addition to that, for some sites using widevine (DRM protection), this variable must also be set:
-os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = '--widevine-path="%s"' % os.path.join(os.getcwd(), "widevine", "widevinecdm.dll")
 
 
 # main window
@@ -50,7 +36,7 @@ class MainWindow(QMainWindow):
         # prepare cache folders and variables
         self.cachePath = ""
         self.lastCache = ""
-        self.storageName = "coward_" + str(qWebEngineChromiumVersion()) + ("_debug" if getattr(sys, "frozen", False) else "")
+        self.storageName = "coward_" + str(qWebEngineChromiumVersion()) + ("_debug" if is_packaged() else "")
         self.deleteCache = False
 
         # wipe all cache folders except the last one if requested by user (in a new process or it will be locked)
@@ -104,7 +90,7 @@ class MainWindow(QMainWindow):
         self.settings = QSettings(QSettings.Format.IniFormat,
                                   QSettings.Scope.UserScope,
                                   ".kalmat",
-                                  "Coward" + ("_debug" if getattr(sys, "frozen", False) else "")
+                                  "Coward" + ("_debug" if is_packaged() else "")
                                   )
 
         self.cachePath = os.path.join(os.path.dirname(self.settings.fileName()), ".cache", self.storageName)
@@ -452,13 +438,11 @@ class MainWindow(QMainWindow):
         # open all tabs in main / child window
         current = 0
         if tabs:
-            for i, tab in enumerate(tabs):
+            for tab in tabs:
                 qurl, zoom, active = tab
+                i = self.add_tab(QUrl(qurl), zoom)
                 if active:
                     current = i
-                    # this will update url bar immediately, otherwise it is locked by browsers
-                    QTimer.singleShot(1, lambda: self.urlbar.setText(qurl))
-                self.add_tab(QUrl(qurl), zoom)
         else:
             self.add_tab()
         self.tabs.setCurrentIndex(current)
@@ -1776,7 +1760,7 @@ class WebEnginePage(QWebEnginePage):
 
     def openInExternalPlayer(self):
         # Thanks to pullmyteeth: https://stackoverflow.com/questions/404744/determining-application-path-in-a-python-exe-generated-by-pyinstaller
-        if getattr(sys, "frozen", False):
+        if is_packaged():
             app_location = os.path.dirname(sys.executable)
         else:
             app_location = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), 'dist')
@@ -2044,6 +2028,18 @@ class SideGrip(QWidget):
         self.mousePos = None
 
 
+def is_packaged():
+    return getattr(sys, "frozen", False) or hasattr(sys, "_MEIPASS")
+
+
+def app_location():
+    if is_packaged():
+        location = os.path.dirname(sys.executable)
+    else:
+        location = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), 'dist')
+    return location
+
+
 def resource_path(relative_path, inverted=False):
     base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
     ret = os.path.normpath(os.path.join(base_path, relative_path))
@@ -2104,6 +2100,11 @@ def exception_hook(exctype, value, tb):
 # setDPIAwareness()
 # setSystemDPISettings()
 # setApplicationDPISettings()
+
+# to play some media which uses non-built-in codecs, QtWebEngine must be built with option -webengine-proprietary-codecs
+# https://doc.qt.io/qt-6/qtwebengine-features.html#audio-and-video-codecs
+# in addition to that, for some sites using widevine (DRM protection), this variable must also be set before creating app:
+os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = '--widevine-path="%s"' % os.path.join(app_location(), "externalplayer", "widevine", "widevinecdm.dll")
 
 # creating a PyQt5 application and (windows only) force dark mode
 app = QApplication(sys.argv + ['-platform', 'windows:darkmode=1'])
