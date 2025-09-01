@@ -1178,7 +1178,8 @@ class MainWindow(QMainWindow):
         self.clean_dlg.close()
 
         # activate cache deletion upon closing app
-        self.deleteCache = True
+        if not self.isIncognito:
+            self.deleteCache = True
 
         # set a new cache folder (old ones will be deleted when app is restarted)
         self.lastCache = os.path.join(self.cachePath, str(time.time()).replace(".", ""))
@@ -1409,9 +1410,8 @@ class MainWindow(QMainWindow):
 
             self.settings.setValue("Session/new_wins", new_wins)
 
-            # restart app to wipe all cache folders but the last one (not possible while running since it's locked)
-            if self.deleteCache:
-                QCoreApplication.quit()
+            if self.deleteCache and not self.isIncognito:
+                # restart app to wipe all cache folders but the last one (not possible while running since it's locked)
                 status = QProcess.startDetached(sys.executable, sys.argv + ["--delete_cache"] + [self.lastCache])
 
 
