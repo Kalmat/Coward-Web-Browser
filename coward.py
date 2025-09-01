@@ -53,7 +53,7 @@ class MainWindow(QMainWindow):
         self.storageName = "coward_" + str(qWebEngineChromiumVersion()) + ("_debug" if getattr(sys, "frozen", False) else "")
         self.deleteCache = False
 
-        # wipe all cache folders except the last one if requested by user
+        # wipe all cache folders except the last one if requested by user (in a new process or it will be locked)
         if "--delete_cache" in sys.argv:
             lastCache = sys.argv[-1]
             lastCacheName = os.path.basename(lastCache)
@@ -67,7 +67,7 @@ class MainWindow(QMainWindow):
 
         self.isNewWin = new_win
         self.homePage = 'https://start.duckduckgo.com/?kae=d'
-        if self.isNewWin and not init_tabs:
+        if (self.isNewWin and not init_tabs) or incognito:
             init_tabs = [[self.homePage, 1.0, True]]
         self.init_tabs = init_tabs
 
@@ -452,15 +452,16 @@ class MainWindow(QMainWindow):
         # open all tabs in main / child window
         current = 0
         if tabs:
-            for tab in tabs:
+            for i, tab in enumerate(tabs):
                 qurl, zoom, active = tab
-                i = self.add_tab(QUrl(qurl), zoom)
                 if active:
                     current = i
+                    # this will update url bar immediately, otherwise it is locked by browsers
+                    QTimer.singleShot(1, lambda: self.urlbar.setText(qurl))
+                self.add_tab(QUrl(qurl), zoom)
         else:
             self.add_tab()
         self.tabs.setCurrentIndex(current)
-
         self.update_urlbar(self.tabs.currentWidget().url(), self.tabs.currentWidget())
         # this will load the active tab only, saving time at start
         # self.tabs.currentWidget().reload()

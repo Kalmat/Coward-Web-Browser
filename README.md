@@ -66,7 +66,7 @@ Include additional codecs and software within QtWebEngine installation
   - Alternatively to setting this variable, create a folder named `widevine` inside the foler in which you placed coward script and/or executable, and place the .dll there
 
 #### Alternative 2
-Use an external player (MPV works quite well and it's really lightweight), together with a tool to stream content onto i (streamlink is fantastic for that)
+Use an external player (MPV works quite well and it's really lightweight), together with a tool to stream content onto it (streamlink is fantastic for that)
 
 - Download a portable copy of streamlink software from [here](https://github.com/streamlink/windows-builds/releases/download/7.5.0-1/streamlink-7.5.0-1-py313-x86_64.zip)
 - Download mpv player from [here](https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20250827/mpv-aarch64-20250827-git-9f153e2.7z) or [here](https://github.com/zhongfly/mpv-winbuild/releases/download/2025-09-01-efb70d7/mpv-aarch64-20250901-git-efb70d7.7z)
