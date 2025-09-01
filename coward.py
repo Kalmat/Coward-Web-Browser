@@ -1177,13 +1177,14 @@ class MainWindow(QMainWindow):
 
         self.clean_dlg.close()
 
-        # activate cache deletion upon closing app
         if not self.isIncognito:
+            # activate cache deletion upon closing app (if not incognito which will be auto-deleted)
             self.deleteCache = True
 
-        # set a new cache folder (old ones will be deleted when app is restarted)
-        self.lastCache = os.path.join(self.cachePath, str(time.time()).replace(".", ""))
+            # set a new cache folder (old ones will be deleted when app is restarted)
+            self.lastCache = os.path.join(self.cachePath, str(time.time()).replace(".", ""))
 
+        # fresh-reload all pages
         tabsCount = self.tabs.count()
         currIndex = self.tabs.currentIndex()
         self.tabs.setCurrentIndex(0)
