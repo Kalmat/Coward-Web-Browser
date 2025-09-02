@@ -1754,8 +1754,11 @@ class WebEnginePage(QWebEnginePage):
         process.kill()
 
     def openInExternalPlayer(self):
-        s_path = resource_path(os.path.join('externalplayer', 'streamlink', 'bin', 'streamlink.exe'))
-        p_path = resource_path(os.path.join('externalplayer', 'mpv', 'mpv.exe'))
+        s_path = resource_path(os.path.join('externalplayer', 'streamlink', 'bin', 'streamlink.exe'), use_dist_folder="dist")
+        p_path = resource_path(os.path.join('externalplayer', 'mpv', 'mpv.exe'), use_dist_folder="dist")
+        with open("output.txt", "w") as f:
+            f.write(s_path + "\n")
+            f.write(p_path)
 
         if os.path.exists(s_path) and os.path.exists(p_path):
             cmd = s_path + ' --player ' + p_path + ' %s 720p,480p,best' % self.url().toString()
@@ -2011,22 +2014,42 @@ def is_packaged():
     return getattr(sys, "frozen", False) or hasattr(sys, "_MEIPASS")
 
 
-def app_location():
+def app_location(use_dist_folder=""):
+    # this function returns de actual application location (where .py or .exe files are located)
     # Thanks to pullmyteeth: https://stackoverflow.com/questions/404744/determining-application-path-in-a-python-exe-generated-by-pyinstaller
     if is_packaged():
         location = os.path.dirname(sys.executable)
     else:
-        location = os.path.dirname(sys.modules["__main__"].__file__)
+        location = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), use_dist_folder)
     return location
 
 
-def resource_path(relative_path, inverted=False):
+def resource_path(relative_path, inverted=False, use_dist_folder=""):
     # this will find resources packaged or not within the executable, with a relative path from application folder
-    ret = os.path.normpath(os.path.join(app_location(), relative_path))
-    if inverted:
-        # required in some syntax (e.g. .qss)
-        ret = ret.replace("\\", "/")
-    return ret
+    # when intended to use pyinstaller, move the external resources to the dist folder and set use_dist_folder accordingly (most likely "dist")
+    path = ""
+    ret = ""
+    found = False
+    if is_packaged():
+        base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+        ret = os.path.normpath(os.path.join(base_path, relative_path))
+        if os.path.exists(ret):
+            found = True
+
+    if not found:
+        # resource is not package within executable
+        base_path = app_location(use_dist_folder)
+        ret = os.path.normpath(os.path.join(base_path, relative_path))
+        if os.path.exists(ret):
+            found = True
+
+    if found:
+        if inverted:
+            # required in some syntax (e.g. .qss)
+            ret = ret.replace("\\", "/")
+        path = ret
+
+    return path
 
 
 def get_valid_filename(name):
@@ -2086,7 +2109,8 @@ def exception_hook(exctype, value, tb):
 # https://doc.qt.io/qt-6/qtwebengine-features.html#audio-and-video-codecs
 # in addition to that, for some sites using widevine (DRM protection), this variable must also be set before creating app:
 flags = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "")
-os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = flags + ' --widevine-path="%s"' % resource_path(os.path.join("externalplayer", "widevine", "widevinecdm.dll"))
+os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = (flags + ' --widevine-path="%s"'
+                                            % resource_path(os.path.join("externalplayer", "widevine", "widevinecdm.dll"), use_dist_folder="dist"))
 
 # creating a PyQt5 application and (windows only) force dark mode
 app = QApplication(sys.argv + ['-platform', 'windows:darkmode=1'])
