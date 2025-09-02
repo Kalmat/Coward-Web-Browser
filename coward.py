@@ -1870,6 +1870,8 @@ class HoverWidget(QWidget):
 
 class TitleBar(QToolBar):
 
+    _sticky_margin = 20
+
     def __init__(self, parent, isCustom, enter_signal=None, leave_signal=None):
         super(TitleBar, self).__init__(parent)
 
@@ -1900,13 +1902,13 @@ class TitleBar(QToolBar):
 
     def mouseReleaseEvent(self, event):
         x = y = None
-        if -20 < self.parent().x() < 20:
+        if -self._sticky_margin < self.parent().x() < self._sticky_margin:
             x = 0
-        elif -20 < self.screenSize.width() - (self.parent().x() + self.parent().width()) < 20:
+        elif -self._sticky_margin < self.screenSize.width() - (self.parent().x() + self.parent().width()) < self._sticky_margin:
             x = self.screenSize.width() - self.parent().width()
-        if -20 < self.parent().y() < 20:
+        if -self._sticky_margin < self.parent().y() < self._sticky_margin:
             y = 0
-        elif -20 < self.screenSize.height() - (self.parent().y() + self.parent().height()) < 20:
+        elif -self._sticky_margin < self.screenSize.height() - (self.parent().y() + self.parent().height()) < self._sticky_margin:
             y = self.screenSize.height() - self.parent().height()
         if x is not None or y is not None:
             pos = QPoint(self.parent().x() if x is None else x, self.parent().y() if y is None else y)
