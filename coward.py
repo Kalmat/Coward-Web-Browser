@@ -1901,19 +1901,23 @@ class TitleBar(QToolBar):
             self.parent().move(event.globalPosition().toPoint() - self.offset)
 
     def mouseReleaseEvent(self, event):
+        self.moving = False
+
         x = y = None
+
         if -self._sticky_margin < self.parent().x() < self._sticky_margin:
             x = 0
         elif -self._sticky_margin < self.screenSize.width() - (self.parent().x() + self.parent().width()) < self._sticky_margin:
             x = self.screenSize.width() - self.parent().width()
+
         if -self._sticky_margin < self.parent().y() < self._sticky_margin:
             y = 0
         elif -self._sticky_margin < self.screenSize.height() - (self.parent().y() + self.parent().height()) < self._sticky_margin:
             y = self.screenSize.height() - self.parent().height()
+
         if x is not None or y is not None:
             pos = QPoint(self.parent().x() if x is None else x, self.parent().y() if y is None else y)
             self.parent().move(pos)
-        self.moving = False
 
     def enterEvent(self, event):
         if self.enter_signal is not None:
