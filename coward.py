@@ -36,7 +36,7 @@ class MainWindow(QMainWindow):
         # prepare cache folders and variables
         self.cachePath = ""
         self.lastCache = ""
-        self.storageName = "coward_" + str(qWebEngineChromiumVersion()) + ("_debug" if is_packaged() else "")
+        self.storageName = "coward_" + str(qWebEngineChromiumVersion()) + ("_debug" if not is_packaged() else "")
         self.deleteCache = False
 
         # wipe all cache folders except the last one if requested by user (in a new process or it will be locked)
@@ -90,7 +90,7 @@ class MainWindow(QMainWindow):
         self.settings = QSettings(QSettings.Format.IniFormat,
                                   QSettings.Scope.UserScope,
                                   ".kalmat",
-                                  "Coward" + ("_debug" if is_packaged() else "")
+                                  "Coward" + ("_debug" if not is_packaged() else "")
                                   )
 
         self.cachePath = os.path.join(os.path.dirname(self.settings.fileName()), ".cache", self.storageName)
@@ -135,17 +135,18 @@ class MainWindow(QMainWindow):
             self.v_tab_style = f.read()
             self.v_tab_style = self.v_tab_style % (self.action_size, self.action_size)
 
-        # Enable/Disable cookies
+        # Enable/Disable cookies and prepare incognito environment
         if new_win and incognito is not None:
-            self.isIncognito = incognito
             self.cookies = True
+            self.isIncognito = incognito
         else:
-            self.isIncognito = False
             self.cookies = self.settings.value("General/cookies", True) in (True, "true")
+            self.isIncognito = False
 
         # vertical / horizontal tabbar
         self.h_tabbar = self.settings.value("Appearance/h_tabbar", False) in (True, "true")
 
+        # prepare grips to resize window when using a custom title bar
         if self.custom_titlebar:
             self.sideGrips = [
                 SideGrip(self, Qt.Edge.LeftEdge),
@@ -167,7 +168,7 @@ class MainWindow(QMainWindow):
         self.search_widget.hide()
 
         # creating a toolbar for navigation
-        self.navtab = TitleBar(self, self.custom_titlebar, [], None, self.leaveNavBarSig)
+        self.navtab = TitleBar(self, self.custom_titlebar, None, self.leaveNavBarSig)
         if self.isIncognito:
             with open(resource_path("qss/titlebar_incognito.qss")) as f:
                 navStyle = f.read()
@@ -190,8 +191,6 @@ class MainWindow(QMainWindow):
         self.toggleTab_btn.setFont(font)
         self.toggleTab_btn.clicked.connect(lambda: self.toggle_tabbar(clicked=True))
         self.navtab.addWidget(self.toggleTab_btn)
-        if self.isIncognito:
-            self.toggleTab_btn.setDisabled(True)
 
         self.navtab.addSeparator()
 
@@ -246,7 +245,7 @@ class MainWindow(QMainWindow):
         spacer = QLabel()
         spacer.setObjectName("spacer")
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        spacer.setMinimumWidth(0)
+        spacer.setMinimumWidth(20)
         spacer.setMaximumWidth(150)
         self.navtab.addWidget(spacer)
 
@@ -325,7 +324,7 @@ class MainWindow(QMainWindow):
         self.clean_btn.triggered.connect(self.show_clean_dlg)
         self.navtab.addAction(self.clean_btn)
 
-        # adding open incognito window 🕶️🕶🥷👻
+        # adding open incognito window 🕶️🕶🥷👻👺
         self.ninja_btn = QToolButton( self.navtab)
         self.ninja_btn.setObjectName("incognito")
         self.ninja_btn.setText("👻")
@@ -438,11 +437,13 @@ class MainWindow(QMainWindow):
         # open all tabs in main / child window
         current = 0
         if tabs:
-            for tab in tabs:
+            for i, tab in enumerate(tabs):
                 qurl, zoom, active = tab
-                i = self.add_tab(QUrl(qurl), zoom)
                 if active:
                     current = i
+                    QTimer.singleShot(1, lambda u=qurl: self.urlbar.setText(u))
+                self.add_tab(QUrl(qurl), zoom)
+
         else:
             self.add_tab()
         self.tabs.setCurrentIndex(current)
@@ -485,13 +486,6 @@ class MainWindow(QMainWindow):
         # signal to show dialog to open an external player for non-compatible media
         self.mediaErrorSignal.connect(self.show_player_request)
 
-        # class variables
-        self.maxNormal = self.isMaximized()
-
-        # finally, add widgets which must be moved together with main window when applying custom title bar
-        self.otherWidgetsToMove = [self.dl_manager, self.search_widget]
-        self.navtab.setOtherWidgetsToMove(self.otherWidgetsToMove)
-
     def targetDlgPos(self):
         return QPoint(self.x() + 100,
                       self.y() + self.navtab.height() + (self.tabs.tabBar().height() if self.h_tabbar else 0))
@@ -502,10 +496,7 @@ class MainWindow(QMainWindow):
         # need to show first to have actual geometries
         self.toggleTab_btn.setFixedSize(self.tabs.tabBar().width() - 3, self.navtab.height())
 
-        if self.isIncognito:
-            self.tabs.tabBar().hide()
-        else:
-            self.tabs.tabBar().show()
+        self.tabs.tabBar().show()
 
         if self.autoHide:
             self.navtab.hide()
@@ -514,10 +505,7 @@ class MainWindow(QMainWindow):
             self.tabs.tabBar().hide()
             self.hoverVWidget.setGeometry(0, self.action_size, 20, self.height())
             if not self.h_tabbar:
-                if self.isIncognito:
-                    self.hoverVWidget.hide()
-                else:
-                    self.hoverVWidget.show()
+                self.hoverVWidget.show()
 
         # thanks to Maxim Paperno: https://stackoverflow.com/questions/58145272/qdialog-with-rounded-corners-have-black-corners-instead-of-being-translucent
         if self.radius != 0:
@@ -564,6 +552,7 @@ class MainWindow(QMainWindow):
 
             # The profile and all its settings is needed to keep cookies and cache (PyQt6 only, not in PyQt5)
             profile = QWebEngineProfile(self.storageName, browser)
+
             # QtWebEngine creates this folder, but we will not use it... deleting it
             shutil.rmtree(os.path.dirname(os.path.dirname(profile.persistentStoragePath())))
 
@@ -834,7 +823,7 @@ class MainWindow(QMainWindow):
         if app.mouseButtons() == Qt.MouseButton.LeftButton:
             if i == self.tabs.count() - 1:
                 # this is needed to immediately refresh url bar content (maybe locked by qwebengineview?)
-                QTimer.singleShot(1, lambda: self.urlbar.setText(self.homePage))
+                QTimer.singleShot(1, lambda p=self.homePage: self.urlbar.setText(p))
                 self.add_new_tab()
 
     def tab_moved(self, to_index, from_index):
@@ -979,20 +968,14 @@ class MainWindow(QMainWindow):
 
         if self.autoHide:
             if self.h_tabbar:
-                if self.isIncognito:
-                    self.tabs.tabBar().hide()
-                else:
-                    self.tabs.tabBar().show()
+                self.tabs.tabBar().show()
             if hasattr(self, "hoverHWidget"):
                 self.hoverHWidget.show()
             if hasattr(self, "hoverVWidget"):
                 if self.h_tabbar:
                     self.hoverVWidget.hide()
                 else:
-                    if self.isIncognito:
-                        self.hoverVWidget.hide()
-                    else:
-                        self.hoverVWidget.show()
+                    self.hoverVWidget.show()
 
     def goBack(self):
         self.tabs.currentWidget().back()
@@ -1006,6 +989,21 @@ class MainWindow(QMainWindow):
         else:
             self.tabs.currentWidget().stop()
 
+    def get_search_widget_pos(self):
+
+        # getting title bar height (custom or standard)
+        gap = self.mapToGlobal(self.navtab.pos()).y() - self.y()
+
+        # take the visible action as reference to calculate position
+        refWidget = self.search_off_btn if self.search_off_btn.isVisible() else self.search_on_btn
+
+        # calculate position
+        actRect = refWidget.geometry()
+        actPos = self.mapToGlobal(actRect.topLeft())
+        x = actPos.x() + actRect.width() - self.search_widget.width()
+        y = self.y() + self.navtab.height() + gap
+        return QPoint(x, y)
+
     def manage_search(self):
 
         if self.search_widget.isVisible():
@@ -1015,12 +1013,8 @@ class MainWindow(QMainWindow):
             self.search_on_act.setVisible(True)
 
         else:
-            refWidget = self.dl_on_btn if self.dl_on_btn.isVisible() else self.dl_off_btn
-            actPos = self.mapToGlobal(refWidget.geometry().topLeft())
-            x = actPos.x() - self.search_widget.width()
-            y = self.y() + self.navtab.height()
-            self.search_widget.move(x, y)
             self.search_widget.show()
+            self.search_widget.move(self.get_search_widget_pos())
             self.search_off_act.setVisible(True)
             self.search_on_act.setVisible(False)
 
@@ -1045,7 +1039,7 @@ class MainWindow(QMainWindow):
                 # this... fails???? WHY?????
                 # Hypothesis: if nav tab is under mouse it will not hide, so trying to show hoverHWidget in the same position fails
                 self.hoverHWidget.show()
-            if not self.h_tabbar and not self.isIncognito:
+            if not self.h_tabbar:
                 self.hoverVWidget.show()
             else:
                 self.hoverVWidget.hide()
@@ -1054,10 +1048,7 @@ class MainWindow(QMainWindow):
             self.hoverHWidget.hide()
             self.hoverVWidget.hide()
             self.navtab.show()
-            if self.isIncognito:
-                self.tabs.tabBar().hide()
-            else:
-                self.tabs.tabBar().show()
+            self.tabs.tabBar().show()
 
     @pyqtSlot()
     def enterHHover(self):
@@ -1065,10 +1056,7 @@ class MainWindow(QMainWindow):
             self.hoverHWidget.hide()
             self.navtab.show()
             if self.h_tabbar:
-                if self.isIncognito:
-                    self.tabs.tabBar().hide()
-                else:
-                    self.tabs.tabBar().show()
+                self.tabs.tabBar().show()
 
     @pyqtSlot()
     def leaveHHover(self):
@@ -1078,10 +1066,7 @@ class MainWindow(QMainWindow):
     def enterVHover(self):
         if self.autoHide:
             self.hoverVWidget.hide()
-            if self.isIncognito:
-                self.tabs.tabBar().hide()
-            else:
-                self.tabs.tabBar().show()
+            self.tabs.tabBar().show()
 
     @pyqtSlot()
     def leaveVHover(self):
@@ -1117,10 +1102,7 @@ class MainWindow(QMainWindow):
                     self.hoverHWidget.show()
             else:
                 self.tabs.tabBar().hide()
-                if self.isIncognito:
-                    self.hoverVWidget.hide()
-                else:
-                    self.hoverVWidget.show()
+                self.hoverVWidget.show()
 
     def manage_downloads(self):
 
@@ -1134,14 +1116,22 @@ class MainWindow(QMainWindow):
             self.dl_off_act.setVisible(True)
             self.show_dl_manager()
 
+    def get_dl_manager_pos(self):
+
+        # getting title bar height (custom or standard)
+        gap = self.mapToGlobal(self.navtab.pos()).y() - self.y()
+
+        # calculate position
+        x = self.x() + self.width() - self.dl_manager.width()
+        y = self.y() + self.navtab.height() + gap
+        return QPoint(x, y)
+
     def show_dl_manager(self):
 
         self.dl_on_act.setVisible(False)
         self.dl_off_act.setVisible(True)
         self.dl_manager.show()
-        x = self.x() + self.width() - self.dl_manager.width()
-        y = self.y() + self.navtab.height()
-        self.dl_manager.move(x, y)
+        self.dl_manager.move(self.get_dl_manager_pos())
 
     # adding action to download files
     def download_file(self, item: QWebEngineDownloadRequest):
@@ -1262,46 +1252,15 @@ class MainWindow(QMainWindow):
 
     def showMaxRestore(self):
 
-        if self.maxNormal:
+        if self.isMaximized():
             self.showNormal()
-            self.maxNormal = False
             self.max_btn.setText(" ⃞ ")
             self.max_btn.setToolTip("Maximize")
 
         else:
             self.showMaximized()
-            self.maxNormal = True
             self.max_btn.setText("⧉")
             self.max_btn.setToolTip("Restore")
-
-    def resizeEvent(self, event):
-
-        if self.custom_titlebar:
-            # update grip areas
-            self.updateGrips()
-
-            # adjust to screen edges:
-            mousePos = QCursor.pos()
-            if -5 < mousePos.y() < 5 or self.screenSize.height() - 5 < mousePos.y() < self.screenSize.height() + 5:
-                self.setGeometry(self.x(), 0, self.width(), self.screenSize.height())
-
-        # update hover areas (doesn't matter if visible or not)
-        self.hoverHWidget.setGeometry(self.action_size, 0, self.width(), 20)
-        self.hoverVWidget.setGeometry(0, self.action_size, 20, self.height())
-
-        if self.dl_manager.isVisible():
-            # reposition download list
-            x = self.x() + self.width() - self.dl_manager.width()
-            y = self.y() + self.navtab.height()
-            self.dl_manager.move(x, y)
-
-        if self.search_widget.isVisible():
-            # reposition search widget
-            actRect = self.search_off_btn.geometry()
-            actPos = self.mapToGlobal(self.search_off_btn.geometry().topLeft())
-            x = actPos.x() + actRect.width() - self.search_widget.width()
-            y = self.y() + self.navtab.height()
-            self.search_widget.move(x, y)
 
     def keyReleaseEvent(self, a0):
 
@@ -1322,16 +1281,13 @@ class MainWindow(QMainWindow):
 
         elif a0.key() == Qt.Key.Key_T:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
-                if not self.isIncognito:
-                    self.add_new_tab()
+                self.add_new_tab()
 
         elif a0.key() == Qt.Key.Key_N:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier:
-                if not self.isIncognito:
-                    self.show_in_new_window(incognito=True)
+                self.show_in_new_window(incognito=True)
             elif a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
-                if not self.isIncognito:
-                    self.show_in_new_window()
+                self.show_in_new_window()
 
         elif a0.key() == Qt.Key.Key_W:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
@@ -1350,6 +1306,40 @@ class MainWindow(QMainWindow):
 
         elif a0.key() == Qt.Key.Key_A:
             self.manage_autohide(force_show=True)
+
+    # these widgets have a relative position. Must be moved AFTER showing main window
+    def moveOtherWidgets(self):
+
+        if self.dl_manager.isVisible():
+            # reposition download list
+            self.dl_manager.move(self.get_dl_manager_pos())
+
+        if self.search_widget.isVisible():
+            # reposition search widget
+            self.search_widget.move(self.get_search_widget_pos())
+
+    def moveEvent(self, a0):
+
+        # also move widgets with relative positions
+        self.moveOtherWidgets()
+
+    def resizeEvent(self, event):
+
+        if self.custom_titlebar:
+            # update grip areas
+            self.updateGrips()
+
+            # adjust to screen edges:
+            mousePos = QCursor.pos()
+            if -5 < mousePos.y() < 5 or self.screenSize.height() - 5 < mousePos.y() < self.screenSize.height() + 5:
+                self.setGeometry(self.x(), 0, self.width(), self.screenSize.height())
+
+        # update hover areas (doesn't matter if visible or not)
+        self.hoverHWidget.setGeometry(self.action_size, 0, self.width(), 20)
+        self.hoverVWidget.setGeometry(0, self.action_size, 20, self.height())
+
+        # also move other widgets with relative positions
+        self.moveOtherWidgets()
 
     def closeEvent(self, a0):
 
@@ -1372,6 +1362,11 @@ class MainWindow(QMainWindow):
         # Save current browser contents and settings
         if not self.isNewWin:
             # only main instance may save settings
+
+            # backup .ini file
+            shutil.copyfile(self.settings.fileName(), self.settings.fileName() + ".bak")
+
+            # save all values
             self.settings.setValue("General/cookies", self.cookies)
             self.settings.setValue("Appearance/custom_title", self.custom_titlebar)
             self.settings.setValue("Appearance/h_tabbar", self.h_tabbar)
@@ -1759,13 +1754,8 @@ class WebEnginePage(QWebEnginePage):
         process.kill()
 
     def openInExternalPlayer(self):
-        # Thanks to pullmyteeth: https://stackoverflow.com/questions/404744/determining-application-path-in-a-python-exe-generated-by-pyinstaller
-        if is_packaged():
-            app_location = os.path.dirname(sys.executable)
-        else:
-            app_location = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), 'dist')
-        s_path = os.path.join(app_location, 'externalplayer', 'streamlink', 'bin', 'streamlink.exe')
-        p_path = os.path.join(app_location, 'externalplayer', 'mpv', 'mpv.exe')
+        s_path = resource_path(os.path.join('externalplayer', 'streamlink', 'bin', 'streamlink.exe'))
+        p_path = resource_path(os.path.join('externalplayer', 'mpv', 'mpv.exe'))
 
         if os.path.exists(s_path) and os.path.exists(p_path):
             cmd = s_path + ' --player ' + p_path + ' %s 720p,480p,best' % self.url().toString()
@@ -1879,42 +1869,31 @@ class HoverWidget(QWidget):
 
 class TitleBar(QToolBar):
 
-    def __init__(self, parent, isCustom, other_widgets_to_move=None, enter_signal=None, leave_signal=None):
+    def __init__(self, parent, isCustom, enter_signal=None, leave_signal=None):
         super(TitleBar, self).__init__(parent)
 
         self.isCustom = isCustom
-        self.other_move = other_widgets_to_move or []
         self.enter_signal = enter_signal
         self.leave_signal = leave_signal
 
         self.setMouseTracking(True)
         self.moving = False
         self.offset = parent.pos()
-        self.other_offsets = []
 
         if isCustom:
             self.parent().setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
             self.setAutoFillBackground(True)
             self.setBackgroundRole(QPalette.ColorRole.Highlight)
 
-    def setOtherWidgetsToMove(self, other_widgets_to_move):
-        self.other_move = other_widgets_to_move
-
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton and self.isCustom:
             self.moving = True
             self.offset = event.pos()
-            self.other_offsets = []
-            for w in self.other_move:
-                self.other_offsets.append([w, w.pos() - self.parent().pos()])
 
     def mouseMoveEvent(self, event):
         if self.moving:
             # in PyQt6 globalPos() has been replaced by globalPosition(), which returns a QPointF() object
             self.parent().move(event.globalPosition().toPoint() - self.offset)
-            for item in self.other_offsets:
-                w, offset = item
-                w.move(event.globalPosition().toPoint() - self.offset + offset)
 
     def mouseReleaseEvent(self, event):
         self.moving = False
@@ -2033,6 +2012,7 @@ def is_packaged():
 
 
 def app_location():
+    # Thanks to pullmyteeth: https://stackoverflow.com/questions/404744/determining-application-path-in-a-python-exe-generated-by-pyinstaller
     if is_packaged():
         location = os.path.dirname(sys.executable)
     else:
@@ -2041,9 +2021,10 @@ def app_location():
 
 
 def resource_path(relative_path, inverted=False):
-    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-    ret = os.path.normpath(os.path.join(base_path, relative_path))
+    # this will find resources packaged or not within the executable, with a relative path from application folder
+    ret = os.path.normpath(os.path.join(app_location(), relative_path))
     if inverted:
+        # required in some syntax (e.g. .qss)
         ret = ret.replace("\\", "/")
     return ret
 
@@ -2104,7 +2085,8 @@ def exception_hook(exctype, value, tb):
 # to play some media which uses non-built-in codecs, QtWebEngine must be built with option -webengine-proprietary-codecs
 # https://doc.qt.io/qt-6/qtwebengine-features.html#audio-and-video-codecs
 # in addition to that, for some sites using widevine (DRM protection), this variable must also be set before creating app:
-os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = '--widevine-path="%s"' % os.path.join(app_location(), "externalplayer", "widevine", "widevinecdm.dll")
+flags = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "")
+os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = flags + ' --widevine-path="%s"' % resource_path(os.path.join("externalplayer", "widevine", "widevinecdm.dll"))
 
 # creating a PyQt5 application and (windows only) force dark mode
 app = QApplication(sys.argv + ['-platform', 'windows:darkmode=1'])
