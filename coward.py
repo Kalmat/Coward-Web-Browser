@@ -1,4 +1,5 @@
 # based on: https://www.geeksforgeeks.org/python/creating-a-tabbed-browser-using-pyqt5/
+from ctypes import *
 import os
 import re
 import shutil
@@ -61,9 +62,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Coward")
         self.setWindowIcon(QIcon(resource_path("res/coward.png")))
 
-        # if not setting this, main window loses focus and flickers... ????
+        # if not setting this, main window loses focus and flickers when showing tooltips... ????
         self.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
-        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         # get styles from qss folder
         with open(resource_path("qss/main.qss"), "r") as f:
@@ -72,8 +72,16 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(style)
         app.setStyleSheet(style)
 
-        # This is required by sidegrips to make them invisible (hide dots)
+        # This is required by sidegrips to make them invisible (hide dots), and also by shadow
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+
+        # this works but, when applied, resizing with sidegrips does not update the QWebEngine in a smooth way
+        # self.setContentsMargins(10, 10, 10, 10)
+        # self.effect = QGraphicsDropShadowEffect(self)
+        # self.effect.setBlurRadius(15)
+        # self.effect.setOffset(0, 0)
+        # self.effect.setColor(Qt.GlobalColor.black)
+        # self.setGraphicsEffect(self.effect)
 
         # Icons
         # as images
@@ -416,7 +424,6 @@ class MainWindow(QMainWindow):
         self.tabs.tabCloseRequested.connect(self.tab_closed)
 
         # making tabs as central widget
-        self.tabs.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setCentralWidget(self.tabs)
 
         # open all windows and their tabs
@@ -447,7 +454,7 @@ class MainWindow(QMainWindow):
         else:
             self.add_tab()
         self.tabs.setCurrentIndex(current)
-        self.update_urlbar(self.tabs.currentWidget().url(), self.tabs.currentWidget())
+        # self.update_urlbar(self.tabs.currentWidget().url(), self.tabs.currentWidget())
         # this will load the active tab only, saving time at start
         # self.tabs.currentWidget().reload()
 
@@ -603,7 +610,7 @@ class MainWindow(QMainWindow):
         browser.settings().setAttribute(QWebEngineSettings.WebAttribute.PluginsEnabled, True)
 
         # setting url to browser
-        browser.load(qurl)
+        QTimer.singleShot(1, lambda u=qurl: browser.load(u))
         # this saves time if launched with several open tabs (will be reloaded in tab_changed() method)
         # browser.stop()
 
@@ -720,7 +727,7 @@ class MainWindow(QMainWindow):
             qurl.setScheme("https")
 
         # set the url
-        self.tabs.currentWidget().load(qurl)
+        QTimer.singleShot(1, lambda u=qurl: self.tabs.currentWidget().load(u))
 
     def update_urlbar(self, qurl, browser: QWidget = None):
 
@@ -1313,11 +1320,11 @@ class MainWindow(QMainWindow):
     # these widgets have a relative position. Must be moved AFTER showing main window
     def moveOtherWidgets(self):
 
-        if self.dl_manager.isVisible():
+        if hasattr(self, "dl_manager") and self.dl_manager.isVisible():
             # reposition download list
             self.dl_manager.move(self.get_dl_manager_pos())
 
-        if self.search_widget.isVisible():
+        if hasattr(self, "search_widget") and self.search_widget.isVisible():
             # reposition search widget
             self.search_widget.move(self.get_search_widget_pos())
 
@@ -1880,6 +1887,7 @@ class TitleBar(QToolBar):
         self.leave_signal = leave_signal
 
         self.setMouseTracking(True)
+
         self.moving = False
         self.offset = parent.pos()
 
