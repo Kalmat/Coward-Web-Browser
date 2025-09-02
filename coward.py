@@ -1758,7 +1758,7 @@ class WebEnginePage(QWebEnginePage):
         p_path = resource_path(os.path.join('externalplayer', 'mpv', 'mpv.exe'), use_dist_folder="dist")
 
         if os.path.exists(s_path) and os.path.exists(p_path):
-            cmd = s_path + ' --player ' + p_path + ' %s 720p,480p,best' % self.url().toString()
+            cmd = s_path + ' --player ' + p_path + ' %s 720p,best' % self.url().toString()
             if self.playerProcess is not None and self.playerProcess.poll() is None:
                 kill_process(self.playerProcess.pid)
             self.playerProcess = subprocess.Popen(cmd, shell=True)
@@ -1886,6 +1886,8 @@ class TitleBar(QToolBar):
             self.setAutoFillBackground(True)
             self.setBackgroundRole(QPalette.ColorRole.Highlight)
 
+        self.screenSize = self.screen().availableGeometry()
+
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton and self.isCustom:
             self.moving = True
@@ -1900,8 +1902,12 @@ class TitleBar(QToolBar):
         x = y = None
         if -20 < self.parent().x() < 20:
             x = 0
+        elif -20 < self.screenSize.width() - (self.parent().x() + self.parent().width()) < 20:
+            x = self.screenSize.width() - self.parent().width()
         if -20 < self.parent().y() < 20:
             y = 0
+        elif -20 < self.screenSize.height() - (self.parent().y() + self.parent().height()) < 20:
+            y = self.screenSize.height() - self.parent().height()
         if x is not None or y is not None:
             pos = QPoint(self.parent().x() if x is None else x, self.parent().y() if y is None else y)
             self.parent().move(pos)
