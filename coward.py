@@ -1759,9 +1759,6 @@ class WebEnginePage(QWebEnginePage):
     def openInExternalPlayer(self):
         s_path = resource_path(os.path.join('externalplayer', 'streamlink', 'bin', 'streamlink.exe'), use_dist_folder="dist")
         p_path = resource_path(os.path.join('externalplayer', 'mpv', 'mpv.exe'), use_dist_folder="dist")
-        with open("output.txt", "w") as f:
-            f.write(s_path + "\n")
-            f.write(p_path)
 
         if os.path.exists(s_path) and os.path.exists(p_path):
             cmd = s_path + ' --player ' + p_path + ' %s 720p,480p,best' % self.url().toString()
