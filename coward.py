@@ -1772,6 +1772,7 @@ class WebEnginePage(QWebEnginePage):
         # # fd = streams["best"].open()
 
     def closeExternalPlayer(self):
+        # closeEvent doesn't seem to be called at page level (???)
         if self.playerProcess is not None and self.playerProcess.poll() is None:
             kill_process(self.playerProcess.pid)
 
