@@ -454,9 +454,6 @@ class MainWindow(QMainWindow):
         else:
             self.add_tab()
         self.tabs.setCurrentIndex(current)
-        # self.update_urlbar(self.tabs.currentWidget().url(), self.tabs.currentWidget())
-        # this will load the active tab only, saving time at start
-        # self.tabs.currentWidget().reload()
 
         # open child window instances passing their open tabs
         self.instances = []
@@ -601,7 +598,7 @@ class MainWindow(QMainWindow):
         # page.fileSystemAccessRequested.connect(lambda request, p=page, b=browser: print("FS ACCESS REQUESTED", request))
         # page.permissionRequested.connect(lambda request, p=page, b=browser: print("PERMISSION REQUESTED", request))
 
-        # Enabling some extra features (allegedly safe ones only)
+        # Enabling some extra features (only those allegedly required for a "normal" use only)
         # page.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanAccessClipboard, True)
         # browser.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
         # browser.settings().setAttribute(QWebEngineSettings.WebAttribute.AllowRunningInsecureContent, True)
@@ -609,13 +606,11 @@ class MainWindow(QMainWindow):
         browser.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanOpenWindows, True)
         browser.settings().setAttribute(QWebEngineSettings.WebAttribute.PluginsEnabled, True)
 
-        # setting url to browser
-        QTimer.singleShot(1, lambda u=qurl: browser.load(u))
-        # this saves time if launched with several open tabs (will be reloaded in tab_changed() method)
-        # browser.stop()
-
         # setting page zoom factor
         page.setZoomFactor(zoom)
+
+        # setting url to browser
+        QTimer.singleShot(1, lambda u=qurl: browser.load(u))
 
         # setting tab index and default icon
         i = self.tabs.addTab(browser, label if self.h_tabbar else "")
@@ -809,11 +804,6 @@ class MainWindow(QMainWindow):
 
         if i < self.tabs.count() - 1:
 
-            # reload url (saves time at start, while not taking much if already loaded)
-            # must find a way to reload the first time only, while keeping icon and title
-            # we could even kill browser widget after a given time, recreating it when it is clicked again
-            # self.tabs.currentWidget().reload()
-
             # update the url
             self.update_urlbar(self.tabs.currentWidget().url(), self.tabs.currentWidget())
 
@@ -995,7 +985,7 @@ class MainWindow(QMainWindow):
 
     def reloadPage(self):
         if self.reload_btn.text() == self.reload_char:
-            self.tabs.currentWidget().reload()
+            QTimer.singleShot(1, lambda: self.tabs.currentWidget().reload())
         else:
             self.tabs.currentWidget().stop()
 
