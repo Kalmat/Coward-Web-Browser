@@ -1899,6 +1899,14 @@ class TitleBar(QToolBar):
             self.parent().move(event.globalPosition().toPoint() - self.offset)
 
     def mouseReleaseEvent(self, event):
+        x = y = None
+        if -20 < self.parent().x() < 20:
+            x = 0
+        if -20 < self.parent().y() < 20:
+            y = 0
+        if x is not None or y is not None:
+            pos = QPoint(self.parent().x() if x is None else x, self.parent().y() if y is None else y)
+            self.parent().move(pos)
         self.moving = False
 
     def enterEvent(self, event):
