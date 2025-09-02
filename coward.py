@@ -1379,10 +1379,12 @@ class MainWindow(QMainWindow):
             self.settings.setValue("Window/pos", self.pos())
             self.settings.setValue("Window/size", self.size())
 
-            # save open tabs
+            # save open tabs and close external players
             tabs = []
             for i in range(self.tabs.count() - 1):
                 browser = self.tabs.widget(i)
+                page = browser.page()
+                page.closeExternalPlayer()
                 tabs.append([browser.url().toString(), browser.page().zoomFactor(), i == self.tabs.currentIndex()])
             self.settings.setValue("Session/tabs",  tabs)
 
@@ -1391,17 +1393,19 @@ class MainWindow(QMainWindow):
             new_wins = []
             for w in self.instances:
 
-                # won't keep any incognito data
-                if not w.isIncognito:
+                # check if window is still open
+                if w.isVisible():
 
-                    # check if window is still open
-                    if w.isVisible():
+                    # saving open tabs for each instance and closing external players
+                    new_tabs = []
+                    for i in range(w.tabs.count() - 1):
+                        browser = w.tabs.widget(i)
+                        page = browser.page()
+                        page.closeExternalPlayer()
+                        new_tabs.append([browser.url().toString(), browser.page().zoomFactor(), i == w.tabs.currentIndex()])
 
-                        # saving open tabs for each instance
-                        new_tabs = []
-                        for i in range(w.tabs.count() - 1):
-                            browser = w.tabs.widget(i)
-                            new_tabs.append([browser.url().toString(), browser.page().zoomFactor(), i == w.tabs.currentIndex()])
+                    # won't keep any incognito data
+                    if not w.isIncognito:
                         new_wins.append(new_tabs)
 
                 # closing all other open child windows
@@ -1749,13 +1753,6 @@ class WebEnginePage(QWebEnginePage):
             if "Player" in message and "ErrorNotSupported" in message:
                 self.mediaError.emit(self)
 
-    def _kill_process(self, proc_pid):
-        # Thanks to Jovik: https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
-        process = psutil.Process(proc_pid)
-        for proc in process.children(recursive=True):
-            proc.kill()
-        process.kill()
-
     def openInExternalPlayer(self):
         s_path = resource_path(os.path.join('externalplayer', 'streamlink', 'bin', 'streamlink.exe'), use_dist_folder="dist")
         p_path = resource_path(os.path.join('externalplayer', 'mpv', 'mpv.exe'), use_dist_folder="dist")
@@ -1763,7 +1760,7 @@ class WebEnginePage(QWebEnginePage):
         if os.path.exists(s_path) and os.path.exists(p_path):
             cmd = s_path + ' --player ' + p_path + ' %s 720p,480p,best' % self.url().toString()
             if self.playerProcess is not None and self.playerProcess.poll() is None:
-                self._kill_process(self.playerProcess.pid)
+                kill_process(self.playerProcess.pid)
             self.playerProcess = subprocess.Popen(cmd, shell=True)
         # ISSUE: how to pack it all? within pyinstaller (is it allowed by authors)? Downloaded by user?
         # Solution: use streamlink python module, but don't know how to run it and launch MPV player
@@ -1774,9 +1771,9 @@ class WebEnginePage(QWebEnginePage):
         # streams = plugin.streams()
         # # fd = streams["best"].open()
 
-    def closeEvent(self, event):
+    def closeExternalPlayer(self):
         if self.playerProcess is not None and self.playerProcess.poll() is None:
-            self._kill_process(self.playerProcess.pid)
+            kill_process(self.playerProcess.pid)
 
 
 class LineEdit(QLineEdit):
@@ -2016,6 +2013,14 @@ class SideGrip(QWidget):
 
     def mouseReleaseEvent(self, event):
         self.mousePos = None
+
+
+def kill_process(proc_pid):
+    # Thanks to Jovik: https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
+    process = psutil.Process(proc_pid)
+    for proc in process.children(recursive=True):
+        proc.kill()
+    process.kill()
 
 
 def is_packaged():
