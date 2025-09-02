@@ -554,7 +554,10 @@ class MainWindow(QMainWindow):
             profile = QWebEngineProfile(self.storageName, browser)
 
             # QtWebEngine creates this folder, but we will not use it... deleting it
-            shutil.rmtree(os.path.dirname(os.path.dirname(profile.persistentStoragePath())))
+            try:
+                shutil.rmtree(os.path.dirname(os.path.dirname(profile.persistentStoragePath())))
+            except:
+                pass
 
             # profile cache settings
             profile.setCachePath(self.cachePath)
@@ -2014,13 +2017,13 @@ def is_packaged():
     return getattr(sys, "frozen", False) or hasattr(sys, "_MEIPASS")
 
 
-def app_location(use_dist_folder=""):
+def app_location():
     # this function returns de actual application location (where .py or .exe files are located)
     # Thanks to pullmyteeth: https://stackoverflow.com/questions/404744/determining-application-path-in-a-python-exe-generated-by-pyinstaller
     if is_packaged():
         location = os.path.dirname(sys.executable)
     else:
-        location = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), use_dist_folder)
+        location = os.path.dirname(sys.modules["__main__"].__file__)
     return location
 
 
@@ -2038,7 +2041,9 @@ def resource_path(relative_path, inverted=False, use_dist_folder=""):
 
     if not found:
         # resource is not package within executable
-        base_path = app_location(use_dist_folder)
+        base_path = app_location()
+        if not is_packaged():
+            base_path = os.path.normpath(os.path.join(base_path, use_dist_folder))
         ret = os.path.normpath(os.path.join(base_path, relative_path))
         if os.path.exists(ret):
             found = True
