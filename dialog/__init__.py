@@ -1,1 +1,1 @@
-from ._dialog import Dialog
+from ._dialog import Dialog, DialogsManager

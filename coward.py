@@ -2,7 +2,6 @@
 import os
 import sys
 import time
-from queue import Queue
 
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
@@ -12,7 +11,7 @@ from PyQt6.QtWidgets import *
 
 import appconfig
 from cache import Cache
-from dialog import Dialog
+from dialog import DialogsManager
 from settings import Settings, DefaultSettings
 from themes import Themes
 from ui import Ui_MainWindow
@@ -132,12 +131,8 @@ class MainWindow(QMainWindow):
         # keep track of open popups and assure their persintence (anywaym, we are not allowing popups by now)
         self.popups = []
 
-        # enqueue dialogs to avoid showing all at once
-        self.dlg_queue = Queue()
-        self.showingDlg = False
-        self.currentDialog = None
-        self.dlg_q_timer = QTimer(self)
-        self.dlg_q_timer.timeout.connect(self.showDialogs)
+        # use a dialog manager to enqueue dialogs to avoid showing all at once
+        self.dialog_manager = DialogsManager(self)
 
     def applyStyles(self):
 
@@ -514,40 +509,24 @@ class MainWindow(QMainWindow):
             request.accept()
             self.showNormal()
 
-    def createDialog(self, icon, title, message, acceptedSlot, rejectedSlot):
-        dialog = Dialog(self,
-                        icon=icon,
-                        title=title,
-                        message=message,
-                        radius=8)
-        if self.isIncognito:
-            dialog.setStyleSheet(Themes.styleSheet(self.settings.incognitoTheme, Themes.Section.dialog))
-        else:
-            dialog.setStyleSheet(Themes.styleSheet(self.settings.theme, Themes.Section.dialog))
-        dialog.accepted.connect(acceptedSlot)
-        dialog.rejected.connect(rejectedSlot)
-        dialog.move(self.targetDlgPos())
-        self.enqueueDialogs(dialog)
-
-    def targetDlgPos(self):
-        return QPoint(self.x() + 100,
-                      self.y() + self.ui.navtab.height() + (self.ui.tabs.tabBar().height() if self.h_tabbar else 0))
-
     def show_feature_request(self, origin, feature, page):
-        self.createDialog(page.icon().pixmap(QSize(self.icon_size, self.icon_size)),
-                          page.title() or page.url().toString(),
-                          "This page is asking your permission for:\n%s."
-                          % (DefaultSettings.FeatureMessages[feature]),
-                          (lambda o=origin, f=feature, p=page: self.accept_feature(o, f, p)),
-                          (lambda o=origin, f=feature, p=page: self.reject_feature(o, f, p))
-                          )
+        icon = page.icon().pixmap(QSize(self.icon_size, self.icon_size))
+        title = page.title() or page.url().toString()
+        message = "This page is asking your permission for:\n%s." % (DefaultSettings.FeatureMessages[feature])
+        theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
+        self.dialog_manager.createDialog(
+            icon,
+            title,
+            message,
+            (lambda o=origin, f=feature, p=page: self.accept_feature(o, f, p)),
+            (lambda o=origin, f=feature, p=page: self.reject_feature(o, f, p)),
+            theme
+        )
 
     def accept_feature(self, origin, feature, page):
-        self.showingDlg = False
         page.setFeaturePermission(origin, feature, QWebEnginePage.PermissionPolicy.PermissionGrantedByUser)
 
     def reject_feature(self, origin, feature, page):
-        self.showingDlg = False
         page.setFeaturePermission(origin, feature, QWebEnginePage.PermissionPolicy.PermissionDeniedByUser)
 
     @pyqtSlot(QWebEnginePage)
@@ -556,39 +535,21 @@ class MainWindow(QMainWindow):
         title = page.title() or page.url().toString()
         message = "This page contains non-compatible media.\n\n" \
                   "Do you want to try to load it using an external player?"
-        self.createDialog(icon,
-                          title,
-                          message,
-                          (lambda p=page: self.accept_player(p)),
-                          (lambda p=page: self.reject_player(p))
-                          )
+        theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
+        self.dialog_manager.createDialog(
+            icon,
+            title,
+            message,
+            (lambda p=page: self.accept_player(p)),
+            (lambda p=page: self.reject_player(p)),
+            theme
+        )
 
     def accept_player(self, page):
-        self.showingDlg = False
         page.openInExternalPlayer()
 
     def reject_player(self, page):
-        self.showingDlg = False
-
-    def enqueueDialogs(self, dialog):
-        self.dlg_queue.put(dialog, block=False)
-        if not self.dlg_q_timer.isActive():
-            self.dlg_q_timer.start(300)
-
-    def showDialogs(self):
-
-        if self.dlg_queue.empty():
-            self.dlg_q_timer.stop()
-
-        elif not self.showingDlg:
-            try:
-                dialog = self.dlg_queue.get(block=False)
-                # exec dialog in a non-blocking way (why does it block? Don't know...)
-                dialog.show()
-                self.currentDialog = dialog
-                self.showingDlg = True
-            except:
-                pass
+        pass
 
     def current_tab_changed(self, i):
 
@@ -954,11 +915,10 @@ class MainWindow(QMainWindow):
         title = "Warning!"
         message ="This will erase all your history and stored cookies.\n\n" \
                   "Are you sure you want to proceed?"
-        self.createDialog(None, title, message, self.accept_clean, self.reject_clean)
+        theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
+        self.dialog_manager.createDialog(None, title, message, self.accept_clean, self.reject_clean, theme)
 
     def accept_clean(self):
-
-        self.showingDlg = False
 
         if not self.isIncognito:
             # activate cache deletion upon closing app (if not incognito which will be auto-deleted)
@@ -991,7 +951,7 @@ class MainWindow(QMainWindow):
         self.ui.tabs.setCurrentIndex(currIndex)
 
     def reject_clean(self):
-        self.showingDlg = False
+        pass
 
     def showMaxRestore(self):
 
@@ -1050,6 +1010,11 @@ class MainWindow(QMainWindow):
         elif a0.key() == Qt.Key.Key_A:
             self.manage_autohide(force_show=True)
 
+    def targetDlgPos(self):
+        return QPoint(self.x() + 100,
+                      self.y() + self.ui.navtab.height() + (
+                          self.ui.tabs.tabBar().height() if self.h_tabbar else 0))
+
     # these widgets have a relative position. Must be moved AFTER showing main window
     def moveOtherWidgets(self):
 
@@ -1061,8 +1026,8 @@ class MainWindow(QMainWindow):
             # reposition search widget
             self.search_widget.move(self.get_search_widget_pos())
 
-        if self.showingDlg:
-            self.currentDialog.move(self.targetDlgPos())
+        if self.dialog_manager.showingDlg and self.dialog_manager.currentDialog is not None:
+            self.dialog_manager.currentDialog.move(self.targetDlgPos())
 
     def moveEvent(self, a0):
 
@@ -1096,13 +1061,9 @@ class MainWindow(QMainWindow):
         self.ui.search_widget.close()
         self.ui.hoverHWidget.close()
         self.ui.hoverVWidget.close()
-        # these may not exist
+        # this may not exist (whilst others may be queued)
         try:
-            self.feature_dlg.close()
-        except:
-            pass
-        try:
-            self.clean_dlg.close()
+            self.dialog_manager.currentDialog.close()
         except:
             pass
 
