@@ -13,13 +13,13 @@ from themes import Themes
 
 class Dialog(QDialog):
 
-    def __init__(self, parent, icon=None, title="", message="", buttons=None, pos_offset=None, radius=0, showSig=None, closeSig=None):
+    def __init__(self, parent, icon=None, title="", message="", buttons=None, radius=0, getPosFunc=None, showSig=None, closeSig=None):
         super().__init__(parent)
 
-        self.showSig = showSig
-        self.closeSig = closeSig
+        self._showSig = showSig
+        self._closeSig = closeSig
+        self._getPosFunc = getPosFunc
 
-        self.pos_offset = QPoint(pos_offset.x(), pos_offset.y() - radius * 2) if pos_offset is not None else None
         self.radius = radius
 
         self.setWindowTitle(title)
@@ -83,9 +83,11 @@ class Dialog(QDialog):
 
     def show(self):
         super().show()
+        if self._getPosFunc is not None:
+            self.move(self._getPosFunc())
         self.effect.play()
-        if self.showSig is not None:
-            self.showSig.emit()
+        if self._showSig is not None:
+            self._showSig.emit()
 
     def move(self, position, y=None):
         if y is not None:
@@ -94,23 +96,21 @@ class Dialog(QDialog):
 
     def accept(self):
         super().accept()
-        if self.closeSig is not None:
-            self.closeSig.emit()
+        if self._closeSig is not None:
+            self._closeSig.emit()
 
     def reject(self):
         super().reject()
-        if self.closeSig is not None:
-            self.closeSig.emit()
+        if self._closeSig is not None:
+            self._closeSig.emit()
 
 
 class DialogsManager(QObject):
 
     _closeSig = pyqtSignal()
 
-    def __init__(self, MainWindow):
-        super().__init__()
-
-        self._mainWindow = MainWindow
+    def __init__(self, parent):
+        super().__init__(parent)
 
         # enqueue dialogs to avoid showing all at once
         self._dlg_queue = Queue()
@@ -128,12 +128,13 @@ class DialogsManager(QObject):
         self.showingDlg = False
         self.currentDialog = None
 
-    def createDialog(self, icon, title, message, acceptedSlot, rejectedSlot, theme):
-        dialog = Dialog(self._mainWindow,
+    def createDialog(self, parent, theme, icon, title, message, getPosFunc, acceptedSlot, rejectedSlot):
+        dialog = Dialog(parent,
                         icon=icon,
                         title=title,
                         message=message,
                         radius=8,
+                        getPosFunc=getPosFunc,
                         showSig=None,
                         closeSig=self._closeSig)
         dialog.setStyleSheet(Themes.styleSheet(theme, Themes.Section.dialog))
@@ -155,7 +156,6 @@ class DialogsManager(QObject):
             try:
                 dialog = self._dlg_queue.get_nowait()
                 dialog.show()
-                dialog.move(self._mainWindow.targetDlgPos())
                 self.currentDialog = dialog
                 self.showingDlg = True
             except:

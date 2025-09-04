@@ -512,15 +512,17 @@ class MainWindow(QMainWindow):
     def show_feature_request(self, origin, feature, page):
         icon = page.icon().pixmap(QSize(self.icon_size, self.icon_size))
         title = page.title() or page.url().toString()
-        message = "This page is asking your permission for:\n%s." % (DefaultSettings.FeatureMessages[feature])
+        message = "This page is asking for your permission to %s." % (DefaultSettings.FeatureMessages[feature])
         theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
         self.dialog_manager.createDialog(
+            self,
+            theme,
             icon,
             title,
             message,
+            self.targetDlgPos,
             (lambda o=origin, f=feature, p=page: self.accept_feature(o, f, p)),
-            (lambda o=origin, f=feature, p=page: self.reject_feature(o, f, p)),
-            theme
+            (lambda o=origin, f=feature, p=page: self.reject_feature(o, f, p))
         )
 
     def accept_feature(self, origin, feature, page):
@@ -537,12 +539,14 @@ class MainWindow(QMainWindow):
                   "Do you want to try to load it using an external player?"
         theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
         self.dialog_manager.createDialog(
+            self,
+            theme,
             icon,
             title,
             message,
+            self.targetDlgPos,
             (lambda p=page: self.accept_player(p)),
-            (lambda p=page: self.reject_player(p)),
-            theme
+            (lambda p=page: self.reject_player(p))
         )
 
     def accept_player(self, page):
@@ -913,10 +917,19 @@ class MainWindow(QMainWindow):
     def show_clean_dlg(self):
         # Prepare clean all warning dialog
         title = "Warning!"
-        message ="This will erase all your history and stored cookies.\n\n" \
+        message = "This will erase all your history and stored cookies.\n\n" \
                   "Are you sure you want to proceed?"
         theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
-        self.dialog_manager.createDialog(None, title, message, self.accept_clean, self.reject_clean, theme)
+        self.dialog_manager.createDialog(
+            self,
+            theme,
+            None,
+            title,
+            message,
+            self.targetDlgPos,
+            self.accept_clean,
+            self.reject_clean
+        )
 
     def accept_clean(self):
 
