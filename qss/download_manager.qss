@@ -40,7 +40,6 @@ QProgressBar {
     font-size: 10pt;
     background: #161616;
     color: white;
-    border: 1px solid grey;
     width: 300px;
     height: 10px;
 }
