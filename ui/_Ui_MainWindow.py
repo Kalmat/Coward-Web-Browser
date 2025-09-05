@@ -43,7 +43,7 @@ class Ui_MainWindow:
         font = self.toggleTab_btn.font()
         font.setPointSize(font.pointSize() + 2)
         self.toggleTab_btn.setFont(font)
-        self.navtab.addWidget(self.toggleTab_btn)
+        self.toggleTab_act = self.navtab.addWidget(self.toggleTab_btn)
 
         self.navtab.addSeparator()
 

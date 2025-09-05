@@ -6,7 +6,7 @@ from appconfig import Options
 from settings import DefaultSettings
 
 
-class Cache:
+class CacheManager:
 
     def __init__(self, cache_folder):
 

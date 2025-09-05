@@ -2,15 +2,19 @@ import os
 import subprocess
 import time
 
+from PyQt6.QtCore import QSize
 from PyQt6.QtWebEngineCore import QWebEnginePage
+from streamlink import Streamlink
 
 import utils
+from dialog import DialogsManager
+from settings import DefaultSettings
 
 
-class WebEnginePage(QWebEnginePage):
+class WebPage(QWebEnginePage):
 
     def __init__(self, profile, parent, mediaErrorSignal=None):
-        super(WebEnginePage, self).__init__(profile, parent)
+        super(WebPage, self).__init__(profile, parent)
 
         self.mediaError = mediaErrorSignal
         self.playerProcess = None
@@ -58,13 +62,15 @@ class WebEnginePage(QWebEnginePage):
             self._logFileOpen = False
 
     def checkCanPlayMedia(self):
+        # this detects media failures, but sometimes it sends "false" alarms (e.g. in YT videos)
+        # see example of debug data at the end of the file. How could we get this info from python/PyQt?
         # this is ASYNCHRONOUS, so can't be used to return any value. Must use a method/function to handle return
 
         self.runJavaScript("""
-                        var mediaElements = document.querySelectorAll('video, audio');
-                        var canPlay = Array.from(mediaElements).every(media => media.canPlayType(media.type) !== '');
-                        canPlay;
-                        """, lambda ok: self.handleMediaError(ok))
+                            var mediaElements = document.querySelectorAll('video, audio');
+                            var canPlay = Array.from(mediaElements).every(media => media.canPlayType(media.type) !== '');
+                            canPlay;""", lambda ok: self.handleMediaError(ok)
+                           )
 
     def handleMediaError(self, ok):
         if not ok:
@@ -75,23 +81,25 @@ class WebEnginePage(QWebEnginePage):
         p_path = utils.resource_path(os.path.join('externalplayer', 'mpv', 'mpv.exe'), use_dist_folder="dist")
 
         if os.path.exists(s_path) and os.path.exists(p_path):
-            cmd = s_path + ' --player ' + p_path + ' %s 720p,best' % self.url().toString()
+            cmd = s_path + ' --player ' + p_path + ' %s 1080p,1080p60,720p,720p60,best' % self.url().toString()
             if self.playerProcess is not None and self.playerProcess.poll() is None:
                 utils.kill_process(self.playerProcess.pid)
             self.playerProcess = subprocess.Popen(cmd, shell=True)
         # ISSUE: how to pack it all? within pyinstaller (is it allowed by authors)? Downloaded by user?
-        # Solution: use streamlink python module, but don't know how to run it and launch MPV player
+        # Solution: use streamlink python module, but don't know how to play the stream in MPV player or QMediaPlayer
         # session = Streamlink()
         # session.set_option("player", p_path)
         # plugin_name, plugin_class, resolved_url = session.resolve_url(self.url().toString())
         # plugin = plugin_class(session, resolved_url, options={"plugin-option": 123})
         # streams = plugin.streams()
+        # stream = streams["best"]
         # # fd = streams["best"].open()
 
     def closeExternalPlayer(self):
         # closeEvent doesn't seem to be called at page level (???)
         if self.playerProcess is not None and self.playerProcess.poll() is None:
             utils.kill_process(self.playerProcess.pid)
+
 
 """
     {

@@ -2,10 +2,10 @@ from PyQt6.QtWebEngineCore import QWebEngineSettings
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 
-class WebEngineView(QWebEngineView):
+class WebView(QWebEngineView):
 
     def __init__(self, parent=None):
-        super(WebEngineView, self).__init__(parent)
+        super(WebView, self).__init__(parent)
 
         # Enabling fullscreen
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.FullScreenSupportEnabled, True)

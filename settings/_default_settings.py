@@ -1,3 +1,4 @@
+from PyQt6.QtCore import QUrl
 from PyQt6.QtWebEngineCore import qWebEngineChromiumVersion, QWebEngineProfile, QWebEnginePage
 
 from themes import Themes

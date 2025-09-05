@@ -13,7 +13,7 @@ from themes import Themes
 
 class Dialog(QDialog):
 
-    def __init__(self, parent, icon=None, title="", message="", buttons=None, radius=0, getPosFunc=None, showSig=None, closeSig=None):
+    def __init__(self, parent, icon, title, message, buttons, radius, getPosFunc=None, showSig=None, closeSig=None):
         super().__init__(parent)
 
         self._showSig = showSig
@@ -27,7 +27,8 @@ class Dialog(QDialog):
 
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint | Qt.WindowType.FramelessWindowHint)
+        if getPosFunc is not None:
+            self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint | Qt.WindowType.FramelessWindowHint)
 
         self.setContentsMargins(0, 0, 0, 0)
 
@@ -59,7 +60,7 @@ class Dialog(QDialog):
         self.title.setMinimumWidth(self.message.minimumWidth() - self.icon.width())
         self.title.setMaximumWidth(self.message.maximumWidth() - self.icon.width())
 
-        self.buttonBox = QDialogButtonBox(buttons or (QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel))
+        self.buttonBox = QDialogButtonBox(buttons)
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
         self.buttonBox.setContentsMargins(0, 10, 0, 0)
@@ -115,7 +116,7 @@ class DialogsManager(QObject):
         # enqueue dialogs to avoid showing all at once
         self._dlg_queue = Queue()
         self._dlg_q_timer = QTimer()
-        self._dlg_q_timer.timeout.connect(self.showDialogs)
+        self._dlg_q_timer.timeout.connect(self._showDialogs)
         self.showingDlg = False
         self.currentDialog = None
 
@@ -128,26 +129,35 @@ class DialogsManager(QObject):
         self.showingDlg = False
         self.currentDialog = None
 
-    def createDialog(self, parent, theme, icon, title, message, getPosFunc, acceptedSlot, rejectedSlot):
+    def createDialog(self, parent, theme=None, icon=None, title=None, message=None, buttons=None,
+                     getPosFunc=None, acceptedSlot=None, rejectedSlot=None):
+        theme = theme or DefaultSettings.Theme.defaultTheme
+        icon = icon or QIcon(utils.resource_path(DefaultSettings.Icons.appIcon))
+        title = title or "Warning!"
+        message = message or "Lorem ipsum consectetuer adipisci est"
+        buttons = buttons or (QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         dialog = Dialog(parent,
                         icon=icon,
                         title=title,
                         message=message,
+                        buttons=buttons,
                         radius=8,
                         getPosFunc=getPosFunc,
                         showSig=None,
                         closeSig=self._closeSig)
         dialog.setStyleSheet(Themes.styleSheet(theme, Themes.Section.dialog))
-        dialog.accepted.connect(acceptedSlot)
-        dialog.rejected.connect(rejectedSlot)
-        self.queueDialogs(dialog)
+        if acceptedSlot is not None:
+            dialog.accepted.connect(acceptedSlot)
+        if rejectedSlot is not None:
+            dialog.rejected.connect(rejectedSlot)
+        self._queueDialogs(dialog)
 
-    def queueDialogs(self, dialog):
+    def _queueDialogs(self, dialog):
         self._dlg_queue.put_nowait(dialog)
         if not self._dlg_q_timer.isActive():
             self._dlg_q_timer.start(300)
 
-    def showDialogs(self):
+    def _showDialogs(self):
 
         if self._dlg_queue.empty():
             self._dlg_q_timer.stop()

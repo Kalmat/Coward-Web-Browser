@@ -5,15 +5,15 @@ from PyQt6.QtWebEngineCore import QWebEngineProfile
 from settings import DefaultSettings
 
 
-class WebEngineProfile(QWebEngineProfile):
+class WebProfile(QWebEngineProfile):
 
     def __init__(self, cache_path, browser, cookie_filter=None):
 
         if cache_path is None:
-            super(WebEngineProfile, self).__init__(browser)
+            super(WebProfile, self).__init__(browser)
             self._setIncognitoPage(cookie_filter)
         else:
-            super(WebEngineProfile, self).__init__(os.path.basename(cache_path), browser)
+            super(WebProfile, self).__init__(os.path.basename(cache_path), browser)
             self._setNormalPage(cache_path, cookie_filter)
 
     def _setNormalPage(self, cache_path, cookie_filter):

@@ -10,15 +10,15 @@ from PyQt6.QtWebEngineWidgets import *
 from PyQt6.QtWidgets import *
 
 import appconfig
-from cache import Cache
+from cachemanager import CacheManager
 from dialog import DialogsManager
 from settings import Settings, DefaultSettings
 from themes import Themes
 from ui import Ui_MainWindow
 import utils
-from webenginepage import WebEnginePage
-from webengineprofile import WebEngineProfile
-from webengineview import WebEngineView
+from webpage import WebPage
+from webprofile import WebProfile
+from webview import WebView
 
 
 class MainWindow(QMainWindow):
@@ -44,7 +44,7 @@ class MainWindow(QMainWindow):
         self.getSettings(new_win, incognito)
 
         # configure cache and check if relaunched to delete it
-        self.cache_manager = Cache(self.appStorageFolder)
+        self.cache_manager = CacheManager(self.appStorageFolder)
         if self.cache_manager.checkDeleteCache():
             self.cache_manager.deleteCache()
             QApplication.quit()
@@ -131,7 +131,7 @@ class MainWindow(QMainWindow):
         # keep track of open popups and assure their persintence (anywaym, we are not allowing popups by now)
         self.popups = []
 
-        # use a dialog manager to enqueue dialogs to avoid showing all at once
+        # use a dialog manager to enqueue dialogs and avoid showing all at once
         self.dialog_manager = DialogsManager(self)
 
     def applyStyles(self):
@@ -161,6 +161,8 @@ class MainWindow(QMainWindow):
         self.ui.newTabContextMenu.setStyleSheet(Themes.styleSheet(theme, Themes.Section.contextmenu))
 
     def connectUiSlots(self):
+
+        # navigation bar buttons
         self.ui.toggleTab_btn.clicked.connect(lambda: self.toggle_tabbar(clicked=True))
         self.ui.back_btn.triggered.connect(self.goBack)
         self.ui.next_btn.triggered.connect(self.goForward)
@@ -175,18 +177,64 @@ class MainWindow(QMainWindow):
         self.ui.clean_btn.triggered.connect(self.show_clean_dlg)
         self.ui.ninja_btn.clicked.connect(lambda: self.show_in_new_window(incognito=True))
 
+        # window buttons if custom title bar
         if self.settings.isCustomTitleBar:
             self.ui.min_btn.triggered.connect(self.showMinimized)
             self.ui.max_btn.triggered.connect(self.showMaxRestore)
             self.ui.closewin_btn.triggered.connect(self.close)
 
+        # tab bar events management
         self.ui.tabs.currentChanged.connect(self.current_tab_changed)
         self.ui.tabs.tabBarClicked.connect(self.tab_clicked)
         self.ui.tabs.tabCloseRequested.connect(self.tab_closed)
         self.ui.tabs.tabBar().tabMoved.connect(self.tab_moved)
         self.ui.tabs.customContextMenuRequested.connect(self.showContextMenu)
-
         self.ui.newWindow_action.triggered.connect(self.show_in_new_window)
+
+    def connectSignalSlots(self):
+
+        # define signals for auto-hide events
+        self.enterHHoverSig.connect(self.enterHHover)
+        self.leaveHHoverSig.connect(self.leaveHHover)
+        self.enterVHoverSig.connect(self.enterVHover)
+        self.leaveVHoverSig.connect(self.leaveVHover)
+        self.enterNavBarSig.connect(self.enterNavBar)
+        self.leaveNavBarSig.connect(self.leaveNavBar)
+        self.enterTabBarSig.connect(self.enterTabBar)
+        self.leaveTabBarSig.connect(self.leaveTabBar)
+
+        # signal to show dialog to open an external player for non-compatible media
+        self.mediaErrorSignal.connect(self.show_player_request)
+
+    def show(self):
+        super().show()
+
+        if not self.h_tabbar:
+            # adjust button width to tabbar width
+            self.ui.toggleTab_btn.setFixedSize(self.ui.tabs.tabBar().width() - 3, self.ui.navtab.height())
+
+        if self.settings.autoHide:
+            self.ui.navtab.hide()
+            self.ui.hoverHWidget.setGeometry(self.action_size, 0, self.width(), 20)
+            self.ui.hoverHWidget.show()
+            self.ui.tabs.tabBar().hide()
+            self.ui.hoverVWidget.setGeometry(0, self.action_size, 20, self.height())
+            if not self.h_tabbar:
+                self.ui.hoverVWidget.show()
+
+        # thanks to Maxim Paperno: https://stackoverflow.com/questions/58145272/qdialog-with-rounded-corners-have-black-corners-instead-of-being-translucent
+        if self.settings.radius != 0:
+            # prepare painter and mask to draw rounded corners
+            rect = QRect(QPoint(0, 0), self.geometry().size())
+            b = QBitmap(rect.size())
+            b.fill(QColor(Qt.GlobalColor.color0))
+            painter = QPainter(b)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.setBrush(Qt.GlobalColor.color1)
+            painter.drawRoundedRect(rect, self.settings.radius, self.settings.radius, Qt.SizeMode.AbsoluteSize)
+            painter.end()
+            self.setMask(b)
+            self.setMask(b)
 
     def createTabs(self, init_tabs):
 
@@ -195,6 +243,7 @@ class MainWindow(QMainWindow):
 
         # open all windows and their tabs
         if self.isNewWin or self.isIncognito:
+            print(init_tabs, DefaultSettings)
             # get open tabs for child window instance
             tabs = init_tabs or DefaultSettings.Browser.defaultTabs
             # no child windows allowed for child instances
@@ -219,85 +268,37 @@ class MainWindow(QMainWindow):
             self.add_tab()
         self.ui.tabs.setCurrentIndex(current)
 
-        # add the add tab action ("+") in tab bar
+        # add the new tab action ("+") in tab bar
         self.add_tab_action()
 
         self.instances = []
         for new_tabs in new_wins:
             self.show_in_new_window(new_tabs)
 
-    def connectSignalSlots(self):
-
-        # define signals for auto-hide events
-        self.enterHHoverSig.connect(self.enterHHover)
-        self.leaveHHoverSig.connect(self.leaveHHover)
-        self.enterVHoverSig.connect(self.enterVHover)
-        self.leaveVHoverSig.connect(self.leaveVHover)
-        self.enterNavBarSig.connect(self.enterNavBar)
-        self.leaveNavBarSig.connect(self.leaveNavBar)
-        self.enterTabBarSig.connect(self.enterTabBar)
-        self.leaveTabBarSig.connect(self.leaveTabBar)
-
-        # signal to show dialog to open an external player for non-compatible media
-        self.mediaErrorSignal.connect(self.show_player_request)
-
-    def show(self):
-        super().show()
-
-        # need to show first to have actual geometries
-        self.ui.tabs.tabBar().show()
-        self.ui.toggleTab_btn.setFixedSize(self.ui.tabs.tabBar().width() - 3, self.ui.navtab.height())
-
-        if self.settings.autoHide:
-            self.ui.navtab.hide()
-            self.ui.hoverHWidget.setGeometry(self.action_size, 0, self.width(), 20)
-            self.ui.hoverHWidget.show()
-            self.ui.tabs.tabBar().hide()
-            self.ui.hoverVWidget.setGeometry(0, self.action_size, 20, self.height())
-            if not self.h_tabbar:
-                self.ui.hoverVWidget.show()
-
-        # thanks to Maxim Paperno: https://stackoverflow.com/questions/58145272/qdialog-with-rounded-corners-have-black-corners-instead-of-being-translucent
-        if self.settings.radius != 0:
-            # prepare painter and mask to draw rounded corners
-            rect = QRect(QPoint(0, 0), self.geometry().size())
-            b = QBitmap(rect.size())
-            b.fill(QColor(Qt.GlobalColor.color0))
-            painter = QPainter(b)
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-            painter.setBrush(Qt.GlobalColor.color1)
-            painter.drawRoundedRect(rect, self.settings.radius, self.settings.radius, Qt.SizeMode.AbsoluteSize)
-            painter.end()
-            self.setMask(b)
-
     def add_tab(self, qurl=None, zoom=1.0, label="Loading..."):
 
-        # if url is blank
-        if qurl is None:
-            # creating a default home url
-            qurl = QUrl(DefaultSettings.Browser.defaultPage)
-
-        browser = self.getBrowser()
-        profile = self.getProfile(browser)
-        page = self.getPage(profile, browser, zoom)
-        browser.setPage(page)
-
-        # setting url to browser
-        QTimer.singleShot(0, lambda u=qurl: browser.load(u))
+        # create webengineview as tab widget
+        browser = self.getBrowser(qurl, zoom)
 
         # setting tab index and default icon
         tabIndex = self.ui.tabs.addTab(browser, label if self.h_tabbar else "")
 
         # connect browser and page signals (once we have the tab index)
         self.connectBrowserSlots(browser, tabIndex)
-        self.connectPageSlots(page, tabIndex)
+        self.connectPageSlots(browser.page(), tabIndex)
 
         return tabIndex
 
-    def getBrowser(self):
+    def getBrowser(self, qurl, zoom):
 
         # this will create the browser and apply all selected settings
-        browser = WebEngineView()
+        browser = WebView()
+        profile = self.getProfile(browser)
+        page = self.getPage(profile, browser, zoom)
+        browser.setPage(page)
+
+        # setting url to browser. Using a timer (thread) it seems to load faster
+        QTimer.singleShot(0, lambda u=qurl: browser.load(u))
 
         return browser
 
@@ -322,14 +323,14 @@ class MainWindow(QMainWindow):
             # apply application cache location
             cache_path = self.cache_manager.cachePath
 
-        profile = WebEngineProfile(cache_path, browser, self.cookie_filter)
+        profile = WebProfile(cache_path, browser, self.cookie_filter)
 
         return profile
 
     def getPage(self, profile, browser, zoom):
 
         # this will create the page and apply all selected settings
-        page = WebEnginePage(profile, browser, self.mediaErrorSignal)
+        page = WebPage(profile, browser, self.mediaErrorSignal)
 
         # set page zoom factor
         page.setZoomFactor(zoom)
@@ -515,14 +516,14 @@ class MainWindow(QMainWindow):
         message = "This page is asking for your permission to %s." % (DefaultSettings.FeatureMessages[feature])
         theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
         self.dialog_manager.createDialog(
-            self,
-            theme,
-            icon,
-            title,
-            message,
-            self.targetDlgPos,
-            (lambda o=origin, f=feature, p=page: self.accept_feature(o, f, p)),
-            (lambda o=origin, f=feature, p=page: self.reject_feature(o, f, p))
+            parent=self,
+            theme=theme,
+            icon=icon,
+            title=title,
+            message=message,
+            getPosFunc=self.targetDlgPos,
+            acceptedSlot=(lambda o=origin, f=feature, p=page: self.accept_feature(o, f, p)),
+            rejectedSlot=(lambda o=origin, f=feature, p=page: self.reject_feature(o, f, p))
         )
 
     def accept_feature(self, origin, feature, page):
@@ -539,14 +540,14 @@ class MainWindow(QMainWindow):
                   "Do you want to try to load it using an external player?"
         theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
         self.dialog_manager.createDialog(
-            self,
-            theme,
-            icon,
-            title,
-            message,
-            self.targetDlgPos,
-            (lambda p=page: self.accept_player(p)),
-            (lambda p=page: self.reject_player(p))
+            parent=self,
+            theme=theme,
+            icon=icon,
+            title=title,
+            message=message,
+            getPosFunc=self.targetDlgPos,
+            acceptedSlot=(lambda p=page: self.accept_player(p)),
+            rejectedSlot=(lambda p=page: self.reject_player(p))
         )
 
     def accept_player(self, page):
@@ -661,7 +662,7 @@ class MainWindow(QMainWindow):
     def openLinkRequested(self, request):
 
         if request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewWindow:
-            self.show_in_new_window([[request.requestedUrl(), 1.0, True]])
+            self.show_in_new_window([[request.requestedUrl().toString(), 1.0, True]])
 
         elif request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewTab:
             self.add_new_tab(request.requestedUrl())
@@ -703,7 +704,7 @@ class MainWindow(QMainWindow):
             for i in range(self.ui.tabs.count() - 1):
                 icon = self.ui.tabs.widget(i).page().icon()
                 if not icon.availableSizes():
-                    icon = DefaultSettings.Icons.loading
+                    icon = QIcon(DefaultSettings.Icons.loading)
                 if self.h_tabbar:
                     self.title_changed(self.ui.tabs.widget(i).page().title(), i)
                     new_icon = icon
@@ -725,6 +726,10 @@ class MainWindow(QMainWindow):
         self.ui.tabs.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu if self.h_tabbar else Qt.ContextMenuPolicy.CustomContextMenu)
         self.ui.toggleTab_btn.setText("˅" if self.h_tabbar else "˃")
         self.ui.toggleTab_btn.setToolTip("Set %s tabs" % ("vertical" if self.h_tabbar else "horizontal"))
+
+        if not self.h_tabbar:
+            # adjust button width to tabbar width
+            self.ui.toggleTab_btn.setFixedSize(self.ui.tabs.tabBar().width() - 3, self.ui.navtab.height())
 
         if self.settings.autoHide:
             if self.h_tabbar:
@@ -916,19 +921,20 @@ class MainWindow(QMainWindow):
 
     def show_clean_dlg(self):
         # Prepare clean all warning dialog
+        icon = QIcon(utils.resource_path(DefaultSettings.Icons.appIcon))
         title = "Warning!"
         message = "This will erase all your history and stored cookies.\n\n" \
                   "Are you sure you want to proceed?"
         theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
         self.dialog_manager.createDialog(
-            self,
-            theme,
-            None,
-            title,
-            message,
-            self.targetDlgPos,
-            self.accept_clean,
-            self.reject_clean
+            parent=self,
+            theme=theme,
+            icon=icon,
+            title=title,
+            message=message,
+            getPosFunc=self.targetDlgPos,
+            acceptedSlot=self.accept_clean,
+            rejectedSlot=self.reject_clean
         )
 
     def accept_clean(self):
@@ -1074,6 +1080,7 @@ class MainWindow(QMainWindow):
         self.ui.search_widget.close()
         self.ui.hoverHWidget.close()
         self.ui.hoverVWidget.close()
+        self.inspector.close()
         # this may not exist (whilst others may be queued)
         try:
             self.dialog_manager.currentDialog.close()
@@ -1120,11 +1127,11 @@ class MainWindow(QMainWindow):
 
                 # saving open tabs for each instance and closing external players
                 new_tabs = []
-                for i in range(w.tabs.count() - 1):
-                    browser = w.tabs.widget(i)
+                for i in range(w.ui.tabs.count() - 1):
+                    browser = w.ui.tabs.widget(i)
                     page = browser.page()
                     page.closeExternalPlayer()
-                    new_tabs.append([browser.url().toString(), browser.page().zoomFactor(), i == w.tabs.currentIndex()])
+                    new_tabs.append([browser.url().toString(), browser.page().zoomFactor(), i == w.ui.tabs.currentIndex()])
 
                 # won't keep any incognito data
                 if not w.isIncognito:
