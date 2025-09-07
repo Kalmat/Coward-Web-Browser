@@ -1,28 +1,43 @@
 import os
-import subprocess
-import time
 
-from PyQt6.QtCore import QSize
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWebEngineCore import QWebEnginePage
-from streamlink import Streamlink
 
 import utils
-from dialog import DialogsManager
+from mediaplayer import QtMediaPlayer
 from settings import DefaultSettings
+from mediaplayer._streamer import Streamer
 
 
 class WebPage(QWebEnginePage):
+
+    _playerClosedSig = pyqtSignal()
 
     def __init__(self, profile, parent, mediaErrorSignal=None):
         super(WebPage, self).__init__(profile, parent)
 
         self.mediaError = mediaErrorSignal
-        self.playerProcess = None
+        self.stream_thread = None
+        self.media_player = None
+
+        self._playerClosedSig.connect(self.closeExternalPlayer)
 
         self._debugInfoEnabled = False
         self._logToFile = False
         self._logFile = "pagelog.txt"
         self._logFileOpen = False
+
+    def accept_feature(self, origin, feature):
+        self.setFeaturePermission(origin, feature, QWebEnginePage.PermissionPolicy.PermissionGrantedByUser)
+
+    def reject_feature(self, origin, feature):
+        self.setFeaturePermission(origin, feature, QWebEnginePage.PermissionPolicy.PermissionDeniedByUser)
+
+    def accept_player(self):
+        self.openInExternalPlayer()
+
+    def reject_player(self):
+        pass
 
     def javaScriptConsoleMessage(self, level, message, lineNumber=0, sourceID=""):
 
@@ -63,9 +78,9 @@ class WebPage(QWebEnginePage):
 
     def checkCanPlayMedia(self):
         # this detects media failures, but sometimes it sends "false" alarms (e.g. in YT videos)
+        # other times it returns ok, but it is not (e.g. 2nd time and following in Twitch)
         # see example of debug data at the end of the file. How could we get this info from python/PyQt?
         # this is ASYNCHRONOUS, so can't be used to return any value. Must use a method/function to handle return
-
         self.runJavaScript("""
                             var mediaElements = document.querySelectorAll('video, audio');
                             var canPlay = Array.from(mediaElements).every(media => media.canPlayType(media.type) !== '');
@@ -77,28 +92,43 @@ class WebPage(QWebEnginePage):
             self.mediaError.emit(self)
 
     def openInExternalPlayer(self):
-        s_path = utils.resource_path(os.path.join('externalplayer', 'streamlink', 'bin', 'streamlink.exe'), use_dist_folder="dist")
-        p_path = utils.resource_path(os.path.join('externalplayer', 'mpv', 'mpv.exe'), use_dist_folder="dist")
 
-        if os.path.exists(s_path) and os.path.exists(p_path):
-            cmd = s_path + ' --player ' + p_path + ' %s 1080p,1080p60,720p,720p60,best' % self.url().toString()
-            if self.playerProcess is not None and self.playerProcess.poll() is None:
-                utils.kill_process(self.playerProcess.pid)
-            self.playerProcess = subprocess.Popen(cmd, shell=True)
-        # ISSUE: how to pack it all? within pyinstaller (is it allowed by authors)? Downloaded by user?
-        # Solution: use streamlink python module, but don't know how to play the stream in MPV player or QMediaPlayer
-        # session = Streamlink()
-        # session.set_option("player", p_path)
-        # plugin_name, plugin_class, resolved_url = session.resolve_url(self.url().toString())
-        # plugin = plugin_class(session, resolved_url, options={"plugin-option": 123})
-        # streams = plugin.streams()
-        # stream = streams["best"]
-        # # fd = streams["best"].open()
+        # check how to manage internal/external choice:
+        if DefaultSettings.Player.useExternalPlayer and os.path.exists(DefaultSettings.Player.externalPlayerPath):
+            self.stream_thread = Streamer(url=self.url().toString(),
+                                          stream_file=DefaultSettings.Player.streamTempFile,
+                                          external_player=DefaultSettings.Player.externalPlayerPath
+                                          )
+
+        else:
+            self.stream_thread = Streamer(url=self.url().toString(),
+                                          stream_file=DefaultSettings.Player.streamTempFile,
+                                          )
+            self.media_player = QtMediaPlayer(stream_file=DefaultSettings.Player.streamTempFile,
+                                              title=self.title(),
+                                              closedSig=self._playerClosedSig)
+            self.media_player.show()
+            self.media_player.start()
+
+        self.stream_thread.start()
 
     def closeExternalPlayer(self):
-        # closeEvent doesn't seem to be called at page level (???)
-        if self.playerProcess is not None and self.playerProcess.poll() is None:
-            utils.kill_process(self.playerProcess.pid)
+        try:
+            self.stream_thread.stop()
+            utils.kill_process(self.stream_thread.pid)
+        except:
+            pass
+        if self.media_player is not None:
+            self.media_player.stop()
+            if self.media_player.isVisible():
+                self.media_player.close()
+                self.media_player.deleteLater()
+            if os.path.exists(DefaultSettings.Player.streamTempFile):
+                try:
+                    os.remove(DefaultSettings.Player.streamTempFile)
+                except:
+                    pass
+            self.media_player = None
 
 
 """

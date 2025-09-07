@@ -1,14 +1,10 @@
-import os
-from queue import Queue
-
-from PyQt6.QtCore import QPoint, Qt, QUrl, QTimer, pyqtSignal, pyqtSlot, QObject
+from PyQt6.QtCore import QPoint, Qt, QUrl
 from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtMultimedia import QSoundEffect
 from PyQt6.QtWidgets import QDialog, QWidget, QLabel, QDialogButtonBox, QVBoxLayout, QHBoxLayout, QGridLayout
 
 import utils
 from settings import DefaultSettings
-from themes import Themes
 
 
 class Dialog(QDialog):
@@ -26,7 +22,8 @@ class Dialog(QDialog):
         self.setWindowIcon(QIcon(utils.resource_path("res/coward.png")))
 
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
         if getPosFunc is not None:
             self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint | Qt.WindowType.FramelessWindowHint)
 
@@ -77,7 +74,7 @@ class Dialog(QDialog):
         self.mainLayout.addWidget(self.widget)
         self.setLayout(self.mainLayout)
 
-        filename = utils.resource_path(DefaultSettings.Sounds.dialogInformation)
+        filename = utils.resource_path(DefaultSettings.Media.dialogInformationSound)
         self.effect = QSoundEffect()
         self.effect.setSource(QUrl.fromLocalFile(filename))
         self.effect.setVolume(0.7)
@@ -104,70 +101,3 @@ class Dialog(QDialog):
         super().reject()
         if self._closeSig is not None:
             self._closeSig.emit()
-
-
-class DialogsManager(QObject):
-
-    _closeSig = pyqtSignal()
-
-    def __init__(self, parent):
-        super().__init__(parent)
-
-        # enqueue dialogs to avoid showing all at once
-        self._dlg_queue = Queue()
-        self._dlg_q_timer = QTimer()
-        self._dlg_q_timer.timeout.connect(self._showDialogs)
-        self.showingDlg = False
-        self.currentDialog = None
-
-        # check when dialogs have been shown or closed to control queue
-        self._closeSig.connect(self._dlgClosed)
-
-    @pyqtSlot()
-    def _dlgClosed(self):
-        # can continue showing dialogs in the queue
-        self.showingDlg = False
-        self.currentDialog = None
-
-    def createDialog(self, parent, theme=None, icon=None, title=None, message=None, buttons=None,
-                     getPosFunc=None, acceptedSlot=None, rejectedSlot=None):
-        theme = theme or DefaultSettings.Theme.defaultTheme
-        icon = icon or QIcon(utils.resource_path(DefaultSettings.Icons.appIcon))
-        title = title or "Warning!"
-        message = message or "Lorem ipsum consectetuer adipisci est"
-        buttons = buttons or (QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        dialog = Dialog(parent,
-                        icon=icon,
-                        title=title,
-                        message=message,
-                        buttons=buttons,
-                        radius=8,
-                        getPosFunc=getPosFunc,
-                        showSig=None,
-                        closeSig=self._closeSig)
-        dialog.setStyleSheet(Themes.styleSheet(theme, Themes.Section.dialog))
-        if acceptedSlot is not None:
-            dialog.accepted.connect(acceptedSlot)
-        if rejectedSlot is not None:
-            dialog.rejected.connect(rejectedSlot)
-        self._queueDialogs(dialog)
-
-    def _queueDialogs(self, dialog):
-        self._dlg_queue.put_nowait(dialog)
-        if not self._dlg_q_timer.isActive():
-            self._dlg_q_timer.start(300)
-
-    def _showDialogs(self):
-
-        if self._dlg_queue.empty():
-            self._dlg_q_timer.stop()
-
-        elif not self.showingDlg:
-            try:
-                dialog = self._dlg_queue.get_nowait()
-                dialog.show()
-                self.currentDialog = dialog
-                self.showingDlg = True
-            except:
-                with self._dlg_queue.mutex:
-                    self._dlg_queue.queue.clear()

@@ -3,8 +3,8 @@ import shutil
 
 from PyQt6.QtCore import QSettings, QPoint, QSize
 
-from ._default_settings import DefaultSettings
 import utils
+from ._default_settings import DefaultSettings
 
 
 class Settings:
@@ -27,7 +27,7 @@ class Settings:
         self._autoHide = self._getBool("Appearance/auto_hide", False)
         self._position = self._settings.value("Window/pos", QPoint(100, 100))
         self._size = self._settings.value("Window/size", QSize(min(utils.screenSize(parent).width() // 2, 1024), min(utils.screenSize(parent).height() - 200, 1024)))
-        self._previousTabs = self._getList("Session/tabs", [[DefaultSettings.Browser.defaultPage, 1.0, True]])
+        self._previousTabs = self._getList("Session/tabs", DefaultSettings.Browser.defaultTabs)
         self._newwindows = self._getList("Session/new_wins", [])
 
     def _getStr(self, key, defaultValue):
@@ -36,7 +36,7 @@ class Settings:
             value = self._settings.value(key)
         except:
             pass
-        return str(value)
+        return str(value or defaultValue)
 
     def _getInt(self, key, defaultValue):
         value = defaultValue
@@ -44,7 +44,7 @@ class Settings:
             value = self._settings.value(key)
         except:
             pass
-        return int(value)
+        return int(value or defaultValue)
 
     def _getBool(self, key, defaultValue):
         value = defaultValue
@@ -52,7 +52,7 @@ class Settings:
             value = self._settings.value(key)
         except:
             pass
-        return bool(value in (True, "true"))
+        return bool((value or defaultValue) in (True, "true"))
 
     def _getList(self, key, defaultValue):
         value = defaultValue

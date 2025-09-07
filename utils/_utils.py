@@ -4,7 +4,8 @@ import sys
 import traceback
 
 import psutil
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtGui import QIcon, QPixmap, QPainter
 from PyQt6.QtWidgets import QStyleFactory, QApplication
 
 
@@ -21,6 +22,42 @@ def set_widevine_var(widevine_relative_path):
                                                 % resource_path(widevine_relative_path, use_dist_folder="dist"))
 
 
+def fixDarkImage(self, image, width, height):
+    import imageio
+    import numpy as np
+
+    def is_dark(img, thrshld):
+        return np.mean(img) < thrshld
+
+    def changePixmapBackground(pix, width, height):
+        new_pixmap = QPixmap(width, height)
+        new_pixmap.fill(Qt.GlobalColor.lightGray)
+        painter = QPainter(new_pixmap)
+        painter.drawPixmap(0, 0, width, height, pix)
+        painter.end()
+        return new_pixmap
+
+    if isinstance(image, QIcon):
+        isIcon = True
+        pixmap = image.pixmap(QSize(width, height))
+    else:
+        isIcon = False
+        pixmap = image
+
+    pixmap.save("temp", "PNG")
+    f = imageio.imread("temp", mode="F")
+
+    if is_dark(f, 127):
+        pixmap = changePixmapBackground(pixmap, width, height)
+
+    os.remove("temp")
+    if isIcon:
+        return QIcon(pixmap)
+    else:
+        return pixmap
+
+
+# new tab action ("+") in tab bar
 def kill_process(proc_pid):
     # Thanks to Jovik: https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
     process = psutil.Process(proc_pid)

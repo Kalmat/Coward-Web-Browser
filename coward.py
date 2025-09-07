@@ -41,7 +41,7 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
 
         # get Settings
-        self.getSettings(new_win, incognito)
+        self.loadSettings(new_win, incognito)
 
         # configure cache and check if relaunched to delete it
         self.cache_manager = CacheManager(self.appStorageFolder)
@@ -62,7 +62,7 @@ class MainWindow(QMainWindow):
         # connect all signals
         self.connectSignalSlots()
 
-    def getSettings(self, new_win, incognito):
+    def loadSettings(self, new_win, incognito):
 
         # get settings
         self.settings = Settings(self, DefaultSettings.Storage.App.storageFolder, DefaultSettings.Storage.Settings.settingsFile)
@@ -86,11 +86,30 @@ class MainWindow(QMainWindow):
 
         # set auto-hide
         self.autoHide = self.settings.autoHide
-        # store previous auto-hide value to use when exiting fullscreen mode
-        self.prevAutoHide = self.settings.autoHide
+        self.isPageFullscreen = False
+        self.prevFullScreen = False
 
         # set tabbar orientation
         self.h_tabbar = self.settings.isTabBarHorizontal
+
+    def saveSettings(self, tabs, new_wins):
+
+        # backup .ini file
+        self.settings.backupSettings()
+
+        # save all values (even those blocked, in case .ini file didn't exist)
+        self.settings.setAllowCookies(self.cookies, True)
+        self.settings.setTheme(self.settings.theme, True)
+        self.settings.setIncognitoTheme(self.settings.incognitoTheme, True)
+        self.settings.setCustomTitleBar(self.settings.isCustomTitleBar, True)
+        self.settings.setAutoHide(self.autoHide, True)
+        self.settings.setTabBarHorizontal(self.h_tabbar, True)
+        self.settings.setIconSize(self.settings.iconSize, True)
+        self.settings.setRadius(self.settings.radius, True)
+        self.settings.setPosition(self.pos(), True)
+        self.settings.setSize(self.size(), True)
+        self.settings.setPreviousTabs(tabs, True)
+        self.settings.setNewWindows(new_wins, True)
 
     def configureMainWindow(self):
 
@@ -134,6 +153,13 @@ class MainWindow(QMainWindow):
         # use a dialog manager to enqueue dialogs and avoid showing all at once
         self.dialog_manager = DialogsManager(self)
 
+        # pre-load icons
+        self.appIcon = QIcon(DefaultSettings.Icons.appIcon)
+        self.appIcon_32 = QIcon(DefaultSettings.Icons.appIcon_32)
+        self.appPix = QPixmap(DefaultSettings.Icons.appIcon)
+        self.appPix_32 = QPixmap(DefaultSettings.Icons.appIcon_32)
+        self.web_ico = QIcon(DefaultSettings.Icons.loading)
+
     def applyStyles(self):
 
         # select normal or incognito theme
@@ -150,7 +176,7 @@ class MainWindow(QMainWindow):
         self.h_tab_style = self.h_tab_style % (DefaultSettings.Icons.tabSeparator, self.action_size, int(self.action_size * 0.75))
         self.v_tab_style = Themes.styleSheet(theme, Themes.Section.verticalTabs)
         self.v_tab_style = self.v_tab_style % (self.action_size, self.action_size)
-        self.ui.tabs.setStyleSheet(self.h_tab_style if self.settings.isTabBarHorizontal else self.v_tab_style)
+        self.ui.tabs.setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)
 
         # apply styles to independent widgets
         self.ui.dl_manager.setStyleSheet(Themes.styleSheet(theme, Themes.Section.downloadManager))
@@ -168,6 +194,7 @@ class MainWindow(QMainWindow):
         self.ui.next_btn.triggered.connect(self.goForward)
         self.ui.urlbar.returnPressed.connect(self.navigate_to_url)
         self.ui.reload_btn.triggered.connect(self.reloadPage)
+        self.ui.ext_player_btn.triggered.connect(self.openExternalPlayer)
         self.ui.auto_btn.triggered.connect(self.manage_autohide)
         self.ui.search_off_btn.clicked.connect(self.manage_search)
         self.ui.search_on_btn.clicked.connect(self.manage_search)
@@ -213,14 +240,8 @@ class MainWindow(QMainWindow):
             # adjust button width to tabbar width
             self.ui.toggleTab_btn.setFixedSize(self.ui.tabs.tabBar().width() - 3, self.ui.navtab.height())
 
-        if self.settings.autoHide:
-            self.ui.navtab.hide()
-            self.ui.hoverHWidget.setGeometry(self.action_size, 0, self.width(), 20)
-            self.ui.hoverHWidget.show()
-            self.ui.tabs.tabBar().hide()
-            self.ui.hoverVWidget.setGeometry(0, self.action_size, 20, self.height())
-            if not self.h_tabbar:
-                self.ui.hoverVWidget.show()
+        # setup autohide if enabled
+        self.manage_autohide(enabled=self.autoHide)
 
         # thanks to Maxim Paperno: https://stackoverflow.com/questions/58145272/qdialog-with-rounded-corners-have-black-corners-instead-of-being-translucent
         if self.settings.radius != 0:
@@ -238,12 +259,8 @@ class MainWindow(QMainWindow):
 
     def createTabs(self, init_tabs):
 
-        # create default browser icon when loading page
-        self.web_ico = QIcon(DefaultSettings.Icons.loading)
-
         # open all windows and their tabs
         if self.isNewWin or self.isIncognito:
-            print(init_tabs, DefaultSettings)
             # get open tabs for child window instance
             tabs = init_tabs or DefaultSettings.Browser.defaultTabs
             # no child windows allowed for child instances
@@ -297,6 +314,8 @@ class MainWindow(QMainWindow):
         page = self.getPage(profile, browser, zoom)
         browser.setPage(page)
 
+        browser.settings().setAttribute(QWebEngineSettings.WebAttribute.FullScreenSupportEnabled, True)
+
         # setting url to browser. Using a timer (thread) it seems to load faster
         QTimer.singleShot(0, lambda u=qurl: browser.load(u))
 
@@ -310,6 +329,17 @@ class MainWindow(QMainWindow):
         # check start/finish loading (e.g. for loading animations)
         browser.loadStarted.connect(lambda b=browser, index=tabIndex: self.onLoadStarted(b, index))
         browser.loadFinished.connect(lambda a, b=browser, index=tabIndex: self.onLoadFinished(a, b, index))
+
+    def onLoadStarted(self, browser, index):
+        self.ui.tabs.setTabIcon(index, self.web_ico)
+        if browser == self.ui.tabs.currentWidget():
+            self.ui.reload_btn.setText(self.ui.stop_char)
+            self.ui.reload_btn.setToolTip("Stop loading page")
+
+    def onLoadFinished(self, a0, browser, index):
+        if browser == self.ui.tabs.currentWidget():
+            self.ui.reload_btn.setText(self.ui.reload_char)
+            self.ui.reload_btn.setToolTip("Reload page")
 
     def getProfile(self, browser):
 
@@ -357,7 +387,7 @@ class MainWindow(QMainWindow):
     def connectPageSlots(self, page, tabIndex):
 
         # manage fullscreen requests (enabled at browser level)
-        page.fullScreenRequested.connect(self.fullscr)
+        page.fullScreenRequested.connect(self.page_fullscr)
 
         # Preparing asking for permissions
         page.featurePermissionRequested.connect(lambda origin, feature, p=page: self.show_feature_request(origin, feature, p))
@@ -366,7 +396,7 @@ class MainWindow(QMainWindow):
         page.fileSystemAccessRequested.connect(lambda request, p=page: print("FS ACCESS REQUESTED", request))
         page.desktopMediaRequested.connect(lambda request, p=page: print("MEDIA REQUESTED", request))
         # how to fix this (live video)?
-        #JavaScriptConsoleMessageLevel.ErrorMessageLevel requestStorageAccessFor: Permission denied. 0 https://www.youtube.com/watch?v=cj-CoeHpXWQ
+        # JavaScriptConsoleMessageLevel.ErrorMessageLevel requestStorageAccessFor: Permission denied. 0 https://www.youtube.com/watch?v=cj-CoeHpXWQ
 
         # adding action to the browser when title or icon change
         page.titleChanged.connect(lambda title, index=tabIndex: self.title_changed(title, index))
@@ -375,17 +405,67 @@ class MainWindow(QMainWindow):
         # manage file downloads (including pages and files)
         page.profile().downloadRequested.connect(self.download_file)
 
-    def onLoadStarted(self, browser, index):
-        self.ui.tabs.setTabIcon(index, self.web_ico)
-        if browser == self.ui.tabs.currentWidget():
-            self.ui.reload_btn.setText(self.ui.stop_char)
-            self.ui.reload_btn.setToolTip("Stop loading page")
+    def page_fullscr(self, request):
+        self.manage_fullscr(request.toggleOn(), page_fullscr=True)
+        request.accept()
 
-    def onLoadFinished(self, a0, browser, index):
-        browser.page().checkCanPlayMedia()
-        if browser == self.ui.tabs.currentWidget():
-            self.ui.reload_btn.setText(self.ui.reload_char)
-            self.ui.reload_btn.setToolTip("Reload page")
+    def manage_fullscr(self, on, page_fullscr=False):
+
+        if on:
+            if page_fullscr:
+                self.isPageFullscreen = True
+                self.manage_autohide(hide_all=True)
+                if self.isFullScreen():
+                    self.prevFullScreen = True
+            if not self.isFullScreen():
+                for w in self.ui.appGrips.sideGrips + self.ui.appGrips.cornerGrips:
+                    w.hide()
+                self.showFullScreen()
+                self.moveOtherWidgets()
+
+        else:
+            if page_fullscr:
+                self.isPageFullscreen = False
+                self.manage_autohide(hide_all=False)
+            if not page_fullscr or (page_fullscr and not self.prevFullScreen):
+                for w in self.ui.appGrips.sideGrips + self.ui.appGrips.cornerGrips:
+                    w.show()
+                self.showNormal()
+                self.moveOtherWidgets()
+
+    def show_feature_request(self, origin, feature, page):
+        icon = page.icon().pixmap(QSize(self.icon_size, self.icon_size))
+        title = page.title() or page.url().toString()
+        message = "This page is asking for your permission to %s." % (DefaultSettings.FeatureMessages[feature])
+        theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
+        self.dialog_manager.createDialog(
+            parent=self,
+            theme=theme,
+            icon=icon,
+            title=title,
+            message=message,
+            getPosFunc=self.targetDlgPos,
+            acceptedSlot=page.accept_feature,
+            rejectedSlot=page.reject_feature
+        )
+
+    @pyqtSlot(QWebEnginePage)
+    def show_player_request(self, page):
+        icon = page.icon().pixmap(QSize(self.icon_size, self.icon_size))
+        title = page.title() or page.url().toString()
+        message = "This page contains non-compatible media.\n\n" \
+                  "Do you want to try to load it using an external player?"
+        theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
+        self.dialog_manager.createDialog(
+            parent=self,
+            theme=theme,
+            icon=icon,
+            title=title,
+            message=message,
+            getPosFunc=self.targetDlgPos,
+            acceptedSlot=page.accept_player,
+            rejectedSlot=page.reject_player
+        )
 
     def title_changed(self, title, i):
         self.ui.tabs.tabBar().setTabText(i, (("  " + title[:20]) if len(title) > 20 else title) if self.h_tabbar else "")
@@ -395,7 +475,7 @@ class MainWindow(QMainWindow):
 
         # works fine but sometimes it takes too long (0,17sec.)...
         # TODO: find another way (test with github site)
-        # icon = self.fixDarkImage(icon, self.icon_size, self.icon_size)
+        # icon = utils.fixDarkImage(icon, self.icon_size, self.icon_size)
 
         if self.h_tabbar:
             new_icon = icon
@@ -404,42 +484,6 @@ class MainWindow(QMainWindow):
             new_icon = QIcon(icon.pixmap(QSize(self.icon_size, self.icon_size)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
         self.ui.tabs.tabBar().setTabIcon(i, new_icon)
 
-    def fixDarkImage(self, image, width, height):
-
-        import imageio
-        import numpy as np
-
-        if isinstance(image, QIcon):
-            isIcon = True
-            pixmap = image.pixmap(QSize(width, height))
-        else:
-            isIcon = False
-            pixmap = image
-
-        pixmap.save("temp", "PNG")
-        f = imageio.imread("temp", mode="F")
-
-        def is_dark(img, thrshld):
-            return np.mean(img) < thrshld
-
-        def changePixmapBackground(pix, width, height):
-            new_pixmap = QPixmap(width, height)
-            new_pixmap.fill(Qt.GlobalColor.lightGray)
-            painter = QPainter(new_pixmap)
-            painter.drawPixmap(0, 0, width, height, pix)
-            painter.end()
-            return new_pixmap
-
-        if is_dark(f, 127):
-            pixmap = changePixmapBackground(pixmap, width, height)
-
-        os.remove("temp")
-        if isIcon:
-            return QIcon(pixmap)
-        else:
-            return pixmap
-
-    # new tab action ("+") in tab bar
     def add_tab_action(self):
         self.addtab_btn = QLabel()
         i = self.ui.tabs.addTab(self.addtab_btn, " ✚ ")
@@ -488,73 +532,6 @@ class MainWindow(QMainWindow):
         # Enable/Disable navigation arrows according to page history
         self.ui.back_btn.setEnabled(browser.history().canGoBack())
         self.ui.next_btn.setEnabled(browser.history().canGoForward())
-
-    def fullscr(self, request):
-
-        if request.toggleOn():
-            self.ui.navtab.setVisible(False)
-            self.ui.tabs.tabBar().setVisible(False)
-            self.ui.hoverHWidget.setVisible(False)
-            self.ui.hoverVWidget.setVisible(False)
-            request.accept()
-            self.showFullScreen()
-
-        else:
-            if self.settings.autoHide:
-                self.ui.hoverHWidget.setVisible(True)
-                if not self.h_tabbar:
-                    self.ui.hoverVWidget.setVisible(False)
-            else:
-                self.ui.navtab.setVisible(True)
-                self.ui.tabs.tabBar().setVisible(True)
-            request.accept()
-            self.showNormal()
-
-    def show_feature_request(self, origin, feature, page):
-        icon = page.icon().pixmap(QSize(self.icon_size, self.icon_size))
-        title = page.title() or page.url().toString()
-        message = "This page is asking for your permission to %s." % (DefaultSettings.FeatureMessages[feature])
-        theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
-        self.dialog_manager.createDialog(
-            parent=self,
-            theme=theme,
-            icon=icon,
-            title=title,
-            message=message,
-            getPosFunc=self.targetDlgPos,
-            acceptedSlot=(lambda o=origin, f=feature, p=page: self.accept_feature(o, f, p)),
-            rejectedSlot=(lambda o=origin, f=feature, p=page: self.reject_feature(o, f, p))
-        )
-
-    def accept_feature(self, origin, feature, page):
-        page.setFeaturePermission(origin, feature, QWebEnginePage.PermissionPolicy.PermissionGrantedByUser)
-
-    def reject_feature(self, origin, feature, page):
-        page.setFeaturePermission(origin, feature, QWebEnginePage.PermissionPolicy.PermissionDeniedByUser)
-
-    @pyqtSlot(QWebEnginePage)
-    def show_player_request(self, page):
-        icon = page.icon().pixmap(QSize(self.icon_size, self.icon_size))
-        title = page.title() or page.url().toString()
-        message = "This page contains non-compatible media.\n\n" \
-                  "Do you want to try to load it using an external player?"
-        theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
-        self.dialog_manager.createDialog(
-            parent=self,
-            theme=theme,
-            icon=icon,
-            title=title,
-            message=message,
-            getPosFunc=self.targetDlgPos,
-            acceptedSlot=(lambda p=page: self.accept_player(p)),
-            rejectedSlot=(lambda p=page: self.reject_player(p))
-        )
-
-    def accept_player(self, page):
-        page.openInExternalPlayer()
-
-    def reject_player(self, page):
-        pass
 
     def current_tab_changed(self, i):
 
@@ -704,7 +681,7 @@ class MainWindow(QMainWindow):
             for i in range(self.ui.tabs.count() - 1):
                 icon = self.ui.tabs.widget(i).page().icon()
                 if not icon.availableSizes():
-                    icon = QIcon(DefaultSettings.Icons.loading)
+                    icon = self.web_ico
                 if self.h_tabbar:
                     self.title_changed(self.ui.tabs.widget(i).page().title(), i)
                     new_icon = icon
@@ -731,7 +708,7 @@ class MainWindow(QMainWindow):
             # adjust button width to tabbar width
             self.ui.toggleTab_btn.setFixedSize(self.ui.tabs.tabBar().width() - 3, self.ui.navtab.height())
 
-        if self.settings.autoHide:
+        if self.autoHide:
             if self.h_tabbar:
                 self.ui.tabs.tabBar().show()
             if hasattr(self, "hoverHWidget"):
@@ -791,33 +768,46 @@ class MainWindow(QMainWindow):
             else:
                 self.ui.tabs.currentWidget().findText(textToFind, QWebEnginePage.FindFlag.FindBackward)
 
-    def manage_autohide(self, force_show=False):
+    def openExternalPlayer(self):
+        page = self.ui.tabs.currentWidget().page()
+        page.openInExternalPlayer()
 
-        self.autoHide = False if force_show else not self.settings.autoHide
-        self.ui.auto_btn.setText(self.ui.auto_on_char if self.settings.autoHide else self.ui.auto_off_char)
-        self.ui.auto_btn.setToolTip("Auto-hide is now " + ("Enabled" if self.settings.autoHide else "Disabled"))
+    def manage_autohide(self, checked=False, enabled=None, hide_all=False):
 
-        if self.settings.autoHide:
+        self.autoHide = not self.autoHide if enabled is None else enabled
+
+        if hide_all:
             self.ui.navtab.hide()
             self.ui.tabs.tabBar().hide()
-            if not self.ui.hoverHWidget.isVisible() and not self.ui.hoverHWidget.underMouse():
-                # this... fails???? WHY?????
-                # Hypothesis: if nav tab is under mouse it will not hide, so trying to show hoverHWidget in the same position fails
-                self.ui.hoverHWidget.show()
-            if not self.h_tabbar:
-                self.ui.hoverVWidget.show()
-            else:
-                self.ui.hoverVWidget.hide()
-
-        else:
             self.ui.hoverHWidget.hide()
             self.ui.hoverVWidget.hide()
-            self.ui.navtab.show()
-            self.ui.tabs.tabBar().show()
+
+        else:
+
+            self.ui.auto_btn.setText(self.ui.auto_on_char if self.autoHide else self.ui.auto_off_char)
+            self.ui.auto_btn.setToolTip("Auto-hide is now " + ("Enabled" if self.autoHide else "Disabled"))
+
+            if self.autoHide:
+                self.ui.navtab.hide()
+                self.ui.tabs.tabBar().hide()
+                if not self.ui.hoverHWidget.isVisible() and not self.ui.hoverHWidget.underMouse():
+                    # this... fails sometimes???? WHY?????
+                    # Hypothesis: if nav tab is under mouse it will not hide, so trying to show hoverHWidget in the same position fails
+                    self.ui.hoverHWidget.show()
+                if not self.h_tabbar:
+                    self.ui.hoverVWidget.show()
+                else:
+                    self.ui.hoverVWidget.hide()
+
+            else:
+                self.ui.hoverHWidget.hide()
+                self.ui.hoverVWidget.hide()
+                self.ui.navtab.show()
+                self.ui.tabs.tabBar().show()
 
     @pyqtSlot()
     def enterHHover(self):
-        if self.settings.autoHide:
+        if self.autoHide:
             self.ui.hoverHWidget.hide()
             self.ui.navtab.show()
             if self.h_tabbar:
@@ -829,7 +819,7 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot()
     def enterVHover(self):
-        if self.settings.autoHide:
+        if self.autoHide:
             self.ui.hoverVWidget.hide()
             self.ui.tabs.tabBar().show()
 
@@ -843,7 +833,7 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot()
     def leaveNavBar(self):
-        if self.settings.autoHide:
+        if self.autoHide:
             if self.h_tabbar:
                 if not self.underMouse():
                     self.ui.navtab.hide()
@@ -859,7 +849,7 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot()
     def leaveTabBar(self):
-        if self.settings.autoHide:
+        if self.autoHide:
             if self.h_tabbar:
                 if not self.ui.navtab.rect().contains(self.mapFromGlobal(QCursor.pos())):
                     self.ui.navtab.hide()
@@ -907,8 +897,8 @@ class MainWindow(QMainWindow):
 
         if clicked:
             self.cookies = not self.cookies
-        self.ui.cookie_btn.setText("🍪" if self.settings.allowCookies else "⛔")
-        self.ui.cookie_btn.setToolTip("Cookies are now %s" % ("enabled" if self.settings.allowCookies else "disabled"))
+        self.ui.cookie_btn.setText("🍪" if self.cookies else "⛔")
+        self.ui.cookie_btn.setToolTip("Cookies are now %s" % ("enabled" if self.cookies else "disabled"))
 
     def cookie_filter(self, cookie, origin=None):
         ret = self.cookies and (not cookie.thirdParty or (cookie.thirdParty and DefaultSettings.Cookies.allowThirdParty))
@@ -921,7 +911,7 @@ class MainWindow(QMainWindow):
 
     def show_clean_dlg(self):
         # Prepare clean all warning dialog
-        icon = QIcon(utils.resource_path(DefaultSettings.Icons.appIcon))
+        icon = self.appPix_32
         title = "Warning!"
         message = "This will erase all your history and stored cookies.\n\n" \
                   "Are you sure you want to proceed?"
@@ -993,9 +983,8 @@ class MainWindow(QMainWindow):
                 self.ui.urlbar.setCursorPosition(len(text))
 
             elif self.isFullScreen():
-                if not self.prevAutoHide:
-                    self.manage_autohide()
-                self.showNormal()
+                if not self.isPageFullscreen:
+                    self.manage_fullscr(on=False)
 
         elif a0.key() == Qt.Key.Key_F:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
@@ -1016,18 +1005,11 @@ class MainWindow(QMainWindow):
                 self.tab_closed(self.ui.tabs.currentIndex())
 
         elif a0.key() == Qt.Key.Key_F11:
-            if self.isFullScreen():
-                if not self.prevAutoHide:
-                    self.manage_autohide()
-                self.showNormal()
-            else:
-                self.prevAutoHide = self.settings.autoHide
-                if not self.settings.autoHide:
-                    self.manage_autohide()
-                self.showFullScreen()
+            if not self.isPageFullscreen:
+                self.manage_fullscr(on=not self.isFullScreen())
 
         elif a0.key() == Qt.Key.Key_A:
-            self.manage_autohide(force_show=True)
+            self.manage_autohide(enabled=False)
 
     def targetDlgPos(self):
         return QPoint(self.x() + 100,
@@ -1057,7 +1039,7 @@ class MainWindow(QMainWindow):
 
         if self.settings.isCustomTitleBar:
             # update grip areas
-            self.ui.sideGrips.updateGrips()
+            self.ui.appGrips.updateGrips()
 
             # adjust to screen edges:
             mousePos = QCursor.pos()
@@ -1087,24 +1069,6 @@ class MainWindow(QMainWindow):
         except:
             pass
 
-        # Save current browser contents and settings
-        if not self.isNewWin:
-            # only main instance may save settings
-            # backup .ini file
-            self.settings.backupSettings()
-
-            # save all values (even those blocked, in case .ini file didn't exist)
-            self.settings.setAllowCookies(self.cookies, True)
-            self.settings.setTheme(self.settings.theme, True)
-            self.settings.setIncognitoTheme(self.settings.incognitoTheme, True)
-            self.settings.setCustomTitleBar(self.settings.isCustomTitleBar, True)
-            self.settings.setAutoHide(self.autoHide, True)
-            self.settings.setTabBarHorizontal(self.h_tabbar, True)
-            self.settings.setIconSize(self.settings.iconSize, True)
-            self.settings.setRadius(self.settings.radius, True)
-            self.settings.setPosition(self.pos(), True)
-            self.settings.setSize(self.size(), True)
-
         # save open tabs and close external players
         tabs = []
         for i in range(self.ui.tabs.count() - 1):
@@ -1112,10 +1076,6 @@ class MainWindow(QMainWindow):
             page = browser.page()
             page.closeExternalPlayer()
             tabs.append([browser.url().toString(), browser.page().zoomFactor(), i == self.ui.tabs.currentIndex()])
-
-        if not self.isNewWin and not self.isIncognito:
-            # only main instance may save settings
-            self.settings.setPreviousTabs(tabs, True)
 
         # save other open windows
         # only open windows when main instance is closed will be remembered
@@ -1140,8 +1100,9 @@ class MainWindow(QMainWindow):
             # closing all other open child windows
             w.close()
 
+        # only main window can save settings
         if not self.isNewWin and not self.isIncognito:
-            self.settings.setNewWindows(new_wins, True)
+            self.saveSettings(tabs, new_wins)
 
         if self.cache_manager.deleteCache and not self.isNewWin and not self.isIncognito:
             # restart app to wipe all cache folders but the last one (not possible while running since it's locked)

@@ -26,6 +26,5 @@ class CacheManager:
         cacheFolder = os.path.dirname(last_cache)
         tempCache = os.path.join(os.path.dirname(cacheFolder), lastCacheName)
         shutil.move(last_cache, tempCache)
-        print("CACHE FOLDER", last_cache, cacheFolder)
-        # shutil.rmtree(cacheFolder)
+        shutil.rmtree(cacheFolder)
         shutil.move(tempCache, cacheFolder)

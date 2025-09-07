@@ -1,4 +1,3 @@
-from PyQt6.QtCore import QUrl
 from PyQt6.QtWebEngineCore import qWebEngineChromiumVersion, QWebEngineProfile, QWebEnginePage
 
 from themes import Themes
@@ -26,8 +25,14 @@ class DefaultSettings:
         # path separator inverted ("/") for qss files
         tabSeparator = utils.resource_path("res/tabsep.png", True)
 
-    class Sounds:
-        dialogInformation = "res/dialog-information.wav"
+    class Media:
+        dialogInformationSound = "res/dialog-information.wav"
+        bufferingVideo = "res/loading.mp4"
+
+    class Player:
+        useExternalPlayer = True
+        streamTempFile = "temp.mp4"
+        externalPlayerPath = utils.resource_path("externalplayer/mpv/mpv.exe", use_dist_folder="dist")
 
     class Storage:
 
