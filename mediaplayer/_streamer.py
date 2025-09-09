@@ -144,6 +144,10 @@ class Streamer(QThread):
         # this works like a charm, but requires mpv (or another external player)...
         # can it be packed together with the pyinstaller .exe file?
 
+        if not os.path.exists(self.externalPlayerPath):
+            self.streamErrorSig.emit(DefaultSettings.StreamErrorMessages.mpvNotFound)
+            return
+
         # Open MPV player as subprocess
         mpv_cmd = [self.externalPlayerPath, "--title=%s - mpv" % self.title, "--no-cache", "--", "fd://0"]
         self.playerProcess = subprocess.Popen(mpv_cmd, stdin=subprocess.PIPE)

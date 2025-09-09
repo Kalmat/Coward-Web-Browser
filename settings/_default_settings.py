@@ -72,6 +72,7 @@ class DefaultSettings:
     class StreamErrorMessages:
         tryLater = "Try after some minutes. If the problem persists, most likely the page can't be streamed"
         cantPlay = "Probably this content can't be streamed"
+        mpvNotFound = "MPV player not found. please copy mpv.exe file in ./externalplayer/mpv folder"
 
     FeatureMessages = {
         QWebEnginePage.Feature.Notifications: "show Notifications",
