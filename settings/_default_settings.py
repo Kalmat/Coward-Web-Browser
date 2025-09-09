@@ -71,7 +71,7 @@ class DefaultSettings:
 
     class StreamErrorMessages:
         tryLater = "Try after some minutes. If the problem persists, most likely the page can't be streamed"
-        cantPlay = ""
+        cantPlay = "Probably this content can't be streamed"
 
     FeatureMessages = {
         QWebEnginePage.Feature.Notifications: "show Notifications",
