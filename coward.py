@@ -47,11 +47,30 @@ class MainWindow(QMainWindow):
 
         # configure cache and check if relaunched to delete it
         self.cache_manager = CacheManager(self.appStorageFolder)
+        self.deletePreviousCache()
+
+        # delete previous stream cache files too (for internal Qt player only)
+        self.deletePreviousTemp()
+
+        # apply main window settings
+        self.configureMainWindow()
+
+        # create UI
+        self.setUI()
+
+        # open previous tabs and child windows
+        self.createTabs(init_tabs)
+
+        # connect all signals
+        self.connectSignalSlots()
+
+    def deletePreviousCache(self):
         if self.cache_manager.checkDeleteCache():
             self.cache_manager.deleteCache()
             QApplication.quit()
             sys.exit(0)
 
+    def deletePreviousTemp(self):
         if Options.DeletePlayerTemp in sys.argv:
             if os.path.exists(DefaultSettings.Player.streamTempFile):
                 try:
@@ -65,18 +84,6 @@ class MainWindow(QMainWindow):
                     pass
             QApplication.quit()
             sys.exit(0)
-
-        # apply main window settings
-        self.configureMainWindow()
-
-        # create UI
-        self.setUI()
-
-        # open previous tabs and child windows
-        self.createTabs(init_tabs)
-
-        # connect all signals
-        self.connectSignalSlots()
 
     def loadSettings(self, new_win, incognito):
 
