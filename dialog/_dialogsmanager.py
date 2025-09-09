@@ -37,6 +37,7 @@ class DialogsManager(QObject):
 
     def createDialog(self, parent, theme=None, icon=None, title=None, message=None, buttons=None,
                      getPosFunc=None, acceptedSlot=None, rejectedSlot=None):
+
         theme = theme or DefaultSettings.Theme.defaultTheme
         icon = icon or self.appIcon_32
         title = title or "Warning!"

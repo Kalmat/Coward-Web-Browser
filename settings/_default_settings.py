@@ -1,7 +1,7 @@
 from PyQt6.QtWebEngineCore import qWebEngineChromiumVersion, QWebEngineProfile, QWebEnginePage
 
-from themes import Themes
 import utils
+from themes import Themes
 
 
 class DefaultSettings:
@@ -26,13 +26,26 @@ class DefaultSettings:
         tabSeparator = utils.resource_path("res/tabsep.png", True)
 
     class Media:
-        dialogInformationSound = "res/dialog-information.wav"
-        bufferingVideo = "res/loading.mp4"
+        dialogInformationSound = utils.resource_path("res/dialog-information.wav")
+        bufferingVideo = utils.resource_path("res/loading.mp4")
 
     class Player:
-        useExternalPlayer = True
-        streamTempFile = "temp.mp4"
-        externalPlayerPath = utils.resource_path("externalplayer/mpv/mpv.exe", use_dist_folder="dist")
+
+        class PlayerTypes:
+            internal = "qt"
+            app = "mpv"
+            http = "http"
+
+        externalPlayerType = PlayerTypes.app
+        streamTempFile = "temp_1.mp4"
+        streamTempFile_2 = "temp_2.mp4"
+        chunkSize = 8192
+        bufferSize = 5*1000*1000
+        streamTempFileSize = 20 * 1000 * 1000
+        appPlayerPath = utils.resource_path("dist/externalplayer/mpv/mpv.exe")
+        httpStreamPort = 5467
+        httpServerPort = 8098
+        htmlPath = utils.resource_path("html")
 
     class Storage:
 
@@ -55,6 +68,10 @@ class DefaultSettings:
         allowThirdParty = False
         persistentPolicy = QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies
         incognitoPersistentPolicy = QWebEngineProfile.PersistentCookiesPolicy.AllowPersistentCookies
+
+    class StreamErrorMessages:
+        tryLater = "Try after some minutes. If the problem persists, most likely the page can't be streamed"
+        cantPlay = ""
 
     FeatureMessages = {
         QWebEnginePage.Feature.Notifications: "show Notifications",

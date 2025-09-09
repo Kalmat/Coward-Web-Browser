@@ -1,6 +1,6 @@
 import os
 
-from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import pyqtSignal, pyqtSlot
 from PyQt6.QtWebEngineCore import QWebEnginePage
 
 import utils
@@ -12,15 +12,18 @@ from mediaplayer._streamer import Streamer
 class WebPage(QWebEnginePage):
 
     _playerClosedSig = pyqtSignal()
+    _streamErrorSig = pyqtSignal(str)
 
-    def __init__(self, profile, parent, mediaErrorSignal=None):
+    def __init__(self, profile, parent, mediaErrorSignal=None, streamErrorSignal=None):
         super(WebPage, self).__init__(profile, parent)
 
         self.mediaError = mediaErrorSignal
+        self.streamErrorSignal = streamErrorSignal
         self.stream_thread = None
         self.media_player = None
 
         self._playerClosedSig.connect(self.closeExternalPlayer)
+        self._streamErrorSig.connect(self.handleStreamError)
 
         self._debugInfoEnabled = False
         self._logToFile = False
@@ -84,34 +87,52 @@ class WebPage(QWebEnginePage):
         self.runJavaScript("""
                             var mediaElements = document.querySelectorAll('video, audio');
                             var canPlay = Array.from(mediaElements).every(media => media.canPlayType(media.type) !== '');
-                            canPlay;""", lambda ok: self.handleMediaError(ok)
-                           )
+                            canPlay;""", lambda ok: self.handleMediaError(ok))
 
     def handleMediaError(self, ok):
         if not ok:
             self.mediaError.emit(self)
 
+    @pyqtSlot(str)
+    def handleStreamError(self, e):
+        if self.streamErrorSignal is not None:
+            self.streamErrorSignal.emit(self, e)
+
+    def launchStream(self, url, title, player_type):
+        stream_thread = Streamer(url=url,
+                                 title=title,
+                                 player_type=player_type,
+                                 stream_error_sig=self._streamErrorSig)
+        return stream_thread
+
     def openInExternalPlayer(self):
 
         # check how to manage internal/external choice:
-        if DefaultSettings.Player.useExternalPlayer and os.path.exists(DefaultSettings.Player.externalPlayerPath):
-            self.stream_thread = Streamer(url=self.url().toString(),
-                                          stream_file=DefaultSettings.Player.streamTempFile,
-                                          external_player=DefaultSettings.Player.externalPlayerPath
-                                          )
+        if DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.app:
+            self.stream_thread = self.launchStream(url=self.url().toString(),
+                                                   title=self.title(),
+                                                   player_type=DefaultSettings.Player.PlayerTypes.app)
 
-        else:
-            self.stream_thread = Streamer(url=self.url().toString(),
-                                          stream_file=DefaultSettings.Player.streamTempFile,
-                                          )
-            self.media_player = QtMediaPlayer(stream_file=DefaultSettings.Player.streamTempFile,
-                                              title=self.title(),
-                                              closedSig=self._playerClosedSig)
-            self.media_player.show()
-            self.media_player.start()
+        elif DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.http:
+            self.stream_thread = self.launchStream(url=self.url().toString(),
+                                                   title=self.title(),
+                                                   player_type=DefaultSettings.Player.PlayerTypes.http)
 
-        self.stream_thread.start()
+        elif DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.internal:
+            self.stream_thread = self.launchStream(url=self.url().toString(),
+                                                   title="",
+                                                   player_type=DefaultSettings.Player.PlayerTypes.internal)
 
+            if self.stream_thread is not None:
+                self.media_player = QtMediaPlayer(title=self.title(),
+                                                  closedSig=self._playerClosedSig)
+                self.media_player.show()
+                self.media_player.start()
+
+        if self.stream_thread is not None:
+            self.stream_thread.start()
+
+    @pyqtSlot()
     def closeExternalPlayer(self):
         try:
             self.stream_thread.stop()
@@ -122,14 +143,12 @@ class WebPage(QWebEnginePage):
             self.media_player.stop()
             if self.media_player.isVisible():
                 self.media_player.close()
-                self.media_player.deleteLater()
             if os.path.exists(DefaultSettings.Player.streamTempFile):
                 try:
                     os.remove(DefaultSettings.Player.streamTempFile)
                 except:
                     pass
             self.media_player = None
-
 
 """
     {

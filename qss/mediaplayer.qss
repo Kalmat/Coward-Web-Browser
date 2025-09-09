@@ -1,0 +1,20 @@
+QWidget {
+    font-family: "MS Shell Dlg 2";
+    font-size: 10pt;
+    background: #323232;
+    color: white;
+    border: none;
+}
+
+QPushButton {
+    font-family: "MS Shell Dlg 2";
+    font-size: 14pt;
+    background: #323232;
+    color: white;
+    border: 1px solid #646464;
+}
+
+QPushButton:hover {
+    background: lightgrey;
+    color: black;
+}

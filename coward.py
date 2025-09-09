@@ -10,6 +10,7 @@ from PyQt6.QtWebEngineWidgets import *
 from PyQt6.QtWidgets import *
 
 import appconfig
+from appconfig import Options
 from cachemanager import CacheManager
 from dialog import DialogsManager
 from settings import Settings, DefaultSettings
@@ -35,6 +36,7 @@ class MainWindow(QMainWindow):
 
     # manage page media errors
     mediaErrorSignal = pyqtSignal(QWebEnginePage)
+    streamErrorSignal = pyqtSignal(QWebEnginePage, str)
 
     # constructor
     def __init__(self, new_win=False, init_tabs=None, incognito=None):
@@ -47,6 +49,20 @@ class MainWindow(QMainWindow):
         self.cache_manager = CacheManager(self.appStorageFolder)
         if self.cache_manager.checkDeleteCache():
             self.cache_manager.deleteCache()
+            QApplication.quit()
+            sys.exit(0)
+
+        if Options.DeletePlayerTemp in sys.argv:
+            if os.path.exists(DefaultSettings.Player.streamTempFile):
+                try:
+                    os.remove(DefaultSettings.Player.streamTempFile)
+                except:
+                    pass
+            if os.path.exists(DefaultSettings.Player.streamTempFile_2):
+                try:
+                    os.remove(DefaultSettings.Player.streamTempFile_2)
+                except:
+                    pass
             QApplication.quit()
             sys.exit(0)
 
@@ -232,6 +248,7 @@ class MainWindow(QMainWindow):
 
         # signal to show dialog to open an external player for non-compatible media
         self.mediaErrorSignal.connect(self.show_player_request)
+        self.streamErrorSignal.connect(self.show_stream_error)
 
     def show(self):
         super().show()
@@ -292,7 +309,7 @@ class MainWindow(QMainWindow):
         for new_tabs in new_wins:
             self.show_in_new_window(new_tabs)
 
-    def add_tab(self, qurl=None, zoom=1.0, label="Loading..."):
+    def add_tab(self, qurl, zoom=1.0, label="Loading..."):
 
         # create webengineview as tab widget
         browser = self.getBrowser(qurl, zoom)
@@ -360,7 +377,7 @@ class MainWindow(QMainWindow):
     def getPage(self, profile, browser, zoom):
 
         # this will create the page and apply all selected settings
-        page = WebPage(profile, browser, self.mediaErrorSignal)
+        page = WebPage(profile, browser, self.mediaErrorSignal, self.streamErrorSignal)
 
         # set page zoom factor
         page.setZoomFactor(zoom)
@@ -467,6 +484,23 @@ class MainWindow(QMainWindow):
             rejectedSlot=page.reject_player
         )
 
+    @pyqtSlot(QWebEnginePage, str)
+    def show_stream_error(self, page, error):
+        icon = page.icon().pixmap(QSize(self.icon_size, self.icon_size))
+        title = page.title() or page.url().toString()
+        message = ("There has been a problem while trying to stream this page.\n\n"
+                   "%s\n\n" % error)
+        theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
+        self.dialog_manager.createDialog(
+            parent=self,
+            theme=theme,
+            icon=icon,
+            title=title,
+            message=message,
+            buttons=QDialogButtonBox.StandardButton.Ok,
+            getPosFunc=self.targetDlgPos
+        )
+
     def title_changed(self, title, i):
         self.ui.tabs.tabBar().setTabText(i, (("  " + title[:20]) if len(title) > 20 else title) if self.h_tabbar else "")
         self.ui.tabs.setTabToolTip(i, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
@@ -494,7 +528,7 @@ class MainWindow(QMainWindow):
     # method for adding new tab when requested by user
     def add_new_tab(self, qurl=None):
         self.ui.tabs.removeTab(self.ui.tabs.count() - 1)
-        i = self.add_tab(qurl)
+        i = self.add_tab(qurl or QUrl(DefaultSettings.Browser.defaultPage))
         self.add_tab_action()
         self.ui.tabs.setCurrentIndex(i)
         self.update_urlbar(self.ui.tabs.currentWidget().url(), self.ui.tabs.currentWidget())
@@ -1104,9 +1138,17 @@ class MainWindow(QMainWindow):
         if not self.isNewWin and not self.isIncognito:
             self.saveSettings(tabs, new_wins)
 
+        args = []
         if self.cache_manager.deleteCache and not self.isNewWin and not self.isIncognito:
             # restart app to wipe all cache folders but the last one (not possible while running since it's locked)
-            status = QProcess.startDetached(sys.executable, sys.argv + [appconfig.Options.DeleteCache] + [self.cache_manager.lastCache])
+            args += [appconfig.Options.DeleteCache] + [self.cache_manager.lastCache]
+
+        if (os.path.exists(DefaultSettings.Player.streamTempFile) or
+                os.path.exists(DefaultSettings.Player.streamTempFile_2)):
+            args += [appconfig.Options.DeletePlayerTemp]
+
+        if args:
+            status = QProcess.startDetached(sys.executable, sys.argv + args)
 
 
 def main():
