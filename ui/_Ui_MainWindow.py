@@ -108,10 +108,10 @@ class Ui_MainWindow:
         self.auto_btn.setToolTip("Auto-hide is now " + ("Enabled" if settings.autoHide else "Disabled"))
         self.navtab.addAction(self.auto_btn)
 
-        # adding next button
+        # adding stream button
         self.ext_player_btn = QAction("🗔", self.navtab)
         font = self.next_btn.font()
-        font.setPointSize(font.pointSize() + 6)
+        font.setPointSize(font.pointSize() + 1)
         self.ext_player_btn.setFont(font)
         self.ext_player_btn.setToolTip("Open in external player\n"
                                        "(may fix non-compatible media issues)")

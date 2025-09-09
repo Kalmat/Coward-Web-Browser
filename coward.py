@@ -49,7 +49,7 @@ class MainWindow(QMainWindow):
         self.cache_manager = CacheManager(self.appStorageFolder)
         self.deletePreviousCache()
 
-        # delete previous stream cache files too (for internal Qt player only)
+        # delete previous stream temp files too (for internal Qt player only)
         self.deletePreviousTemp()
 
         # apply main window settings
@@ -63,27 +63,6 @@ class MainWindow(QMainWindow):
 
         # connect all signals
         self.connectSignalSlots()
-
-    def deletePreviousCache(self):
-        if self.cache_manager.checkDeleteCache():
-            self.cache_manager.deleteCache()
-            QApplication.quit()
-            sys.exit(0)
-
-    def deletePreviousTemp(self):
-        if Options.DeletePlayerTemp in sys.argv:
-            if os.path.exists(DefaultSettings.Player.streamTempFile):
-                try:
-                    os.remove(DefaultSettings.Player.streamTempFile)
-                except:
-                    pass
-            if os.path.exists(DefaultSettings.Player.streamTempFile_2):
-                try:
-                    os.remove(DefaultSettings.Player.streamTempFile_2)
-                except:
-                    pass
-            QApplication.quit()
-            sys.exit(0)
 
     def loadSettings(self, new_win, incognito):
 
@@ -1094,6 +1073,27 @@ class MainWindow(QMainWindow):
 
         # also move other widgets with relative positions
         self.moveOtherWidgets()
+
+    def deletePreviousCache(self):
+        if self.cache_manager.checkDeleteCache():
+            self.cache_manager.deleteCache()
+            QApplication.quit()
+            sys.exit(0)
+
+    def deletePreviousTemp(self):
+        if Options.DeletePlayerTemp in sys.argv:
+            if os.path.exists(DefaultSettings.Player.streamTempFile):
+                try:
+                    os.remove(DefaultSettings.Player.streamTempFile)
+                except:
+                    pass
+            if os.path.exists(DefaultSettings.Player.streamTempFile_2):
+                try:
+                    os.remove(DefaultSettings.Player.streamTempFile_2)
+                except:
+                    pass
+            QApplication.quit()
+            sys.exit(0)
 
     def closeEvent(self, a0):
 
