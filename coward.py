@@ -561,7 +561,7 @@ class MainWindow(QMainWindow):
 
     def add_toggletab_action(self):
         self.toggletab_btn = QLabel()
-        self.ui.tabs.insertTab(0, self.toggletab_btn, " ⛛ ")
+        self.ui.tabs.insertTab(0, self.toggletab_btn, " ▼ ") #🢃⯯⛛▼🞃▼⮟⬎
         self.ui.tabs.tabBar().setTabButton(0, QTabBar.ButtonPosition.RightSide, None)
         self.ui.tabs.widget(0).setDisabled(True)
 
