@@ -201,7 +201,7 @@ class MainWindow(QMainWindow):
         self.ui.urlbar.returnPressed.connect(self.navigate_to_url)
         self.ui.reload_btn.triggered.connect(self.reloadPage)
         self.ui.ext_player_btn.triggered.connect(self.openExternalPlayer)
-        self.ui.auto_btn.clicked.connect(self.manage_autohide)
+        self.ui.auto_btn.triggered.connect(self.manage_autohide)
         self.ui.search_off_btn.clicked.connect(self.manage_search)
         self.ui.search_on_btn.clicked.connect(self.manage_search)
         self.ui.dl_on_btn.clicked.connect(self.manage_downloads)
@@ -249,7 +249,7 @@ class MainWindow(QMainWindow):
         self.manage_autohide(enabled=self.autoHide)
 
         # adjust button width to tabbar width
-        self.ui.auto_btn.setFixedSize(self.ui.tabs.tabBar().width() - 3, self.ui.ninja_btn.height())
+        # self.ui.auto_btn.setFixedSize(self.ui.tabs.tabBar().width() - 3, self.ui.ninja_btn.height())
 
         # thanks to Maxim Paperno: https://stackoverflow.com/questions/58145272/qdialog-with-rounded-corners-have-black-corners-instead-of-being-translucent
         if self.settings.radius != 0:
@@ -867,6 +867,7 @@ class MainWindow(QMainWindow):
         self.autoHide = not self.autoHide if enabled is None else enabled
 
         if hide_all:
+            self.ui.navtab.hide()
             self.ui.navtab.hide()
             self.ui.tabs.tabBar().hide()
             self.ui.hoverHWidget.hide()

@@ -34,7 +34,6 @@ class Ui_MainWindow:
         self.navtab.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
         self.navtab.setMovable(False)
         self.navtab.setFloatable(False)
-        self.navtab.setFloatable(False)
         parent.addToolBar(self.navtab)
 
         # adding toggle vertical / horizontal tabbar button
@@ -48,13 +47,12 @@ class Ui_MainWindow:
         # adding auto-hide mgt.
         self.auto_on_char = "⇲"
         self.auto_off_char = "⇱"
-        self.auto_btn = QToolButton(self.navtab)
-        self.auto_btn.setText(self.auto_on_char if settings.autoHide else self.auto_off_char)
+        self.auto_btn = QAction(self.auto_on_char if settings.autoHide else self.auto_off_char, self.navtab)
         font = self.auto_btn.font()
         font.setPointSize(font.pointSize() + 6)
         self.auto_btn.setFont(font)
         self.auto_btn.setToolTip("Auto-hide is now " + ("Enabled" if settings.autoHide else "Disabled"))
-        self.navtab.addWidget(self.auto_btn)
+        self.auto_act = self.navtab.addAction(self.auto_btn)
 
         self.navtab.addSeparator()
 
