@@ -578,7 +578,6 @@ class MainWindow(QMainWindow):
         self.ui.tabs.widget(i).setDisabled(True)
         self.ui.tabs.tabBar().setTabToolTip(i, "New tab")
 
-
     # method for adding new tab when requested by user
     def add_new_tab(self, qurl=None):
         self.ui.tabs.removeTab(self.ui.tabs.count() - 1)
@@ -679,15 +678,9 @@ class MainWindow(QMainWindow):
                 QCoreApplication.quit()
 
         else:
-            # else remove the tab
-            self.ui.tabs.widget(tabIndex).deleteLater()
             # just removing the tab doesn't destroy associated widget
             self.ui.tabs.widget(tabIndex).deleteLater()
-            self.ui.tabs.removeTab(tabIndex)
-            if self.ui.tabs.currentIndex() == self.ui.tabs.count() - 1:
-                self.ui.tabs.setCurrentIndex(self.ui.tabs.currentIndex() - 1)
-            if self.ui.tabs.currentIndex() == 0:
-                self.ui.tabs.setCurrentIndex(1)
+            self.ui.tabs.setCurrentIndex(max(1, tabIndex - 1))
 
         # updating index-dependent signals when tab is moved
         for i in range(tabIndex, self.ui.tabs.count() - 1):

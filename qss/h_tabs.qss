@@ -20,16 +20,6 @@ QTabBar::tab {
     padding: 6px;
 }
 
-QTabBar::tab:first {
-    background: #323232;
-    border-bottom: none;
-}
-
-QTabBar::tab:last {
-    background: #323232;
-    border-bottom: none;
-}
-
 QTabBar::tab:selected {
     background-color: #646464;
     border: none;
@@ -42,4 +32,14 @@ QTabBar::tab:hover {
 
 QTabWidget::pane {
     border: 0;
+}
+
+QTabBar::tab:first {
+    background: #323232;
+    border-bottom: none;
+}
+
+QTabBar::tab:last {
+    background: #323232;
+    border-bottom: none;
 }
