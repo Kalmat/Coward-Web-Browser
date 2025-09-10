@@ -22,7 +22,7 @@ QTabBar::tab {
 
 QTabBar::tab:first {
     background: #323232;
-    border-bottom: 1px solid #646464;
+    border-bottom: none;
 }
 
 QTabBar::tab:selected {

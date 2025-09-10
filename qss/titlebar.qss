@@ -1,8 +1,8 @@
 QToolBar {
     background: #323232;
     color: white;
-    border: none;
     height: 48px;
+    border-bottom: 1px solid #646464;
 }
 
 QLineEdit {

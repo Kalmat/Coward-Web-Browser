@@ -249,7 +249,7 @@ class MainWindow(QMainWindow):
         self.manage_autohide(enabled=self.autoHide)
 
         # adjust button width to tabbar width
-        self.ui.auto_btn.setFixedSize(self.ui.tabs.tabBar().width() - 3, self.ui.navtab.height())
+        self.ui.auto_btn.setFixedSize(self.ui.tabs.tabBar().width() - 3, self.ui.ninja_btn.height())
 
         # thanks to Maxim Paperno: https://stackoverflow.com/questions/58145272/qdialog-with-rounded-corners-have-black-corners-instead-of-being-translucent
         if self.settings.radius != 0:
