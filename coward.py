@@ -522,15 +522,13 @@ class MainWindow(QMainWindow):
                     dialog.close()
                 else:
                     self.dialog_manager.deleteDialog(dialog)
-                    self.dialog_manager.deleteDialog(dialog)
             del self.buffer_dialogs[str(page)]
 
     @pyqtSlot(QWebEnginePage, str)
     def show_stream_error(self, page, error):
         icon = page.icon().pixmap(QSize(self.icon_size, self.icon_size))
         title = page.title() or page.url().toString()
-        message = ("There has been a problem while trying to stream this page.\n\n"
-                   "%s\n\n" % error)
+        message = ("There has been a problem while trying to stream this page.\n\n" + error)
         theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
         self.dialog_manager.createDialog(
             parent=self,
@@ -680,9 +678,9 @@ class MainWindow(QMainWindow):
             # calculate next tab position
             targetIndex = self.ui.tabs.currentIndex() if tabIndex != self.ui.tabs.currentIndex() else self.ui.tabs.currentIndex() + 1
 
-            # just removing the tab doesn't destroy associated widget
+            # just removing the tab doesn't destroy associated widget. This must go before removing the tab
             self.ui.tabs.widget(tabIndex).deleteLater()
-            # remove the tab
+            # then remove the tab
             self.ui.tabs.removeTab(tabIndex)
 
             # adjust target tab index according to new tabs number (but not tab 0, the toggle button)
@@ -1081,6 +1079,9 @@ class MainWindow(QMainWindow):
                 text = self.ui.tabs.currentWidget().url().toString()
                 self.ui.urlbar.setText(self.ui.tabs.currentWidget().url().toString())
                 self.ui.urlbar.setCursorPosition(len(text))
+
+            elif self.ui.search_widget.hasFocus():
+                self.manage_search()
 
             elif self.isFullScreen():
                 if not self.isPageFullscreen:
