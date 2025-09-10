@@ -39,7 +39,18 @@ QTabBar::tab:first {
     border: none;
 }
 
+QTabBar::tab:first:hover {
+    background-color: #646464;
+    border: none;
+}
+
 QTabBar::tab:last {
     background: #323232;
     border-bottom: none;
 }
+
+QTabBar::tab:last:hover {
+    background-color: #646464;
+    border: none;
+}
+

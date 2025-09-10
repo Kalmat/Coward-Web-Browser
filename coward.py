@@ -680,10 +680,10 @@ class MainWindow(QMainWindow):
             # calculate next tab position
             targetIndex = self.ui.tabs.currentIndex() if tabIndex != self.ui.tabs.currentIndex() else self.ui.tabs.currentIndex() + 1
 
-            # remove the tab
-            self.ui.tabs.removeTab(tabIndex)
             # just removing the tab doesn't destroy associated widget
             self.ui.tabs.widget(tabIndex).deleteLater()
+            # remove the tab
+            self.ui.tabs.removeTab(tabIndex)
 
             # adjust target tab index according to new tabs number (but not tab 0, the toggle button)
             if targetIndex >= self.ui.tabs.count() - 1:

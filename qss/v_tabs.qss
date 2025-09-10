@@ -42,6 +42,11 @@ QTabBar::tab:first {
     padding-right: 3px;
 }
 
+QTabBar::tab:first:hover {
+    background-color: #646464;
+    border: none;
+}
+
 QTabBar::tab:last {
     background: #323232;
     border-top: none;
@@ -50,4 +55,7 @@ QTabBar::tab:last {
     padding-right: 3px;
 }
 
-
+QTabBar::tab:last:hover {
+    background-color: #646464;
+    border: none;
+}
