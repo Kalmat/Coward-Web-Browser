@@ -573,7 +573,6 @@ class MainWindow(QMainWindow):
         i = self.ui.tabs.addTab(self.toggletab_btn, " ⛛ ")
         self.ui.tabs.tabBar().setTabButton(i, QTabBar.ButtonPosition.RightSide, None)
         self.ui.tabs.widget(i).setDisabled(True)
-        self.ui.tabs.tabBar().setTabButton(i, QTabBar.ButtonPosition.RightSide, None)
 
     def add_tab_action(self):
         self.addtab_btn = QLabel()
@@ -581,7 +580,6 @@ class MainWindow(QMainWindow):
         self.ui.tabs.tabBar().setTabButton(i, QTabBar.ButtonPosition.RightSide, None)
         self.ui.tabs.widget(i).setDisabled(True)
         self.ui.tabs.tabBar().setTabToolTip(i, "New tab")
-        self.ui.tabs.tabBar().setTabButton(i, QTabBar.ButtonPosition.RightSide, None)
 
 
     # method for adding new tab when requested by user
@@ -661,7 +659,7 @@ class MainWindow(QMainWindow):
 
         # updating index-dependent signals when tab is moved
         # destination tab
-        self.update_index_dependent_signals(to_index, from_index)
+        self.update_index_dependent_signals(to_index)
 
         if to_index == self.ui.tabs.count() - 1:
             # Avoid moving last tab (add new tab) if dragging another tab onto it
@@ -697,7 +695,7 @@ class MainWindow(QMainWindow):
             self.update_index_dependent_signals(i)
 
     # method for navigate to url
-    def update_index_dependent_signals(self, tabIndex, from_index):
+    def update_index_dependent_signals(self, tabIndex):
         browser = self.ui.tabs.widget(tabIndex)
         browser.loadStarted.disconnect()
         browser.loadStarted.connect(lambda b=browser, index=tabIndex: self.onLoadStarted(b, index))
@@ -709,8 +707,6 @@ class MainWindow(QMainWindow):
         page.titleChanged.connect(lambda title, index=tabIndex: self.title_changed(title, index))
         page.iconChanged.disconnect()
         page.iconChanged.connect(lambda icon, index=tabIndex: self.icon_changed(icon, index))
-
-        self.ui.tabs.tabBar().tabButton(from_index).triggered.connect(lambda i=tabIndex: self.ui.tabs.removeTab(i))
 
     def showContextMenu(self, point):
         tabIndex = self.ui.tabs.tabBar().tabAt(point)

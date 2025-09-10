@@ -14,3 +14,21 @@ QToolTip {
     padding: 5px;
     border-radius: 4px;
 }
+
+QMenu {
+    font-family: "MS Shell Dlg 2";
+    font-size: 10pt;
+    background: #323232;
+    color: red;
+    border: none;
+    padding: 10px;
+}
+
+QMenu::item {
+    background: #323232;
+    color: white;
+}
+
+QMenu::item:selected {
+    background: #646464;
+}
