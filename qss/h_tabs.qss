@@ -25,6 +25,11 @@ QTabBar::tab:first {
     border-bottom: none;
 }
 
+QTabBar::tab:last {
+    background: #323232;
+    border-bottom: none;
+}
+
 QTabBar::tab:selected {
     background-color: #646464;
     border: none;

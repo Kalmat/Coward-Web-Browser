@@ -236,7 +236,7 @@ class Ui_MainWindow:
         # creating a context menu to allow closing tabs when close button is hidden
         self.tabs.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tabsContextMenu = QMenu()
-        self.tabsContextMenu.setMinimumHeight(parent.action_size + 6)
+        self.tabsContextMenu.setMinimumHeight(parent.action_size + 12)
         self.tabsContextMenu.setContentsMargins(0, 5, 0, 0)
         self.close_action = QAction()
         self.close_action.setIcon(parent.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxCritical))
@@ -244,7 +244,7 @@ class Ui_MainWindow:
 
         # creating a context menu to allow closing tabs when close button is hidden
         self.newTabContextMenu = QMenu()
-        self.newTabContextMenu.setMinimumHeight(parent.action_size + 6)
+        self.newTabContextMenu.setMinimumHeight(parent.action_size + 12)
         self.newTabContextMenu.setContentsMargins(0, 5, 0, 0)
         self.newWindow_action = QAction()
         self.newWindow_action.setIcon(parent.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarNormalButton))

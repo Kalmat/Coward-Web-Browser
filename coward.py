@@ -686,6 +686,8 @@ class MainWindow(QMainWindow):
             self.ui.tabs.removeTab(tabIndex)
             if self.ui.tabs.currentIndex() == self.ui.tabs.count() - 1:
                 self.ui.tabs.setCurrentIndex(self.ui.tabs.currentIndex() - 1)
+            if self.ui.tabs.currentIndex() == 0:
+                self.ui.tabs.setCurrentIndex(1)
 
         # updating index-dependent signals when tab is moved
         for i in range(tabIndex, self.ui.tabs.count() - 1):
@@ -717,17 +719,21 @@ class MainWindow(QMainWindow):
         self.ui.close_action.setText('Close tab: "' + text + '"')
         self.ui.close_action.triggered.disconnect()
         self.ui.close_action.triggered.connect(lambda: self.tab_closed(i))
+        first_tab_rect = self.ui.tabs.tabBar().tabRect(0)
+        first_tab_height =  first_tab_rect.height()
         tab_rect = self.ui.tabs.tabBar().tabRect(i)
         tab_width = tab_rect.width()
         tab_height = tab_rect.height()
-        pos = QPoint(self.ui.tabs.tabBar().x() + tab_width, self.ui.tabs.tabBar().y() + tab_height * i)
+        pos = QPoint(self.ui.tabs.tabBar().x() + tab_width, self.ui.tabs.tabBar().y() + first_tab_height + (tab_height * (i - 1)))
         self.ui.tabsContextMenu.exec(self.ui.tabs.mapToGlobal(pos))
 
     def createNewTabContextMenu(self, i):
+        first_tab_rect = self.ui.tabs.tabBar().tabRect(0)
+        first_tab_height =  first_tab_rect.height()
         tab_rect = self.ui.tabs.tabBar().tabRect(i)
         tab_width = tab_rect.width()
         tab_height = tab_rect.height()
-        pos = QPoint(self.ui.tabs.tabBar().x() + tab_width, self.ui.tabs.tabBar().y() + tab_height * i)
+        pos = QPoint(self.ui.tabs.tabBar().x() + tab_width, self.ui.tabs.tabBar().y() + first_tab_height + (tab_height * i))
         self.ui.newTabContextMenu.exec(self.ui.tabs.mapToGlobal(pos))
 
     def openLinkRequested(self, request):

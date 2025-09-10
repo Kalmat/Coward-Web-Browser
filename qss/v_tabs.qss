@@ -28,6 +28,14 @@ QTabBar::tab:first {
     padding-right: 3px;
 }
 
+QTabBar::tab:last {
+    background: #323232;
+    border-top: none;
+    padding: 0px;
+    padding-left: 3px;
+    padding-right: 3px;
+}
+
 QTabBar::tab:selected {
     background-color: #646464;
     border: none;

@@ -42,7 +42,7 @@ class DefaultSettings:
         chunkSize = 8192
         bufferSize = 5*1000*1000
         streamTempFileSize = 20 * 1000 * 1000
-        appPlayerPath = utils.resource_path("dist/externalplayer/mpv/mpv.exe")
+        appPlayerPath = utils.resource_path("externalplayer/mpv/mpv.exe", use_dist_folder="dist")
         httpStreamPort = 5467
         httpServerPort = 8098
         htmlPath = utils.resource_path("html")
