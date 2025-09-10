@@ -42,6 +42,12 @@ class WebPage(QWebEnginePage):
     def reject_feature(self, origin, feature):
         self.setFeaturePermission(origin, feature, QWebEnginePage.PermissionPolicy.PermissionDeniedByUser)
 
+    def accept_permission(self, request):
+        request.accept()
+
+    def reject_permission(self, request):
+        request.reject()
+
     def accept_player(self):
         self.openInExternalPlayer()
 

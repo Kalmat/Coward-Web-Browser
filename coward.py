@@ -151,6 +151,7 @@ class MainWindow(QMainWindow):
 
         # set tabbar configuration according to orientation
         self.toggle_tabbar(clicked=False)
+        self.prevTabIndex = 1
 
         # keep track of open popups and assure their persintence (anywaym, we are not allowing popups by now)
         self.popups = []
@@ -195,7 +196,7 @@ class MainWindow(QMainWindow):
     def connectUiSlots(self):
 
         # navigation bar buttons
-        self.ui.toggleTab_btn.clicked.connect(lambda: self.toggle_tabbar(clicked=True))
+        # self.ui.toggleTab_btn.clicked.connect(lambda: self.toggle_tabbar(clicked=True))
         self.ui.back_btn.triggered.connect(self.goBack)
         self.ui.next_btn.triggered.connect(self.goForward)
         self.ui.urlbar.returnPressed.connect(self.navigate_to_url)
@@ -247,7 +248,8 @@ class MainWindow(QMainWindow):
 
         if not self.h_tabbar:
             # adjust button width to tabbar width
-            self.ui.toggleTab_btn.setFixedSize(self.ui.tabs.tabBar().width() - 3, self.ui.navtab.height())
+            # self.ui.toggleTab_btn.setFixedSize(self.ui.tabs.tabBar().width() - 3, self.ui.navtab.height())
+            pass
 
         # setup autohide if enabled
         self.manage_autohide(enabled=self.autoHide)
@@ -280,18 +282,21 @@ class MainWindow(QMainWindow):
             # get child windows instances and their open tabs
             new_wins = self.settings.newWindows
 
+        # add the new toggle vertical / horizontal tabs action in tab bar
+        self.add_toggletab_action()
+
         # open all tabs in main / child window
-        current = 0
+        current = 1
         if tabs:
             for i, tab in enumerate(tabs):
                 qurl, zoom, active = tab
                 if active:
-                    current = i
+                    current = i + 1
                     QTimer.singleShot(0, lambda u=qurl: self.ui.urlbar.setText(u))
                 self.add_tab(QUrl(qurl), zoom)
 
         else:
-            self.add_tab()
+            self.add_tab(QUrl(DefaultSettings.Browser.defaultPage))
         self.ui.tabs.setCurrentIndex(current)
 
         # add the new tab action ("+") in tab bar
@@ -314,6 +319,12 @@ class MainWindow(QMainWindow):
         self.connectPageSlots(browser.page(), tabIndex)
 
         return tabIndex
+
+    def close_button(self, tabIndex):
+        button = QWidgetAction(self.ui.tabs)
+        button.setText("x")
+        button.triggered.connect(lambda i=tabIndex: self.ui.tabs.removeTab(i))
+        return button
 
     def getBrowser(self, qurl, zoom):
 
@@ -401,7 +412,7 @@ class MainWindow(QMainWindow):
         # Preparing asking for permissions
         page.featurePermissionRequested.connect(lambda origin, feature, p=page: self.show_feature_request(origin, feature, p))
         # Are these included in previous one? or the opposite? or none?
-        page.permissionRequested.connect(lambda request, p=page: print("PERMISSION REQUESTED", request))
+        # page.permissionRequested.connect(lambda request, p=page: self.show_permission_request(request, p))
         page.fileSystemAccessRequested.connect(lambda request, p=page: print("FS ACCESS REQUESTED", request))
         page.desktopMediaRequested.connect(lambda request, p=page: print("MEDIA REQUESTED", request))
         # how to fix this (live video)?
@@ -443,7 +454,7 @@ class MainWindow(QMainWindow):
                 self.showNormal()
                 self.moveOtherWidgets()
 
-    def show_feature_request(self, origin, feature, page):
+    def show_feature_request(self, origin, feature=None, page=None):
         icon = page.icon().pixmap(QSize(self.icon_size, self.icon_size))
         title = page.title() or page.url().toString()
         message = "This page is asking for your permission to %s." % (DefaultSettings.FeatureMessages[feature])
@@ -455,8 +466,24 @@ class MainWindow(QMainWindow):
             title=title,
             message=message,
             getPosFunc=self.targetDlgPos,
-            acceptedSlot=page.accept_feature,
-            rejectedSlot=page.reject_feature
+            acceptedSlot=(lambda o=origin, f=feature: page.accept_feature(o, f)),
+            rejectedSlot=(lambda o=origin, f=feature: page.reject_feature(o, f))
+        )
+
+    def show_permission_request(self, request, page):
+        icon = page.icon().pixmap(QSize(self.icon_size, self.icon_size))
+        title = page.title() or page.url().toString()
+        message = "This page is asking for your permission to %s." % (DefaultSettings.FeatureMessages[request.type()])
+        theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
+        self.dialog_manager.createDialog(
+            parent=self,
+            theme=theme,
+            icon=icon,
+            title=title,
+            message=message,
+            getPosFunc=self.targetDlgPos,
+            acceptedSlot=request.grant,
+            rejectedSlot=request.deny
         )
 
     @pyqtSlot(QWebEnginePage)
@@ -504,6 +531,7 @@ class MainWindow(QMainWindow):
                     dialog.close()
                 else:
                     self.dialog_manager.deleteDialog(dialog)
+                    self.dialog_manager.deleteDialog(dialog)
             del self.buffer_dialogs[str(page)]
 
     @pyqtSlot(QWebEnginePage, str)
@@ -540,12 +568,21 @@ class MainWindow(QMainWindow):
             new_icon = QIcon(icon.pixmap(QSize(self.icon_size, self.icon_size)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
         self.ui.tabs.tabBar().setTabIcon(i, new_icon)
 
+    def add_toggletab_action(self):
+        self.toggletab_btn = QLabel()
+        i = self.ui.tabs.addTab(self.toggletab_btn, " ⛛ ")
+        self.ui.tabs.tabBar().setTabButton(i, QTabBar.ButtonPosition.RightSide, None)
+        self.ui.tabs.widget(i).setDisabled(True)
+        self.ui.tabs.tabBar().setTabButton(i, QTabBar.ButtonPosition.RightSide, None)
+
     def add_tab_action(self):
         self.addtab_btn = QLabel()
         i = self.ui.tabs.addTab(self.addtab_btn, " ✚ ")
         self.ui.tabs.tabBar().setTabButton(i, QTabBar.ButtonPosition.RightSide, None)
         self.ui.tabs.widget(i).setDisabled(True)
         self.ui.tabs.tabBar().setTabToolTip(i, "New tab")
+        self.ui.tabs.tabBar().setTabButton(i, QTabBar.ButtonPosition.RightSide, None)
+
 
     # method for adding new tab when requested by user
     def add_new_tab(self, qurl=None):
@@ -591,6 +628,9 @@ class MainWindow(QMainWindow):
 
     def current_tab_changed(self, i):
 
+        if i == 0:
+            self.ui.tabs.setCurrentIndex(self.prevTabIndex or 1)
+
         if i < self.ui.tabs.count() - 1:
 
             # update the url
@@ -608,9 +648,11 @@ class MainWindow(QMainWindow):
             self.ui.search_widget.hide()
 
     def tab_clicked(self, i):
-
         if QApplication.mouseButtons() == Qt.MouseButton.LeftButton:
-            if i == self.ui.tabs.count() - 1:
+            if i == 0:
+                self.prevTabIndex = self.ui.tabs.currentIndex()
+                self.toggle_tabbar(clicked=True)
+            elif i == self.ui.tabs.count() - 1:
                 # this is needed to immediately refresh url bar content (maybe locked by qwebengineview?)
                 QTimer.singleShot(0, lambda p=DefaultSettings.Browser.defaultPage: self.ui.urlbar.setText(p))
                 self.add_new_tab()
@@ -619,7 +661,7 @@ class MainWindow(QMainWindow):
 
         # updating index-dependent signals when tab is moved
         # destination tab
-        self.update_index_dependent_signals(to_index)
+        self.update_index_dependent_signals(to_index, from_index)
 
         if to_index == self.ui.tabs.count() - 1:
             # Avoid moving last tab (add new tab) if dragging another tab onto it
@@ -633,7 +675,7 @@ class MainWindow(QMainWindow):
     def tab_closed(self, tabIndex, user_requested=True):
 
         # if there is only one tab
-        if self.ui.tabs.count() == 2 and user_requested:
+        if self.ui.tabs.count() == 3 and user_requested:
             if self.isNewWin:
                 # close additional window only
                 self.close()
@@ -655,21 +697,24 @@ class MainWindow(QMainWindow):
             self.update_index_dependent_signals(i)
 
     # method for navigate to url
-    def update_index_dependent_signals(self, tabIndex):
+    def update_index_dependent_signals(self, tabIndex, from_index):
         browser = self.ui.tabs.widget(tabIndex)
         browser.loadStarted.disconnect()
         browser.loadStarted.connect(lambda b=browser, index=tabIndex: self.onLoadStarted(b, index))
         browser.loadFinished.disconnect()
         browser.loadFinished.connect(lambda a, b=browser, index=tabIndex: self.onLoadFinished(a, b, index))
+
         page = browser.page()
         page.titleChanged.disconnect()
         page.titleChanged.connect(lambda title, index=tabIndex: self.title_changed(title, index))
         page.iconChanged.disconnect()
         page.iconChanged.connect(lambda icon, index=tabIndex: self.icon_changed(icon, index))
 
+        self.ui.tabs.tabBar().tabButton(from_index).triggered.connect(lambda i=tabIndex: self.ui.tabs.removeTab(i))
+
     def showContextMenu(self, point):
         tabIndex = self.ui.tabs.tabBar().tabAt(point)
-        if 0 <= tabIndex < self.ui.tabs.count() - 1:
+        if 1 <= tabIndex < self.ui.tabs.count() - 1:
             self.createContextMenu(tabIndex)
         elif tabIndex == self.ui.tabs.count() - 1:
             self.createNewTabContextMenu(tabIndex)
@@ -734,7 +779,7 @@ class MainWindow(QMainWindow):
         if clicked:
             self.h_tabbar = not self.h_tabbar
 
-            for i in range(self.ui.tabs.count() - 1):
+            for i in range(1, self.ui.tabs.count() - 1):
                 icon = self.ui.tabs.widget(i).page().icon()
                 if not icon.availableSizes():
                     icon = self.web_ico
@@ -754,15 +799,19 @@ class MainWindow(QMainWindow):
         self.ui.tabs.setStyleSheet(Themes.styleSheet(theme, Themes.Section.horizontalTabs) if self.h_tabbar else Themes.styleSheet(theme, Themes.Section.verticalTabs))
         self.ui.tabs.setTabPosition(QTabWidget.TabPosition.North if self.h_tabbar else QTabWidget.TabPosition.West)
         self.ui.tabs.setTabsClosable(self.h_tabbar)
+        self.ui.tabs.tabBar().setTabButton(0, QTabBar.ButtonPosition.RightSide, None)
         self.ui.tabs.tabBar().setTabButton(self.ui.tabs.count() - 1, QTabBar.ButtonPosition.RightSide, None)
         self.ui.tabs.tabBar().setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)
         self.ui.tabs.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu if self.h_tabbar else Qt.ContextMenuPolicy.CustomContextMenu)
-        self.ui.toggleTab_btn.setText("˅" if self.h_tabbar else "˃")
-        self.ui.toggleTab_btn.setToolTip("Set %s tabs" % ("vertical" if self.h_tabbar else "horizontal"))
+        # self.ui.toggleTab_btn.setText("˅" if self.h_tabbar else "˃")
+        # self.ui.toggleTab_btn.setToolTip("Set %s tabs" % ("vertical" if self.h_tabbar else "horizontal"))
+        # self.ui.tabs.setTabText(0, " ˅ " if self.h_tabbar else " ˃ ")
+        self.ui.tabs.setTabToolTip(0, "Set %s tabs" % ("vertical" if self.h_tabbar else "horizontal"))
 
         if not self.h_tabbar:
             # adjust button width to tabbar width
-            self.ui.toggleTab_btn.setFixedSize(self.ui.tabs.tabBar().width() - 3, self.ui.navtab.height())
+            # self.ui.toggleTab_btn.setFixedSize(self.ui.tabs.tabBar().width() - 3, self.ui.navtab.height())
+            pass
 
         if self.autoHide:
             if self.h_tabbar:
@@ -995,10 +1044,10 @@ class MainWindow(QMainWindow):
         # fresh-reload all pages
         tabsCount = self.ui.tabs.count()
         currIndex = self.ui.tabs.currentIndex()
-        self.ui.tabs.setCurrentIndex(0)
+        self.ui.tabs.setCurrentIndex(1)
 
         tabs = []
-        for i in range(tabsCount - 1):
+        for i in range(1, tabsCount - 1):
             browser: QWebEngineView = self.ui.tabs.widget(0)
             page: QWebEnginePage = browser.page()
             tabs.append([page.url(), page.zoomFactor()])
@@ -1104,7 +1153,7 @@ class MainWindow(QMainWindow):
                 self.setGeometry(self.x(), 0, self.width(), screenSize.height())
 
         # update hover areas (doesn't matter if visible or not)
-        self.ui.hoverHWidget.setGeometry(self.action_size, 0, self.width(), 20)
+        self.ui.hoverHWidget.setGeometry(0, 0, self.width(), 20)
         self.ui.hoverVWidget.setGeometry(0, self.action_size, 20, self.height())
 
         # also move other widgets with relative positions
@@ -1148,7 +1197,7 @@ class MainWindow(QMainWindow):
 
         # save open tabs and close external players
         tabs = []
-        for i in range(self.ui.tabs.count() - 1):
+        for i in range(1, self.ui.tabs.count() - 1):
             browser = self.ui.tabs.widget(i)
             page = browser.page()
             page.closeExternalPlayer(False)
@@ -1164,7 +1213,7 @@ class MainWindow(QMainWindow):
 
                 # saving open tabs for each instance and closing external players
                 new_tabs = []
-                for i in range(w.ui.tabs.count() - 1):
+                for i in range(1, w.ui.tabs.count() - 1):
                     browser = w.ui.tabs.widget(i)
                     page = browser.page()
                     page.closeExternalPlayer(False)

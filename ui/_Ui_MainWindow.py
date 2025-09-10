@@ -38,12 +38,22 @@ class Ui_MainWindow:
         parent.addToolBar(self.navtab)
 
         # adding toggle vertical / horizontal tabbar button
-        self.toggleTab_btn = QToolButton(self.navtab)
-        self.toggleTab_btn.setObjectName("toggle_tab")
-        font = self.toggleTab_btn.font()
-        font.setPointSize(font.pointSize() + 2)
-        self.toggleTab_btn.setFont(font)
-        self.toggleTab_act = self.navtab.addWidget(self.toggleTab_btn)
+        # self.toggleTab_btn = QToolButton(self.navtab)
+        # self.toggleTab_btn.setObjectName("toggle_tab")
+        # font = self.toggleTab_btn.font()
+        # font.setPointSize(font.pointSize() + 2)
+        # self.toggleTab_btn.setFont(font)
+        # self.toggleTab_act = self.navtab.addWidget(self.toggleTab_btn)
+
+        # adding auto-hide mgt.
+        self.auto_on_char = "⇲"
+        self.auto_off_char = "⇱"
+        self.auto_btn = QAction(self.auto_on_char if settings.autoHide else self.auto_off_char, self.navtab)
+        font = self.auto_btn.font()
+        font.setPointSize(font.pointSize() + 6)
+        self.auto_btn.setFont(font)
+        self.auto_btn.setToolTip("Auto-hide is now " + ("Enabled" if settings.autoHide else "Disabled"))
+        self.navtab.addAction(self.auto_btn)
 
         self.navtab.addSeparator()
 
@@ -98,20 +108,10 @@ class Ui_MainWindow:
         spacer.setMaximumWidth(150)
         self.navtab.addWidget(spacer)
 
-        # adding auto-hide mgt.
-        self.auto_on_char = "⇲"
-        self.auto_off_char = "⇱"
-        self.auto_btn = QAction(self.auto_on_char if settings.autoHide else self.auto_off_char, self.navtab)
-        font = self.auto_btn.font()
-        font.setPointSize(font.pointSize() + 6)
-        self.auto_btn.setFont(font)
-        self.auto_btn.setToolTip("Auto-hide is now " + ("Enabled" if settings.autoHide else "Disabled"))
-        self.navtab.addAction(self.auto_btn)
-
         # adding stream button
-        self.ext_player_btn = QAction("🗔", self.navtab)
+        self.ext_player_btn = QAction("ျ", self.navtab)  # ြ🗔🗔🕹ျ𓂀⏿
         font = self.next_btn.font()
-        font.setPointSize(font.pointSize() + 1)
+        font.setPointSize(font.pointSize() + 4)
         self.ext_player_btn.setFont(font)
         self.ext_player_btn.setToolTip("Open in external player\n"
                                        "(may fix non-compatible media issues)")
@@ -260,7 +260,7 @@ class Ui_MainWindow:
         # auto-hide navigation bar
         self.hoverHWidget = HoverWidget(parent, self.navtab, parent.enterHHoverSig)
         self.navtab.setFixedHeight(parent.action_size + 4)
-        self.hoverHWidget.setGeometry(parent.action_size, parent.y(), parent.width(), 20)
+        self.hoverHWidget.setGeometry(parent.x(), parent.y(), parent.width(), 20)
         self.hoverHWidget.hide()
         # auto-hide tab bar
         self.hoverVWidget = HoverWidget(parent, self.tabs.tabBar(), parent.enterVHoverSig)
