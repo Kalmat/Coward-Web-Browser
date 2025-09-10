@@ -219,7 +219,7 @@ class MainWindow(QMainWindow):
         # tab bar events management
         self.ui.tabs.currentChanged.connect(self.current_tab_changed)
         self.ui.tabs.tabBarClicked.connect(self.tab_clicked)
-        self.ui.tabs.tabCloseRequested.connect(self.tab_closed)
+        # self.ui.tabs.tabCloseRequested.connect(self.tab_closed)
         self.ui.tabs.tabBar().tabMoved.connect(self.tab_moved)
         self.ui.tabs.customContextMenuRequested.connect(self.showContextMenu)
         self.ui.newWindow_action.triggered.connect(self.show_in_new_window)
@@ -316,12 +316,6 @@ class MainWindow(QMainWindow):
         self.connectPageSlots(browser.page(), tabIndex)
 
         return tabIndex
-
-    def close_button(self, tabIndex):
-        button = QWidgetAction(self.ui.tabs)
-        button.setText("x")
-        button.triggered.connect(lambda i=tabIndex: self.ui.tabs.removeTab(i))
-        return button
 
     def getBrowser(self, qurl, zoom):
 
@@ -567,9 +561,9 @@ class MainWindow(QMainWindow):
 
     def add_toggletab_action(self):
         self.toggletab_btn = QLabel()
-        i = self.ui.tabs.addTab(self.toggletab_btn, " ⛛ ")
-        self.ui.tabs.tabBar().setTabButton(i, QTabBar.ButtonPosition.RightSide, None)
-        self.ui.tabs.widget(i).setDisabled(True)
+        self.ui.tabs.insertTab(0, self.toggletab_btn, " ⛛ ")
+        self.ui.tabs.tabBar().setTabButton(0, QTabBar.ButtonPosition.RightSide, None)
+        self.ui.tabs.widget(0).setDisabled(True)
 
     def add_tab_action(self):
         self.addtab_btn = QLabel()
@@ -662,14 +656,19 @@ class MainWindow(QMainWindow):
             self.ui.tabs.removeTab(from_index)
             self.add_tab_action()
 
+        elif to_index == 0:
+            # Avoid moving first tab (toggle tab orientation) if dragging another tab onto it
+            self.ui.tabs.removeTab(from_index)
+            self.add_toggletab_action()
+
         else:
             # origin tab
             self.update_index_dependent_signals(from_index)
 
-    def tab_closed(self, tabIndex, user_requested=True):
+    def tab_closed(self, tabIndex):
 
         # if there is only one tab
-        if self.ui.tabs.count() == 3 and user_requested:
+        if self.ui.tabs.count() == 3:
             if self.isNewWin:
                 # close additional window only
                 self.close()
@@ -678,8 +677,12 @@ class MainWindow(QMainWindow):
                 QCoreApplication.quit()
 
         else:
+            # remove the tab
+            # self.ui.tabs.removeTab(tabIndex)
             # just removing the tab doesn't destroy associated widget
+            self.ui.tabs.widget(tabIndex).close()
             self.ui.tabs.widget(tabIndex).deleteLater()
+            # select previous tab (but not tab 0, the toggle button)
             self.ui.tabs.setCurrentIndex(max(1, tabIndex - 1))
 
         # updating index-dependent signals when tab is moved
@@ -703,15 +706,15 @@ class MainWindow(QMainWindow):
     def showContextMenu(self, point):
         tabIndex = self.ui.tabs.tabBar().tabAt(point)
         if 1 <= tabIndex < self.ui.tabs.count() - 1:
-            self.createContextMenu(tabIndex)
+            self.createCloseTabContextMenu(tabIndex)
         elif tabIndex == self.ui.tabs.count() - 1:
             self.createNewTabContextMenu(tabIndex)
 
-    def createContextMenu(self, i):
+    def createCloseTabContextMenu(self, i):
         text = self.ui.tabs.tabBar().tabToolTip(i).replace("\n(Right-click to close)", "")
         self.ui.close_action.setText('Close tab: "' + text + '"')
         self.ui.close_action.triggered.disconnect()
-        self.ui.close_action.triggered.connect(lambda: self.tab_closed(i))
+        self.ui.close_action.triggered.connect(lambda checked, index=i: self.tab_closed(index))
         first_tab_rect = self.ui.tabs.tabBar().tabRect(0)
         first_tab_height =  first_tab_rect.height()
         tab_rect = self.ui.tabs.tabBar().tabRect(i)
@@ -1037,9 +1040,9 @@ class MainWindow(QMainWindow):
             page: QWebEnginePage = browser.page()
             tabs.append([page.url(), page.zoomFactor()])
             browser.deleteLater()
-            self.tab_closed(0, False)
+            self.ui.tabs.removeTab(0)
 
-        self.tab_closed(0, False)
+        self.ui.tabs.remove(0)
 
         for item in tabs:
             url, zoom = item
