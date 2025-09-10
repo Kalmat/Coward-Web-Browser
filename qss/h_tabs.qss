@@ -20,8 +20,18 @@ QTabBar::tab {
     padding: 3px;
 }
 
+QTabBar::tab:first {
+    background: #323232;
+    border-bottom: 1px solid #646464;
+}
+
 QTabBar::tab:selected {
-    background-color: #323232;
+    background-color: #646464;
+    border: none;
+}
+
+QTabBar::tab:hover {
+    background-color: #646464;
     border: none;
 }
 
