@@ -48,12 +48,13 @@ class Ui_MainWindow:
         # adding auto-hide mgt.
         self.auto_on_char = "⇲"
         self.auto_off_char = "⇱"
-        self.auto_btn = QAction(self.auto_on_char if settings.autoHide else self.auto_off_char, self.navtab)
+        self.auto_btn = QToolButton(self.navtab)
+        self.auto_btn.setText(self.auto_on_char if settings.autoHide else self.auto_off_char)
         font = self.auto_btn.font()
         font.setPointSize(font.pointSize() + 6)
         self.auto_btn.setFont(font)
         self.auto_btn.setToolTip("Auto-hide is now " + ("Enabled" if settings.autoHide else "Disabled"))
-        self.navtab.addAction(self.auto_btn)
+        self.navtab.addWidget(self.auto_btn)
 
         self.navtab.addSeparator()
 

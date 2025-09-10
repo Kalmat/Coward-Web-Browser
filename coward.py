@@ -196,13 +196,12 @@ class MainWindow(QMainWindow):
     def connectUiSlots(self):
 
         # navigation bar buttons
-        # self.ui.toggleTab_btn.clicked.connect(lambda: self.toggle_tabbar(clicked=True))
         self.ui.back_btn.triggered.connect(self.goBack)
         self.ui.next_btn.triggered.connect(self.goForward)
         self.ui.urlbar.returnPressed.connect(self.navigate_to_url)
         self.ui.reload_btn.triggered.connect(self.reloadPage)
         self.ui.ext_player_btn.triggered.connect(self.openExternalPlayer)
-        self.ui.auto_btn.triggered.connect(self.manage_autohide)
+        self.ui.auto_btn.clicked.connect(self.manage_autohide)
         self.ui.search_off_btn.clicked.connect(self.manage_search)
         self.ui.search_on_btn.clicked.connect(self.manage_search)
         self.ui.dl_on_btn.clicked.connect(self.manage_downloads)
@@ -246,13 +245,11 @@ class MainWindow(QMainWindow):
     def show(self):
         super().show()
 
-        if not self.h_tabbar:
-            # adjust button width to tabbar width
-            # self.ui.toggleTab_btn.setFixedSize(self.ui.tabs.tabBar().width() - 3, self.ui.navtab.height())
-            pass
-
         # setup autohide if enabled
         self.manage_autohide(enabled=self.autoHide)
+
+        # adjust button width to tabbar width
+        self.ui.auto_btn.setFixedSize(self.ui.tabs.tabBar().width() - 3, self.ui.navtab.height())
 
         # thanks to Maxim Paperno: https://stackoverflow.com/questions/58145272/qdialog-with-rounded-corners-have-black-corners-instead-of-being-translucent
         if self.settings.radius != 0:
@@ -799,15 +796,7 @@ class MainWindow(QMainWindow):
         self.ui.tabs.tabBar().setTabButton(self.ui.tabs.count() - 1, QTabBar.ButtonPosition.RightSide, None)
         self.ui.tabs.tabBar().setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)
         self.ui.tabs.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu if self.h_tabbar else Qt.ContextMenuPolicy.CustomContextMenu)
-        # self.ui.toggleTab_btn.setText("˅" if self.h_tabbar else "˃")
-        # self.ui.toggleTab_btn.setToolTip("Set %s tabs" % ("vertical" if self.h_tabbar else "horizontal"))
-        # self.ui.tabs.setTabText(0, " ˅ " if self.h_tabbar else " ˃ ")
         self.ui.tabs.setTabToolTip(0, "Set %s tabs" % ("vertical" if self.h_tabbar else "horizontal"))
-
-        if not self.h_tabbar:
-            # adjust button width to tabbar width
-            # self.ui.toggleTab_btn.setFixedSize(self.ui.tabs.tabBar().width() - 3, self.ui.navtab.height())
-            pass
 
         if self.autoHide:
             if self.h_tabbar:
