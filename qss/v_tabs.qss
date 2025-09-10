@@ -17,12 +17,15 @@ QTabBar::tab {
     padding-left: 3px;
     padding-right: 3px;
     padding-top: 0px;
-    padding-bottom: 6px;
+    padding-bottom: 12px;
 }
 
 QTabBar::tab:first {
     background: #323232;
     border-top: none;
+    padding: 0px;
+    padding-left: 3px;
+    padding-right: 3px;
 }
 
 QTabBar::tab:selected {

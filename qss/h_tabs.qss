@@ -17,7 +17,7 @@ QTabBar::tab {
     min-width: %spx;
     max-width: 240px;
     height: %spx;
-    padding: 3px;
+    padding: 6px;
 }
 
 QTabBar::tab:first {
