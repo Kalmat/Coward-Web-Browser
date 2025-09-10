@@ -35,6 +35,7 @@ class QtMediaPlayer(QWidget):
 
         # emit signal when closed
         self.closedSig = closedSig
+        self.userClosed = True
 
         self.setGeometry(200, 200, 700, 400)
         self.setWindowTitle(title)
@@ -173,11 +174,15 @@ class QtMediaPlayer(QWidget):
             # self.playBtn.setDisabled(True)
             pass
 
-    def closeEvent(self, a0):
-        self.mediaplayer.stop()
-        if self.closedSig is not None:
-            self.closedSig.emit()
-
     def stop(self):
         self.mediaplayer.stop()
         self.mediaplayer.setSource(QUrl())
+
+    def close(self):
+        self.userClosed = False
+        super().close()
+
+    def closeEvent(self, a0):
+        self.mediaplayer.stop()
+        if self.closedSig is not None and self.userClosed:
+            self.closedSig.emit()

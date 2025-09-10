@@ -9,13 +9,13 @@ from PyQt6.QtCore import QThread
 from PyQt6.QtWidgets import QMainWindow, QWidget, QApplication
 from streamlink import Streamlink
 
-import utils
 from settings import DefaultSettings
 
 
 class Streamer(QThread):
 
-    def __init__(self, url, qualities="720p,720p60,best", title="Coward stream", player_type=None, stream_error_sig=None):
+    def __init__(self, url, qualities="720p,720p60,best", title="Coward stream", player_type=None,
+                       buffering_started_sig=None, stream_started_sig=None, stream_error_sig=None, closed_sig=None):
         super().__init__()
 
         self.url = url
@@ -26,13 +26,18 @@ class Streamer(QThread):
         self.stream_file = DefaultSettings.Player.streamTempFile
         self.next_stream_file = DefaultSettings.Player.streamTempFile_2
         self.externalPlayerPath = DefaultSettings.Player.appPlayerPath
+
+        self.bufferingStartedSig = buffering_started_sig
+        self.streamStartedSig = stream_started_sig
+        self.startEmitted = False
         self.streamErrorSig = stream_error_sig
+        self.closedSig = closed_sig
 
-        self.httpd = None
-        self.stopHttpServer = False
-
+        self.stopStreaming = False
         self.playerProcess = None
-        self.keep = True
+        self.send_command = None
+        self.stopHttpServer = False
+        self.httpd = None
 
     def run(self):
 
@@ -55,6 +60,8 @@ class Streamer(QThread):
 
             # Open the stream and pipe data to MPV
             stream = self._fetchStream(streams, self.qualities)
+            if not stream:
+                errorRaised = True
 
         except streamlink.NoPluginError:
             errorRaised = True
@@ -69,14 +76,11 @@ class Streamer(QThread):
             errorRaised = True
             tryLater = True
 
-        if self.streamErrorSig is not None:
-            if errorRaised:
-                if tryLater:
-                    self.streamErrorSig.emit(DefaultSettings.StreamErrorMessages.tryLater)
-                else:
-                    self.streamErrorSig.emit(DefaultSettings.StreamErrorMessages.cantPlay)
+        if errorRaised:
+            self.handleError(tryLater)
 
-        if stream:
+        else:
+
             if self.playerType == DefaultSettings.Player.PlayerTypes.app:
                 self.runExternalPlayer(stream)
 
@@ -95,12 +99,12 @@ class Streamer(QThread):
         totalbytes = 0
         try:
             with stream.open() as stream_fd:
-                while self.keep:
+                while not self.stopStreaming:
                     with open(self.stream_file, "wb") as f:
-                        while self.keep:
+                        while not self.stopStreaming:
                             data = stream_fd.read(DefaultSettings.Player.chunkSize)
                             if not data:
-                                self.keep = False
+                                self.stopStreaming = True
                                 break
                             f.write(data)
                             f.flush()
@@ -113,7 +117,10 @@ class Streamer(QThread):
                                 break
 
         except Exception as e:
-            self.streamErrorSig.emit(DefaultSettings.StreamErrorMessages.tryLater)
+            self.handleError(True)
+
+        finally:
+            self.stop()
 
     def runHttpPlayer(self, stream):
         # This will try to stream the video to localhost on default port
@@ -138,7 +145,14 @@ class Streamer(QThread):
                 while not self.stopHttpServer:
                     httpd.handle_request()
 
-        start_html_server()
+        try:
+            start_html_server()
+
+        except:
+            self.handleError(True)
+
+        finally:
+            self.stop()
 
     def runExternalPlayer(self, stream):
         # this works like a charm, but requires mpv (or another external player)...
@@ -148,17 +162,32 @@ class Streamer(QThread):
             self.streamErrorSig.emit(DefaultSettings.StreamErrorMessages.mpvNotFound)
             return
 
+        # allow (or not) multiple players per page
+        # if self.playerProcess is not None:
+        #     self.streamErrorSig.emit(DefaultSettings.StreamErrorMessages.onePlayerOnly)
+        #     return
+
+        self.bufferingStartedSig.emit()
+
         # Open MPV player as subprocess
-        mpv_cmd = [self.externalPlayerPath, "--title=%s - mpv" % self.title, "--no-cache", "--", "fd://0"]
+        mpvPipeName = r"\\.\pipe\mpv-pipe"
+        mpv_cmd = [self.externalPlayerPath, "--title=%s - mpv" % self.title,
+                                            "--no-cache",
+                                            "--input-ipc-server=%s" % mpvPipeName,
+                                            "--", "fd://0"]
+        self.send_command = lambda command: subprocess.Popen(r"echo %s > %s" % (command, mpvPipeName), shell=True)
         self.playerProcess = subprocess.Popen(mpv_cmd, stdin=subprocess.PIPE)
 
         # write stream data to mpv's STDIN
         try:
             with stream.open() as stream_fd:
-                while self.keep:
+                while not self.stopStreaming:
                     data = stream_fd.read(DefaultSettings.Player.chunkSize)
-                    if not data or self.playerProcess.poll() is not None:
+                    if not data or self.playerProcess is None or self.playerProcess.poll() is not None:
                         break
+                    if not self.startEmitted:
+                        self.startEmitted = True
+                        self.streamStartedSig.emit()
                     self.playerProcess.stdin.write(data)
                     self.playerProcess.stdin.flush()
 
@@ -166,10 +195,6 @@ class Streamer(QThread):
             print(f"Stream error: {e}")
 
         finally:
-            try:
-                self.playerProcess.stdin.close()
-            except:
-                pass
             self.stop()
 
     def _fetchStream(self, streams, qualities):
@@ -185,17 +210,26 @@ class Streamer(QThread):
             print(f"Quality list not available. Available: {list(available_qualities)}")
         return stream
 
+    def handleError(self, tryLater):
+        if self.streamErrorSig is not None:
+            if tryLater:
+                self.streamErrorSig.emit(DefaultSettings.StreamErrorMessages.tryLater)
+            else:
+                self.streamErrorSig.emit(DefaultSettings.StreamErrorMessages.cantPlay)
+        self.stop()
+
     def stop(self):
-        self.keep = False
-        if self.playerType == DefaultSettings.Player.PlayerTypes.internal:
-            if os.path.exists(self.stream_file):
-                try:
-                    os.remove(self.stream_file)
-                except:
-                    pass
+        self.stopStreaming = True
+        if self.playerType == DefaultSettings.Player.PlayerTypes.app:
+            if self.playerProcess is not None and self.send_command is not None:
+                self.send_command('quit')
+                self.playerProcess = None
+                self.send_command = None
 
         elif self.playerType == DefaultSettings.Player.PlayerTypes.http:
             self.stopHttpServer = True
+        self.closedSig.emit(True)
+        self.quit()
 
 
 class Window(QMainWindow):
@@ -206,7 +240,7 @@ class Window(QMainWindow):
         self.widget = QWidget()
 
         self.stream_thread = Streamer(url=url,
-                                      title = "lvpes - Twitch",
+                                      title="lvpes - Twitch",
                                       player_type=DefaultSettings.Player.PlayerTypes.http
                                       )
         # qualities="720p,720p60,best", title="Coward stream", player_type=None

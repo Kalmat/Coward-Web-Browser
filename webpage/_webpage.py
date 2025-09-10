@@ -11,19 +11,25 @@ from mediaplayer._streamer import Streamer
 
 class WebPage(QWebEnginePage):
 
-    _playerClosedSig = pyqtSignal()
+    _bufferingStartedSig = pyqtSignal()
+    _streamStartedSig = pyqtSignal()
     _streamErrorSig = pyqtSignal(str)
+    _playerClosedSig = pyqtSignal(bool)
 
-    def __init__(self, profile, parent, mediaErrorSignal=None, streamErrorSignal=None):
+    def __init__(self, profile, parent, bufferingStartedSig=None, streamStartedSig=None, mediaErrorSignal=None, streamErrorSignal=None):
         super(WebPage, self).__init__(profile, parent)
 
+        self.bufferingStartedSig = bufferingStartedSig
+        self.streamStartedSig = streamStartedSig
         self.mediaError = mediaErrorSignal
         self.streamErrorSignal = streamErrorSignal
         self.stream_thread = None
         self.media_player = None
 
-        self._playerClosedSig.connect(self.closeExternalPlayer)
+        self._bufferingStartedSig.connect(self.bufferingStarted)
+        self._streamStartedSig.connect(self.streamStarted)
         self._streamErrorSig.connect(self.handleStreamError)
+        self._playerClosedSig.connect(self.closeExternalPlayer)
 
         self._debugInfoEnabled = False
         self._logToFile = False
@@ -89,23 +95,21 @@ class WebPage(QWebEnginePage):
                             var canPlay = Array.from(mediaElements).every(media => media.canPlayType(media.type) !== '');
                             canPlay;""", lambda ok: self.handleMediaError(ok))
 
-    def handleMediaError(self, ok):
-        if not ok:
-            self.mediaError.emit(self)
-
-    @pyqtSlot(str)
-    def handleStreamError(self, e):
-        if self.streamErrorSignal is not None:
-            self.streamErrorSignal.emit(self, e)
-
     def launchStream(self, url, title, player_type):
         stream_thread = Streamer(url=url,
                                  title=title,
                                  player_type=player_type,
-                                 stream_error_sig=self._streamErrorSig)
+                                 buffering_started_sig=self._bufferingStartedSig,
+                                 stream_started_sig=self._streamStartedSig,
+                                 stream_error_sig=self._streamErrorSig,
+                                 closed_sig=self._playerClosedSig)
         return stream_thread
 
     def openInExternalPlayer(self):
+
+        if self.stream_thread is not None:
+            self.handleStreamError(DefaultSettings.StreamErrorMessages.onePlayerOnly)
+            return
 
         # check how to manage internal/external choice:
         if DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.app:
@@ -132,20 +136,49 @@ class WebPage(QWebEnginePage):
         if self.stream_thread is not None:
             self.stream_thread.start()
 
+    # launch external player dialog if media can't be played
+    def handleMediaError(self, ok):
+        if not ok:
+            self.mediaError.emit(self)
+
     @pyqtSlot()
-    def closeExternalPlayer(self):
-        try:
+    def bufferingStarted(self):
+        if self.bufferingStartedSig is not None:
+            self.bufferingStartedSig.emit(self)
+
+    @pyqtSlot()
+    def streamStarted(self):
+        if self.streamStartedSig is not None:
+            self.streamStartedSig.emit(self)
+
+    # handle streamer errors, and close external players which may remain open
+    @pyqtSlot(str)
+    def handleStreamError(self, e):
+        if self.streamErrorSignal is not None:
+            self.streamErrorSignal.emit(self, e)
+        if e != DefaultSettings.StreamErrorMessages.onePlayerOnly:
+            self.closeExternalPlayer(e)
+        self.streamStarted()
+
+    # close evertything related to streaming media: streamer (if not already closed), media player and delete files
+    @pyqtSlot(bool)
+    def closeExternalPlayer(self, streamStopped):
+        self.streamStarted()
+        if not streamStopped and self.stream_thread is not None:
             self.stream_thread.stop()
-            utils.kill_process(self.stream_thread.pid)
-        except:
-            pass
+            # utils.kill_process(self.stream_thread.pid)
+        self.stream_thread = None
         if self.media_player is not None:
             self.media_player.stop()
-            if self.media_player.isVisible():
-                self.media_player.close()
+            self.media_player.close()
             if os.path.exists(DefaultSettings.Player.streamTempFile):
                 try:
                     os.remove(DefaultSettings.Player.streamTempFile)
+                except:
+                    pass
+            if os.path.exists(DefaultSettings.Player.streamTempFile_2):
+                try:
+                    os.remove(DefaultSettings.Player.streamTempFile_2)
                 except:
                     pass
             self.media_player = None

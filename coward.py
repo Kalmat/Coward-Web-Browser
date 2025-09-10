@@ -3,6 +3,7 @@ import os
 import sys
 import time
 
+from PyQt6 import sip
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from PyQt6.QtWebEngineCore import *
@@ -34,7 +35,9 @@ class MainWindow(QMainWindow):
     enterTabBarSig = pyqtSignal()
     leaveTabBarSig = pyqtSignal()
 
-    # manage page media errors
+    # manage page streaming lifecycle (started and errors)
+    bufferingStartedSignal = pyqtSignal(QWebEnginePage)
+    streamStartedSignal = pyqtSignal(QWebEnginePage)
     mediaErrorSignal = pyqtSignal(QWebEnginePage)
     streamErrorSignal = pyqtSignal(QWebEnginePage, str)
 
@@ -154,6 +157,7 @@ class MainWindow(QMainWindow):
 
         # use a dialog manager to enqueue dialogs and avoid showing all at once
         self.dialog_manager = DialogsManager(self)
+        self.buffer_dialogs = {}
 
         # pre-load icons
         self.appIcon = QIcon(DefaultSettings.Icons.appIcon)
@@ -233,6 +237,8 @@ class MainWindow(QMainWindow):
         self.leaveTabBarSig.connect(self.leaveTabBar)
 
         # signal to show dialog to open an external player for non-compatible media
+        self.bufferingStartedSignal.connect(self.show_buffering_started)
+        self.streamStartedSignal.connect(self.show_stream_started)
         self.mediaErrorSignal.connect(self.show_player_request)
         self.streamErrorSignal.connect(self.show_stream_error)
 
@@ -363,7 +369,7 @@ class MainWindow(QMainWindow):
     def getPage(self, profile, browser, zoom):
 
         # this will create the page and apply all selected settings
-        page = WebPage(profile, browser, self.mediaErrorSignal, self.streamErrorSignal)
+        page = WebPage(profile, browser, self.bufferingStartedSignal, self.streamStartedSignal, self.mediaErrorSignal, self.streamErrorSignal)
 
         # set page zoom factor
         page.setZoomFactor(zoom)
@@ -410,6 +416,7 @@ class MainWindow(QMainWindow):
 
     def page_fullscr(self, request):
         self.manage_fullscr(request.toggleOn(), page_fullscr=True)
+        request.accept()
         request.accept()
 
     def manage_fullscr(self, on, page_fullscr=False):
@@ -469,6 +476,35 @@ class MainWindow(QMainWindow):
             acceptedSlot=page.accept_player,
             rejectedSlot=page.reject_player
         )
+
+    @pyqtSlot(QWebEnginePage)
+    def show_buffering_started(self, page):
+        icon = page.icon().pixmap(QSize(self.icon_size, self.icon_size))
+        title = page.title() or page.url().toString()
+        message = ("Buffering content to stream to external player.\n\n"
+                   "Your stream will start soon, please be patient.")
+        theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
+        page: QWebEnginePage = page
+        self.buffer_dialogs[str(page)] = self.dialog_manager.createDialog(
+            parent=self,
+            theme=theme,
+            icon=icon,
+            title=title,
+            message=message,
+            buttons=QDialogButtonBox.StandardButton.Ok,
+            getPosFunc=self.targetDlgPos
+        )
+
+    @pyqtSlot(QWebEnginePage)
+    def show_stream_started(self, page):
+        dialog = self.buffer_dialogs.get(str(page), None)
+        if dialog is not None:
+            if not sip.isdeleted(dialog):
+                if dialog.isVisible():
+                    dialog.close()
+                else:
+                    self.dialog_manager.deleteDialog(dialog)
+            del self.buffer_dialogs[str(page)]
 
     @pyqtSlot(QWebEnginePage, str)
     def show_stream_error(self, page, error):
@@ -1115,7 +1151,7 @@ class MainWindow(QMainWindow):
         for i in range(self.ui.tabs.count() - 1):
             browser = self.ui.tabs.widget(i)
             page = browser.page()
-            page.closeExternalPlayer()
+            page.closeExternalPlayer(False)
             tabs.append([browser.url().toString(), browser.page().zoomFactor(), i == self.ui.tabs.currentIndex()])
 
         # save other open windows
@@ -1131,7 +1167,7 @@ class MainWindow(QMainWindow):
                 for i in range(w.ui.tabs.count() - 1):
                     browser = w.ui.tabs.widget(i)
                     page = browser.page()
-                    page.closeExternalPlayer()
+                    page.closeExternalPlayer(False)
                     new_tabs.append([browser.url().toString(), browser.page().zoomFactor(), i == w.ui.tabs.currentIndex()])
 
                 # won't keep any incognito data

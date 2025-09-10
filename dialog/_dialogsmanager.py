@@ -1,5 +1,6 @@
 from queue import Queue
 
+from PyQt6 import sip
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer, pyqtSlot
 from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import QDialogButtonBox
@@ -25,6 +26,9 @@ class DialogsManager(QObject):
         self._dlg_q_timer.timeout.connect(self._showDialogs)
         self.showingDlg = False
         self.currentDialog = None
+
+        # dialogs that can be deleted before be shown
+        self._dialogsToDelete = []
 
         # check when dialogs have been shown or closed to control queue
         self._closeSig.connect(self._dlgClosed)
@@ -58,6 +62,11 @@ class DialogsManager(QObject):
         if rejectedSlot is not None:
             dialog.rejected.connect(rejectedSlot)
         self._queueDialogs(dialog)
+        return dialog
+
+    def deleteDialog(self, dialog):
+        if dialog not in self._dialogsToDelete:
+            self._dialogsToDelete.append(dialog)
 
     def _queueDialogs(self, dialog):
         self._dlg_queue.put_nowait(dialog)
@@ -72,9 +81,12 @@ class DialogsManager(QObject):
         elif not self.showingDlg:
             try:
                 dialog = self._dlg_queue.get_nowait()
-                dialog.show()
-                self.currentDialog = dialog
-                self.showingDlg = True
+                if dialog in self._dialogsToDelete:
+                    self._dialogsToDelete.pop(dialog)
+                else:
+                    dialog.show()
+                    self.currentDialog = dialog
+                    self.showingDlg = True
             except:
                 with self._dlg_queue.mutex:
                     self._dlg_queue.queue.clear()
