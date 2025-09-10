@@ -1126,6 +1126,7 @@ class MainWindow(QMainWindow):
         self.moveOtherWidgets()
 
     def resizeEvent(self, event):
+        super().resizeEvent(event)
 
         if self.settings.isCustomTitleBar:
             # update grip areas
