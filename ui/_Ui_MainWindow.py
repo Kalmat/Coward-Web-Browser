@@ -48,6 +48,7 @@ class Ui_MainWindow:
         self.auto_on_char = "⇲"
         self.auto_off_char = "⇱"
         self.auto_btn = QAction(self.auto_on_char if settings.autoHide else self.auto_off_char, self.navtab)
+        self.auto_btn.setChecked(True)
         font = self.auto_btn.font()
         font.setPointSize(font.pointSize() + 6)
         self.auto_btn.setFont(font)
