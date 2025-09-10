@@ -215,7 +215,7 @@ class MainWindow(QMainWindow):
         if self.settings.isCustomTitleBar:
             self.ui.min_btn.triggered.connect(self.showMinimized)
             self.ui.max_btn.triggered.connect(self.showMaxRestore)
-            self.ui.closewin_btn.triggered.connect(self.close)
+            self.ui.closewin_btn.clicked.connect(self.close)
 
         # tab bar events management
         self.ui.tabs.currentChanged.connect(self.current_tab_changed)

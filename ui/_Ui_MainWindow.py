@@ -206,12 +206,14 @@ class Ui_MainWindow:
             self.max_btn.setFont(font)
             self.navtab.addAction(self.max_btn)
 
-            self.closewin_btn = QAction("🕱", self.navtab)
+            self.closewin_btn = QToolButton(self.navtab)
+            self.closewin_btn.setObjectName("close_win")
+            self.closewin_btn.setText("🕱")
             self.closewin_btn.setToolTip("Quit, coward")
             font = self.closewin_btn.font()
             font.setPointSize(font.pointSize() + 8)
             self.closewin_btn.setFont(font)
-            self.navtab.addAction(self.closewin_btn)
+            self.navtab.addWidget(self.closewin_btn)
 
 
         # tab bar styles

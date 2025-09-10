@@ -127,3 +127,8 @@ QToolButton#incognito {
 QToolButton#incognito:hover {
     background: green;
 }
+
+
+QToolButton#close_win:hover {
+    background: red;
+}
