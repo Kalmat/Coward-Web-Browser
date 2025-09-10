@@ -677,13 +677,21 @@ class MainWindow(QMainWindow):
                 QCoreApplication.quit()
 
         else:
+            # calculate next tab position
+            targetIndex = self.ui.tabs.currentIndex() if tabIndex != self.ui.tabs.currentIndex() else self.ui.tabs.currentIndex() + 1
+
             # remove the tab
-            # self.ui.tabs.removeTab(tabIndex)
-            # just removing the tab doesn't destroy associated widget
-            self.ui.tabs.widget(tabIndex).close()
-            self.ui.tabs.widget(tabIndex).deleteLater()
-            # select previous tab (but not tab 0, the toggle button)
-            self.ui.tabs.setCurrentIndex(max(1, tabIndex - 1))
+            self.ui.tabs.removeTab(tabIndex)
+            # just removing the tab doesn't destroy associated widget??
+            # self.ui.tabs.widget(tabIndex).close()
+            # self.ui.tabs.widget(tabIndex).deleteLater()
+
+            # adjust target tab index according to new tabs number (but not tab 0, the toggle button)
+            if targetIndex >= self.ui.tabs.count() - 1:
+                targetIndex = self.ui.tabs.count() - 2
+            elif targetIndex <= 0:
+                targetIndex = 1
+            self.ui.tabs.setCurrentIndex(targetIndex)
 
         # updating index-dependent signals when tab is moved
         for i in range(tabIndex, self.ui.tabs.count() - 1):
