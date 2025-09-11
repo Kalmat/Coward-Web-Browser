@@ -316,13 +316,19 @@ class MainWindow(QMainWindow):
         for new_tabs in new_wins:
             self.show_in_new_window(new_tabs)
 
-    def add_tab(self, qurl, zoom=1.0, label="Loading..."):
+    def add_tab(self, qurl, zoom=1.0, label="Loading...", tabIndex=None):
 
         # create webengineview as tab widget
         browser = self.getBrowser(qurl, zoom)
 
         # setting tab index and default icon
-        tabIndex = self.ui.tabs.addTab(browser, label if self.h_tabbar else "")
+        if tabIndex is None:
+            tabIndex = self.ui.tabs.addTab(browser, label if self.h_tabbar else "")
+        else:
+            self.ui.tabs.insertTab(tabIndex, browser, label if self.h_tabbar else "")
+            # updating index-dependent signals when tab is moved
+            for i in range(tabIndex + 1, self.ui.tabs.count() - 1):
+                self.update_index_dependent_signals(i)
 
         # connect browser and page signals (once we have the tab index)
         self.connectBrowserSlots(browser, tabIndex)
@@ -374,12 +380,12 @@ class MainWindow(QMainWindow):
 
     def getProfile(self, browser=None):
 
-        if self._profile is None or self.cache_manager.isDeleteCacheRequested():
+        if self._profile is None or self.cache_manager.deleteCacheRequested:
 
             if self.isIncognito:
                 # apply no persistent cache
                 cache_path = None
-            elif self.cache_manager.isDeleteCacheRequested():
+            elif self.cache_manager.deleteCacheRequested:
                 # apply temporary cache location to delete all previous cache when app is closed, but keeping these last
                 cache_path = self.cache_manager.lastCache
             else:
@@ -595,7 +601,8 @@ class MainWindow(QMainWindow):
     # method for adding new tab when requested by user
     def add_new_tab(self, qurl=None, setFocus=True):
         self.ui.tabs.removeTab(self.ui.tabs.count() - 1)
-        i = self.add_tab(qurl or QUrl(DefaultSettings.Browser.defaultPage))
+        i = self.add_tab(qurl or QUrl(DefaultSettings.Browser.defaultPage),
+                         tabIndex=self.ui.tabs.currentIndex() + 1 if not setFocus else None)
         self.add_tab_action()
         if setFocus:
             self.ui.tabs.setCurrentIndex(i)
@@ -1045,7 +1052,7 @@ class MainWindow(QMainWindow):
 
         if not self.isIncognito:
             # activate cache deletion upon closing app (if not incognito which will be auto-deleted)
-            self.cache_manager.setDeleteCacheRequested(True)
+            self.cache_manager.deleteCacheRequested = True
 
             # set a new cache folder (old ones will be deleted when app is restarted)
             self.cache_manager.lastCache = os.path.join(self.cache_manager.cachePath, str(time.time()).replace(".", ""))
@@ -1144,9 +1151,11 @@ class MainWindow(QMainWindow):
             self.search_widget.move(self.get_search_widget_pos())
 
         if self.dialog_manager.showingDlg and self.dialog_manager.currentDialog is not None:
+            # reposition any open dialog
             self.dialog_manager.currentDialog.move(self.targetDlgPos())
 
     def moveEvent(self, a0):
+        super().moveEvent(a0)
 
         # also move widgets with relative positions
         self.moveOtherWidgets()
@@ -1244,7 +1253,7 @@ class MainWindow(QMainWindow):
             self.saveSettings(tabs, new_wins)
 
         args = []
-        if self.cache_manager.isDeleteCacheRequested() and not self.isNewWin and not self.isIncognito:
+        if self.cache_manager.deleteCacheRequested and not self.isNewWin and not self.isIncognito:
             # restart app to wipe all cache folders but the last one (not possible while running since it's locked)
             args += [appconfig.Options.DeleteCache] + [self.cache_manager.lastCache]
 

@@ -15,17 +15,11 @@ class CacheManager:
         self.cachePath = os.path.join(self.cacheStorageFolder, DefaultSettings.Storage.Cache.cacheFile)
 
         self.lastCache = ""
-        self._deleteCacheRequested = False
+        self.deleteCacheRequested = False
 
-    def setDeleteCacheRequested(self, requested):
-        self._deleteCacheRequested = requested
-
-    def isDeleteCacheRequested(self):
-        return self._deleteCacheRequested
-
-    def checkDeleteCache(self, args):
+    def checkDeleteCache(self, args=None):
         last_cache = ""
-        for i, item in enumerate(args):
+        for i, item in enumerate(args or sys.argv[1:]):
             if item == Options.DeleteCache:
                 last_cache = sys.argv[i + 1]
                 break
