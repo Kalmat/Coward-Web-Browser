@@ -327,6 +327,13 @@ class MainWindow(QMainWindow):
         self.connectBrowserSlots(browser, tabIndex)
         self.connectPageSlots(browser.page(), tabIndex)
 
+        # set close buttons
+        if self.h_tabbar:
+            self.ui.tabs.tabBar().tabButton(tabIndex, QTabBar.ButtonPosition.RightSide).clicked.disconnect()
+            self.ui.tabs.tabBar().tabButton(tabIndex, QTabBar.ButtonPosition.RightSide).clicked.connect(lambda checked, index=tabIndex: self.tab_closed(index))
+        else:
+            self.ui.tabs.tabBar().setTabButton(tabIndex, QTabBar.ButtonPosition.RightSide, None)
+
         return tabIndex
 
     def getBrowser(self, qurl, zoom):
@@ -723,6 +730,10 @@ class MainWindow(QMainWindow):
         page.iconChanged.disconnect()
         page.iconChanged.connect(lambda icon, index=tabIndex: self.icon_changed(icon, index))
 
+        if self.h_tabbar:
+            self.ui.tabs.tabBar().tabButton(tabIndex, QTabBar.ButtonPosition.RightSide).clicked.disconnect()
+            self.ui.tabs.tabBar().tabButton(tabIndex, QTabBar.ButtonPosition.RightSide).clicked.connect(lambda checked, index=tabIndex: self.tab_closed(index))
+
     def showContextMenu(self, point):
         tabIndex = self.ui.tabs.tabBar().tabAt(point)
         if 1 <= tabIndex < self.ui.tabs.count() - 1:
@@ -794,17 +805,22 @@ class MainWindow(QMainWindow):
         if clicked:
             self.h_tabbar = not self.h_tabbar
 
-            for i in range(1, self.ui.tabs.count() - 1):
-                icon = self.ui.tabs.widget(i).page().icon()
-                if not icon.availableSizes():
-                    icon = self.web_ico
-                if self.h_tabbar:
-                    self.title_changed(self.ui.tabs.widget(i).page().title(), i)
-                    new_icon = icon
-                else:
-                    self.ui.tabs.tabBar().setTabText(i, "")
-                    new_icon = QIcon(icon.pixmap(QSize(self.icon_size, self.icon_size)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
-                self.ui.tabs.tabBar().setTabIcon(i, new_icon)
+        # enable buttons first (only if horizontal tabbar)
+        self.ui.tabs.setTabsClosable(self.h_tabbar)
+
+        # reorganize tabs
+        for i in range(1, self.ui.tabs.count() - 1):
+            icon = self.ui.tabs.widget(i).page().icon()
+            if not icon.availableSizes():
+                icon = self.web_ico
+            if self.h_tabbar:
+                new_icon = icon
+                self.title_changed(self.ui.tabs.widget(i).page().title(), i)
+                self.ui.tabs.tabBar().tabButton(i, QTabBar.ButtonPosition.RightSide).clicked.connect(lambda checked, index=i: self.tab_closed(index))
+            else:
+                new_icon = QIcon(icon.pixmap(QSize(self.icon_size, self.icon_size)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
+                self.ui.tabs.tabBar().setTabText(i, "")
+            self.ui.tabs.tabBar().setTabIcon(i, new_icon)
 
         if self.isIncognito:
             theme = self.settings.incognitoTheme
@@ -813,7 +829,6 @@ class MainWindow(QMainWindow):
 
         self.ui.tabs.setStyleSheet(Themes.styleSheet(theme, Themes.Section.horizontalTabs) if self.h_tabbar else Themes.styleSheet(theme, Themes.Section.verticalTabs))
         self.ui.tabs.setTabPosition(QTabWidget.TabPosition.North if self.h_tabbar else QTabWidget.TabPosition.West)
-        self.ui.tabs.setTabsClosable(self.h_tabbar)
         self.ui.tabs.tabBar().setTabButton(0, QTabBar.ButtonPosition.RightSide, None)
         self.ui.tabs.tabBar().setTabButton(self.ui.tabs.count() - 1, QTabBar.ButtonPosition.RightSide, None)
         self.ui.tabs.tabBar().setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)
