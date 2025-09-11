@@ -32,9 +32,9 @@ class DefaultSettings:
     class Player:
 
         class PlayerTypes:
-            app = "mpv"     # strongly recommended, but requires mpv.exe in ./externalplayer/mpv/ folder
-            internal = "qt" # experimental... by now?
-            http = "http"   # not working... yet?
+            app = "mpv"      # strongly recommended, but requires mpv.exe in ./externalplayer/mpv/ folder
+            internal = "qt"  # experimental. Not very well resolved
+            http = "http"    # not working. Requires ffmpeg or similar to encode video output
 
         externalPlayerType = PlayerTypes.app
         streamTempFile = "temp_1.mp4"

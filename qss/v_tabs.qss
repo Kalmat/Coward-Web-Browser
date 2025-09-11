@@ -48,7 +48,7 @@ QTabBar::tab:first:hover {
 }
 
 QTabBar::tab:last {
-    background: #323232;
+    background: #161616;
     border-top: none;
     padding: 0px;
     padding-left: 3px;

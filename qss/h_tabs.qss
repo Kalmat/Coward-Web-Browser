@@ -17,7 +17,7 @@ QTabBar::tab {
     min-width: %spx;
     max-width: 240px;
     height: %spx;
-    padding: 6px;
+    padding: 3px;
 }
 
 QTabBar::tab:selected {
@@ -45,7 +45,7 @@ QTabBar::tab:first:hover {
 }
 
 QTabBar::tab:last {
-    background: #323232;
+    background: #161616;
     border-bottom: none;
 }
 
