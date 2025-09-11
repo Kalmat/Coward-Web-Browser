@@ -113,9 +113,10 @@ class WebPage(QWebEnginePage):
 
     def openInExternalPlayer(self):
 
-        if self.stream_thread is not None:
-            self.handleStreamError(DefaultSettings.StreamErrorMessages.onePlayerOnly)
-            return
+        # allow (or not) multiple external player instances per page
+        # if self.stream_thread is not None:
+        #     self.handleStreamError(DefaultSettings.StreamErrorMessages.onePlayerOnly)
+        #     return
 
         # check how to manage internal/external choice:
         if DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.app:
@@ -179,7 +180,7 @@ class WebPage(QWebEnginePage):
             self.media_player.close()
             if os.path.exists(DefaultSettings.Player.streamTempFile):
                 try:
-                    os.remove(DefaultSettings.Player.streamTempFile)
+                    (DefaultSettings.Player.streamTempFile)
                 except:
                     pass
             if os.path.exists(DefaultSettings.Player.streamTempFile_2):

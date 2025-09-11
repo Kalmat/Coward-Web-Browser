@@ -162,11 +162,6 @@ class Streamer(QThread):
             self.streamErrorSig.emit(DefaultSettings.StreamErrorMessages.mpvNotFound)
             return
 
-        # allow (or not) multiple players per page
-        # if self.playerProcess is not None:
-        #     self.streamErrorSig.emit(DefaultSettings.StreamErrorMessages.onePlayerOnly)
-        #     return
-
         self.bufferingStartedSig.emit()
 
         # Open MPV player as subprocess

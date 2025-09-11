@@ -7,7 +7,7 @@ from settings import DefaultSettings
 
 class WebProfile(QWebEngineProfile):
 
-    def __init__(self, cache_path, browser, cookie_filter=None):
+    def __init__(self, cache_path, browser=None, cookie_filter=None):
 
         if cache_path is None:
             super(WebProfile, self).__init__(browser)

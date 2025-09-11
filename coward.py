@@ -61,6 +61,9 @@ class MainWindow(QMainWindow):
         # create UI
         self.setUI()
 
+        # create and initialize independent widgets and variables
+        self.preInit()
+
         # open previous tabs and child windows
         self.createTabs(init_tabs)
 
@@ -146,6 +149,8 @@ class MainWindow(QMainWindow):
         # connect all UI slots to handle requested actions
         self.connectUiSlots()
 
+    def preInit(self):
+
         # set cookies configuration according to settings
         self.manage_cookies(clicked=False)
 
@@ -166,6 +171,9 @@ class MainWindow(QMainWindow):
         self.appPix = QPixmap(DefaultSettings.Icons.appIcon)
         self.appPix_32 = QPixmap(DefaultSettings.Icons.appIcon_32)
         self.web_ico = QIcon(DefaultSettings.Icons.loading)
+
+        # webpage common profile to keep session logins, cookies and so on
+        self._profile = self.getProfile()
 
     def applyStyles(self):
 
@@ -324,8 +332,8 @@ class MainWindow(QMainWindow):
 
         # this will create the browser and apply all selected settings
         browser = WebView()
-        profile = self.getProfile(browser)
-        page = self.getPage(profile, browser, zoom)
+        # profile = self.getProfile(browser)
+        page = self.getPage(self._profile, browser, zoom)
         browser.setPage(page)
 
         browser.settings().setAttribute(QWebEngineSettings.WebAttribute.FullScreenSupportEnabled, True)
@@ -355,7 +363,7 @@ class MainWindow(QMainWindow):
             self.ui.reload_btn.setText(self.ui.reload_char)
             self.ui.reload_btn.setToolTip("Reload page")
 
-    def getProfile(self, browser):
+    def getProfile(self, browser=None):
 
         if self.isIncognito:
             # apply no persistent cache
