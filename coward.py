@@ -48,11 +48,11 @@ class MainWindow(QMainWindow):
         # get Settings
         self.loadSettings(new_win, incognito)
 
-        # configure cache and check if relaunched to delete it
+        # configure cache and check if relaunched to delete it when using "clean all" option
         self.cache_manager = CacheManager(self.appStorageFolder)
         self.deletePreviousCache()
 
-        # delete previous stream temp files too (for internal Qt player only)
+        # check if relaunched to delete previous stream temp files too (for internal Qt player only)
         self.deletePreviousTemp()
 
         # apply main window settings
@@ -158,7 +158,7 @@ class MainWindow(QMainWindow):
         self.toggle_tabbar(clicked=False)
         self.prevTabIndex = 1
 
-        # keep track of open popups and assure their persintence (anywaym, we are not allowing popups by now)
+        # keep track of open popups and assure their persistence (anyway, we are not allowing popups by now)
         self.popups = []
 
         # use a dialog manager to enqueue dialogs and avoid showing all at once
@@ -172,8 +172,8 @@ class MainWindow(QMainWindow):
         self.appPix_32 = QPixmap(DefaultSettings.Icons.appIcon_32)
         self.web_ico = QIcon(DefaultSettings.Icons.loading)
 
-        # webpage common profile to keep session logins, cookies and so on
-        self._profile = self.getProfile()
+        # webpage common profile to keep session logins, cookies, etc.
+        self._profile = None
 
     def applyStyles(self):
 
@@ -284,6 +284,7 @@ class MainWindow(QMainWindow):
             tabs = init_tabs or DefaultSettings.Browser.defaultTabs
             # no child windows allowed for child instances
             new_wins = []
+
         else:
             # get open tabs for  main instance window
             tabs = self.settings.previousTabs
@@ -332,7 +333,7 @@ class MainWindow(QMainWindow):
 
         # this will create the browser and apply all selected settings
         browser = WebView()
-        # profile = self.getProfile(browser)
+        profile = self.getProfile(browser)
         page = self.getPage(self._profile, browser, zoom)
         browser.setPage(page)
 
@@ -365,19 +366,21 @@ class MainWindow(QMainWindow):
 
     def getProfile(self, browser=None):
 
-        if self.isIncognito:
-            # apply no persistent cache
-            cache_path = None
-        elif self.cache_manager.lastCache:
-            # apply temporary cache location to delete all previous cache when app is closed, but keeping these last
-            cache_path = self.cache_manager.lastCache
-        else:
-            # apply application cache location
-            cache_path = self.cache_manager.cachePath
+        if self._profile is None:
 
-        profile = WebProfile(cache_path, browser, self.cookie_filter)
+            if self.isIncognito:
+                # apply no persistent cache
+                cache_path = None
+            elif self.cache_manager.lastCache:
+                # apply temporary cache location to delete all previous cache when app is closed, but keeping these last
+                cache_path = self.cache_manager.lastCache
+            else:
+                # apply application cache location
+                cache_path = self.cache_manager.cachePath
 
-        return profile
+            self._profile = WebProfile(cache_path, browser, self.cookie_filter)
+
+        return self._profile
 
     def getPage(self, profile, browser, zoom):
 
@@ -582,11 +585,12 @@ class MainWindow(QMainWindow):
         self.ui.tabs.tabBar().setTabToolTip(i, "New tab")
 
     # method for adding new tab when requested by user
-    def add_new_tab(self, qurl=None):
+    def add_new_tab(self, qurl=None, setFocus=True):
         self.ui.tabs.removeTab(self.ui.tabs.count() - 1)
         i = self.add_tab(qurl or QUrl(DefaultSettings.Browser.defaultPage))
         self.add_tab_action()
-        self.ui.tabs.setCurrentIndex(i)
+        if setFocus:
+            self.ui.tabs.setCurrentIndex(i)
         self.update_urlbar(self.ui.tabs.currentWidget().url(), self.ui.tabs.currentWidget())
 
     # method to update the url when tab is changed
@@ -754,7 +758,7 @@ class MainWindow(QMainWindow):
             self.show_in_new_window([[request.requestedUrl().toString(), 1.0, True]])
 
         elif request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewTab:
-            self.add_new_tab(request.requestedUrl())
+            self.add_new_tab(request.requestedUrl(), setFocus=False)
 
         elif request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewDialog:
             if request.isUserInitiated():
