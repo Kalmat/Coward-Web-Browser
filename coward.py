@@ -341,7 +341,7 @@ class MainWindow(QMainWindow):
 
         # this will create the browser and apply all selected settings
         browser = WebView()
-        profile = self.getProfile(browser)
+        self._profile = self.getProfile(browser)
         page = self.getPage(self._profile, browser, zoom)
         browser.setPage(page)
 
@@ -374,12 +374,12 @@ class MainWindow(QMainWindow):
 
     def getProfile(self, browser=None):
 
-        if self._profile is None:
+        if self._profile is None or self.cache_manager.isDeleteCacheRequested():
 
             if self.isIncognito:
                 # apply no persistent cache
                 cache_path = None
-            elif self.cache_manager.lastCache:
+            elif self.cache_manager.isDeleteCacheRequested():
                 # apply temporary cache location to delete all previous cache when app is closed, but keeping these last
                 cache_path = self.cache_manager.lastCache
             else:
@@ -1045,7 +1045,7 @@ class MainWindow(QMainWindow):
 
         if not self.isIncognito:
             # activate cache deletion upon closing app (if not incognito which will be auto-deleted)
-            self.cache_manager.deleteCache = True
+            self.cache_manager.setDeleteCacheRequested(True)
 
             # set a new cache folder (old ones will be deleted when app is restarted)
             self.cache_manager.lastCache = os.path.join(self.cache_manager.cachePath, str(time.time()).replace(".", ""))
@@ -1057,19 +1057,18 @@ class MainWindow(QMainWindow):
 
         tabs = []
         for i in range(1, tabsCount - 1):
-            browser: QWebEngineView = self.ui.tabs.widget(0)
-            page: QWebEnginePage = browser.page()
+            browser = self.ui.tabs.widget(1)
+            page = browser.page()
             tabs.append([page.url(), page.zoomFactor()])
             browser.deleteLater()
-            self.ui.tabs.removeTab(0)
+            self.ui.tabs.removeTab(1)
 
-        self.ui.tabs.remove(0)
+        self.ui.tabs.removeTab(1)
 
         for item in tabs:
             url, zoom = item
             # new cache storage will be assigned in add_tab() method
             self.add_tab(url, zoom)
-
         self.add_tab_action()
         self.ui.tabs.setCurrentIndex(currIndex)
 
@@ -1173,8 +1172,9 @@ class MainWindow(QMainWindow):
         self.moveOtherWidgets()
 
     def deletePreviousCache(self):
-        if self.cache_manager.checkDeleteCache():
-            self.cache_manager.deleteCache()
+        last_cache = self.cache_manager.checkDeleteCache(sys.argv)
+        if last_cache:
+            self.cache_manager.deleteCache(last_cache)
             QApplication.quit()
             sys.exit(0)
 
@@ -1244,7 +1244,7 @@ class MainWindow(QMainWindow):
             self.saveSettings(tabs, new_wins)
 
         args = []
-        if self.cache_manager.deleteCache and not self.isNewWin and not self.isIncognito:
+        if self.cache_manager.isDeleteCacheRequested() and not self.isNewWin and not self.isIncognito:
             # restart app to wipe all cache folders but the last one (not possible while running since it's locked)
             args += [appconfig.Options.DeleteCache] + [self.cache_manager.lastCache]
 

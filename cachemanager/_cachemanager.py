@@ -15,10 +15,21 @@ class CacheManager:
         self.cachePath = os.path.join(self.cacheStorageFolder, DefaultSettings.Storage.Cache.cacheFile)
 
         self.lastCache = ""
-        self.deleteCache = False
+        self._deleteCacheRequested = False
 
-    def checkDeleteCache(self):
-        return Options.DeleteCache in sys.argv
+    def setDeleteCacheRequested(self, requested):
+        self._deleteCacheRequested = requested
+
+    def isDeleteCacheRequested(self):
+        return self._deleteCacheRequested
+
+    def checkDeleteCache(self, args):
+        last_cache = ""
+        for i, item in enumerate(args):
+            if item == Options.DeleteCache:
+                last_cache = sys.argv[i + 1]
+                break
+        return last_cache
 
     def deleteCache(self, last_cache):
         # wipe all cache folders except the last one if requested by user (in a new process or it will be locked)
