@@ -1,4 +1,4 @@
-from PyQt6.QtCore import Qt, QCoreApplication, QSize
+from PyQt6.QtCore import Qt, QCoreApplication, QSize, QPoint
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QToolButton, QLabel, QSizePolicy, QMenu, QStyle, QTabWidget
 
@@ -274,3 +274,13 @@ class Ui_MainWindow:
         # MainWindow.setWindowTitle(_translate("MainWindow", "Sample Editor"))
         # self.menu_File.setTitle(_translate("MainWindow", "&File"))
         pass
+
+    def createCloseTabContextMenu(self, i):
+        text = self.tabs.tabBar().tabToolTip(i).replace("\n(Right-click to close)", "")
+        self.close_action.setText('Close tab: "' + text + '"')
+        tab_rect = self.tabs.tabBar().tabRect(i)
+        self.tabsContextMenu.exec(self.tabs.mapToGlobal(QPoint(tab_rect.x() + tab_rect.width(), tab_rect.y())))
+
+    def createNewTabContextMenu(self, i):
+        tab_rect = self.tabs.tabBar().tabRect(i)
+        self.tabsContextMenu.exec(self.tabs.mapToGlobal(QPoint(tab_rect.x() + tab_rect.width(), tab_rect.y())))

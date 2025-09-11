@@ -229,6 +229,7 @@ class MainWindow(QMainWindow):
         # tab bar events management
         self.ui.tabs.currentChanged.connect(self.current_tab_changed)
         self.ui.tabs.tabBarClicked.connect(self.tab_clicked)
+        # this will be managed in script
         # self.ui.tabs.tabCloseRequested.connect(self.tab_closed)
         self.ui.tabs.tabBar().tabMoved.connect(self.tab_moved)
         self.ui.tabs.customContextMenuRequested.connect(self.showContextMenu)
@@ -327,7 +328,7 @@ class MainWindow(QMainWindow):
         self.connectBrowserSlots(browser, tabIndex)
         self.connectPageSlots(browser.page(), tabIndex)
 
-        # set close buttons
+        # set close buttons according to tabs orientation
         if self.h_tabbar:
             self.ui.tabs.tabBar().tabButton(tabIndex, QTabBar.ButtonPosition.RightSide).clicked.disconnect()
             self.ui.tabs.tabBar().tabButton(tabIndex, QTabBar.ButtonPosition.RightSide).clicked.connect(lambda checked, index=tabIndex: self.tab_closed(index))
@@ -735,33 +736,18 @@ class MainWindow(QMainWindow):
             self.ui.tabs.tabBar().tabButton(tabIndex, QTabBar.ButtonPosition.RightSide).clicked.connect(lambda checked, index=tabIndex: self.tab_closed(index))
 
     def showContextMenu(self, point):
+
         tabIndex = self.ui.tabs.tabBar().tabAt(point)
+
         if 1 <= tabIndex < self.ui.tabs.count() - 1:
-            self.createCloseTabContextMenu(tabIndex)
+            # set buttons before running context menu
+            self.ui.close_action.triggered.disconnect()
+            self.ui.close_action.triggered.connect(lambda checked, index=tabIndex: self.tab_closed(index))
+            # create and run context menu
+            self.ui.createCloseTabContextMenu(tabIndex)
+
         elif tabIndex == self.ui.tabs.count() - 1:
-            self.createNewTabContextMenu(tabIndex)
-
-    def createCloseTabContextMenu(self, i):
-        text = self.ui.tabs.tabBar().tabToolTip(i).replace("\n(Right-click to close)", "")
-        self.ui.close_action.setText('Close tab: "' + text + '"')
-        self.ui.close_action.triggered.disconnect()
-        self.ui.close_action.triggered.connect(lambda checked, index=i: self.tab_closed(index))
-        first_tab_rect = self.ui.tabs.tabBar().tabRect(0)
-        first_tab_height =  first_tab_rect.height()
-        tab_rect = self.ui.tabs.tabBar().tabRect(i)
-        tab_width = tab_rect.width()
-        tab_height = tab_rect.height()
-        pos = QPoint(self.ui.tabs.tabBar().x() + tab_width, self.ui.tabs.tabBar().y() + first_tab_height + (tab_height * (i - 1)))
-        self.ui.tabsContextMenu.exec(self.ui.tabs.mapToGlobal(pos))
-
-    def createNewTabContextMenu(self, i):
-        first_tab_rect = self.ui.tabs.tabBar().tabRect(0)
-        first_tab_height =  first_tab_rect.height()
-        tab_rect = self.ui.tabs.tabBar().tabRect(i)
-        tab_width = tab_rect.width()
-        tab_height = tab_rect.height()
-        pos = QPoint(self.ui.tabs.tabBar().x() + tab_width, self.ui.tabs.tabBar().y() + first_tab_height + (tab_height * i))
-        self.ui.newTabContextMenu.exec(self.ui.tabs.mapToGlobal(pos))
+            self.ui.createNewTabContextMenu(tabIndex)
 
     def openLinkRequested(self, request):
 
