@@ -48,8 +48,10 @@ class DefaultSettings:
         incognitoPersistentPolicy = QWebEngineProfile.PersistentCookiesPolicy.AllowPersistentCookies
 
     class AdBlocker:
-        enableAdBlocker = False
-        rulesFile = 'https://easylist.to/easylist/easylist.txt'
+        enableAdBlocker = False   # way too slow (perhaps pyre2 may improve performance, but fails to install)
+        urlBlackList = ["aswpsdkeu", "ads"]  # this is totally empyrical
+        rulesFileUrl = 'https://easylist.to/easylist/easylist.txt'
+        rulesFile = "easylist.txt"
 
     class Media:
         dialogInformationSound = utils.resource_path("res/dialog-information.wav")

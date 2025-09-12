@@ -26,7 +26,7 @@ class WebProfile(QWebEngineProfile):
         # set request interceptor
         # this ad page makes the whole browser crash: https://aswpsdkeu.com/notify/v2/ua-sdk.min.js
         # TODO: how to fix it? (it's going to be impossible to manage all these pages)
-        self.interceptor = RequestInterceptor(["aswpsdkeu"], enableAdBlocker, rulesFolder)
+        self.interceptor = RequestInterceptor(DefaultSettings.AdBlocker.urlBlackList, enableAdBlocker, rulesFolder)
         self.setUrlRequestInterceptor(self.interceptor)
 
     def _setNormalPage(self, cache_path):
@@ -56,7 +56,7 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
 
         # List of URLs (as strings or patterns) to block
         self.blocked_urls = blocked_urls
-        self.rulesPath = os.path.join(rulesFolder, "easylist.txt")
+        self.rulesPath = os.path.join(rulesFolder, DefaultSettings.AdBlocker.rulesFile)
 
         # enable / disable adblocker
         self.enableAdBlocker = enableAdBlocker
@@ -73,7 +73,7 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
 
             # Create AdblockRules instance
             self.rules = AdblockRules(raw_rules,
-                                      # use_re2 = True,  # enable this again when pyre2 is installed
+                                      # use_re2=True,  # enable this again when pyre2 is installed
                                       skip_unsupported_rules=False)
 
     def interceptRequest(self, info: QWebEngineUrlRequestInfo):
@@ -94,7 +94,7 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
 
     def updateRules(self, rulesPath):
 
-        response = requests.get(DefaultSettings.AdBlocker.rulesFile)
+        response = requests.get(DefaultSettings.AdBlocker.rulesFileUrl)
         if response.status_code == 200:
             with open(rulesPath, "wb") as file:
                 file.write(response.content)
