@@ -10,7 +10,6 @@ class DefaultSettings:
         appName = "Coward"
         appIcon = utils.resource_path("res/coward.png")
         appIcon_32 = utils.resource_path("res/coward_32.png")
-        enableAdBlocker = False
 
     class Grips:
         gripSize = 8
@@ -41,13 +40,16 @@ class DefaultSettings:
     class Browser:
         defaultPage = 'https://start.duckduckgo.com/?kae=d'
         defaultTabs = [[defaultPage, 1.0, True]]
-        rulesFile = 'https://easylist.to/easylist/easylist.txt'
 
     class Cookies:
         allow = True
         allowThirdParty = False
         persistentPolicy = QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies
         incognitoPersistentPolicy = QWebEngineProfile.PersistentCookiesPolicy.AllowPersistentCookies
+
+    class AdBlocker:
+        enableAdBlocker = False
+        rulesFile = 'https://easylist.to/easylist/easylist.txt'
 
     class Media:
         dialogInformationSound = utils.resource_path("res/dialog-information.wav")

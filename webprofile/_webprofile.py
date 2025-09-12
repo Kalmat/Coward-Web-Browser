@@ -94,7 +94,7 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
 
     def updateRules(self, rulesPath):
 
-        response = requests.get(DefaultSettings.Browser.rulesFile)
+        response = requests.get(DefaultSettings.AdBlocker.rulesFile)
         if response.status_code == 200:
             with open(rulesPath, "wb") as file:
                 file.write(response.content)

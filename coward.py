@@ -389,7 +389,7 @@ class MainWindow(QMainWindow):
                 cache_path = self.cache_manager.cachePath
 
             self._profile = WebProfile(cache_path, browser, self.cookie_filter,
-                                       DefaultSettings.App.enableAdBlocker, self.appStorageFolder)
+                                       DefaultSettings.AdBlocker.enableAdBlocker, self.appStorageFolder)
 
         return self._profile
 
