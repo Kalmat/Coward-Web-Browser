@@ -3,7 +3,6 @@ import os
 from PyQt6.QtCore import pyqtSignal, pyqtSlot
 from PyQt6.QtWebEngineCore import QWebEnginePage
 
-import utils
 from mediaplayer import QtMediaPlayer
 from settings import DefaultSettings
 from mediaplayer._streamer import Streamer
@@ -11,20 +10,15 @@ from mediaplayer._streamer import Streamer
 
 class WebPage(QWebEnginePage):
 
-    _bufferingStartedSig = pyqtSignal()
-    _streamStartedSig = pyqtSignal()
-    _streamErrorSig = pyqtSignal(str)
-    _playerClosedSig = pyqtSignal(bool)
+    _bufferingStartedSig = pyqtSignal(str)
+    _streamStartedSig = pyqtSignal(str)
+    _streamErrorSig = pyqtSignal(str, str)
+    _playerClosedSig = pyqtSignal(bool, str)
 
-    def __init__(self, profile, parent, bufferingStartedSig=None, streamStartedSig=None, mediaErrorSignal=None, streamErrorSignal=None):
+    def __init__(self, profile, parent, dialog_manager):
         super(WebPage, self).__init__(profile, parent)
 
-        self.bufferingStartedSig = bufferingStartedSig
-        self.streamStartedSig = streamStartedSig
-        self.mediaError = mediaErrorSignal
-        self.streamErrorSignal = streamErrorSignal
-        self.stream_thread = None
-        self.media_player = None
+        self.dialog_manager = dialog_manager
 
         self._bufferingStartedSig.connect(self.bufferingStarted)
         self._streamStartedSig.connect(self.streamStarted)
@@ -36,23 +30,35 @@ class WebPage(QWebEnginePage):
         self._logFile = "pagelog.txt"
         self._logFileOpen = False
 
+        self.streamers = {}
+        self.players = {}
+        self.dialogsToDelete = {}
+
+    def handleFeatureRequested(self, origin, feature):
+        message = DefaultSettings.DialogMessages.featureRequest % DefaultSettings.FeatureMessages[feature]
+        self.showDialog(
+            message=message,
+            acceptSlot=(lambda o=origin, f=feature: self.accept_feature(o, f)),
+            rejectSlot=(lambda o=origin, f=feature: self.reject_feature(o, f)))
+
     def accept_feature(self, origin, feature):
         self.setFeaturePermission(origin, feature, QWebEnginePage.PermissionPolicy.PermissionGrantedByUser)
 
     def reject_feature(self, origin, feature):
         self.setFeaturePermission(origin, feature, QWebEnginePage.PermissionPolicy.PermissionDeniedByUser)
 
-    def accept_permission(self, request):
-        request.accept()
+    def handlePermissionRequested(self, request):
+        message = DefaultSettings.DialogMessages.featureRequest % (DefaultSettings.FeatureMessages[request.type()])
+        self.showDialog(
+            message=message,
+            acceptSlot=request.grant,
+            rejectSlot=request.deny)
 
-    def reject_permission(self, request):
-        request.reject()
-
-    def accept_player(self):
-        self.openInExternalPlayer()
-
-    def reject_player(self):
-        pass
+    def handleExternalPlayerRequest(self):
+        message = DefaultSettings.DialogMessages.externalPlayerRequest
+        self.showDialog(
+            message=message,
+            acceptSlot=self.openInExternalPlayer)
 
     def javaScriptConsoleMessage(self, level, message, lineNumber=0, sourceID=""):
 
@@ -108,76 +114,94 @@ class WebPage(QWebEnginePage):
                                  buffering_started_sig=self._bufferingStartedSig,
                                  stream_started_sig=self._streamStartedSig,
                                  stream_error_sig=self._streamErrorSig,
-                                 closed_sig=self._playerClosedSig)
+                                 closed_sig=self._playerClosedSig,
+                                 index=len(self.streamers))
+        self.streamers[url] = stream_thread
         return stream_thread
 
     def openInExternalPlayer(self):
 
         # allow (or not) multiple external player instances per page
-        # if self.stream_thread is not None:
-        #     self.handleStreamError(DefaultSettings.StreamErrorMessages.onePlayerOnly)
-        #     return
+        if self.url().toString() in list(self.streamers.keys()):
+            self.showDialog(
+                message=DefaultSettings.StreamErrorMessages.onePlayerOnly,
+                buttonOkOnly=True)
+            return
+
+        stream_thread = None
 
         # check how to manage internal/external choice:
         if DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.app:
-            self.stream_thread = self.launchStream(url=self.url().toString(),
+            stream_thread = self.launchStream(url=self.url().toString(),
                                                    title=self.title(),
                                                    player_type=DefaultSettings.Player.PlayerTypes.app)
 
         elif DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.http:
-            self.stream_thread = self.launchStream(url=self.url().toString(),
+            stream_thread = self.launchStream(url=self.url().toString(),
                                                    title=self.title(),
                                                    player_type=DefaultSettings.Player.PlayerTypes.http)
 
         elif DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.internal:
-            self.stream_thread = self.launchStream(url=self.url().toString(),
+            stream_thread = self.launchStream(url=self.url().toString(),
                                                    title="",
                                                    player_type=DefaultSettings.Player.PlayerTypes.internal)
 
-            if self.stream_thread is not None:
-                self.media_player = QtMediaPlayer(title=self.title(),
-                                                  closedSig=self._playerClosedSig)
-                self.media_player.show()
-                self.media_player.start()
+            if stream_thread is not None:
+                media_player = QtMediaPlayer(title=self.title(),
+                                                  closedSig=(lambda u=self.url: self._playerClosedSig(u)))
+                media_player.show()
+                media_player.start()
+                self.players[self.url().toString()] = media_player
 
-        if self.stream_thread is not None:
-            self.stream_thread.start()
+        if stream_thread is not None:
+            stream_thread.start()
 
     # launch external player dialog if media can't be played
-    def handleMediaError(self, ok):
+    def handleMediaError(self, ok, qurl):
         if not ok:
-            self.mediaError.emit(self)
+            self.dialog_manager.show_media_error(self)
+            message = DefaultSettings.DialogMessages.externalPlayerRequest
+            self.showDialog(
+                message=message,
+                acceptSlot=self.openInExternalPlayer)
 
-    @pyqtSlot()
-    def bufferingStarted(self):
-        if self.bufferingStartedSig is not None:
-            self.bufferingStartedSig.emit(self)
+    @pyqtSlot(str)
+    def bufferingStarted(self, qurl):
+        dialog = self.showDialog(
+            message=DefaultSettings.DialogMessages.bufferingStarted,
+            buttonOkOnly=True,
+            canBeDeleted=True)
+        self.dialogsToDelete[qurl] = dialog
 
-    @pyqtSlot()
-    def streamStarted(self):
-        if self.streamStartedSig is not None:
-            self.streamStartedSig.emit(self)
+    @pyqtSlot(str)
+    def streamStarted(self, qurl):
+        dialog = self.dialogsToDelete.get(qurl, None)
+        if dialog is not None:
+            self.dialog_manager.deleteDialog(dialog)
+            del self.dialogsToDelete[qurl]
 
     # handle streamer errors, and close external players which may remain open
-    @pyqtSlot(str)
-    def handleStreamError(self, e):
-        if self.streamErrorSignal is not None:
-            self.streamErrorSignal.emit(self, e)
-        if e != DefaultSettings.StreamErrorMessages.onePlayerOnly:
-            self.closeExternalPlayer(e)
-        self.streamStarted()
+    @pyqtSlot(str, str)
+    def handleStreamError(self, error, qurl):
+        message = DefaultSettings.DialogMessages.streamError % error
+        self.showDialog(
+            message=message,
+            buttonOkOnly=True)
+        self.streamStarted(qurl)
 
     # close evertything related to streaming media: streamer (if not already closed), media player and delete files
-    @pyqtSlot(bool)
-    def closeExternalPlayer(self, streamStopped):
-        self.streamStarted()
-        if not streamStopped and self.stream_thread is not None:
-            self.stream_thread.stop()
-            # utils.kill_process(self.stream_thread.pid)
-        self.stream_thread = None
-        if self.media_player is not None:
-            self.media_player.stop()
-            self.media_player.close()
+    @pyqtSlot(bool, str)
+    def closeExternalPlayer(self, streamStopped, qurl):
+        stream_thread = self.streamers.get(qurl, None)
+        self.streamStarted(qurl)
+        if stream_thread is not None:
+            if not streamStopped:
+                stream_thread.stop()
+            del self.streamers[qurl]
+        media_player = self.players.get(qurl, None)
+        if media_player is not None:
+            media_player.stop()
+            media_player.close()
             if os.path.exists(DefaultSettings.Player.streamTempFile):
                 try:
                     (DefaultSettings.Player.streamTempFile)
@@ -188,7 +212,18 @@ class WebPage(QWebEnginePage):
                     os.remove(DefaultSettings.Player.streamTempFile_2)
                 except:
                     pass
-            self.media_player = None
+            del self.players[qurl]
+
+    def showDialog(self, message, buttonOkOnly=False, acceptSlot=None, rejectSlot=None, canBeDeleted=False):
+        dialog = self.dialog_manager.createDialog(
+            icon=self.icon(),
+            title=self.title() or self.url().toString(),
+            message=message,
+            buttonOkOnly=buttonOkOnly,
+            acceptedSlot=acceptSlot,
+            rejectedSlot=rejectSlot
+        )
+        return dialog
 
 """
     {

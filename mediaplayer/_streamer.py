@@ -15,13 +15,15 @@ from settings import DefaultSettings
 class Streamer(QThread):
 
     def __init__(self, url, qualities="720p,720p60,best", title="Coward stream", player_type=None,
-                       buffering_started_sig=None, stream_started_sig=None, stream_error_sig=None, closed_sig=None):
+                       buffering_started_sig=None, stream_started_sig=None, stream_error_sig=None, closed_sig=None,
+                       index=0):
         super().__init__()
 
         self.url = url
         self.qualities = qualities.replace(" ", "").split(",")
         self.title = title or "Coward stream"
         self.playerType = player_type or DefaultSettings.Player.PlayerTypes.internal
+        self.index = index
 
         self.stream_file = DefaultSettings.Player.streamTempFile
         self.next_stream_file = DefaultSettings.Player.streamTempFile_2
@@ -50,6 +52,7 @@ class Streamer(QThread):
         else:
             options = {}
         session = Streamlink(options=options)
+        self.bufferingStartedSig.emit(self.url)
 
         stream = None
         errorRaised = False
@@ -159,13 +162,11 @@ class Streamer(QThread):
         # can it be packed together with the pyinstaller .exe file?
 
         if not os.path.exists(self.externalPlayerPath):
-            self.streamErrorSig.emit(DefaultSettings.StreamErrorMessages.mpvNotFound)
+            self.streamErrorSig.emit(DefaultSettings.StreamErrorMessages.mpvNotFound, self.url)
             return
 
-        self.bufferingStartedSig.emit()
-
         # Open MPV player as subprocess
-        mpvPipeName = r"\\.\pipe\mpv-pipe"
+        mpvPipeName = r"\\.\pipe\mpv-pipe" + str(self.index)
         mpv_cmd = [self.externalPlayerPath, "--title=%s - mpv" % self.title,
                                             "--no-cache",
                                             "--input-ipc-server=%s" % mpvPipeName,
@@ -180,11 +181,11 @@ class Streamer(QThread):
                     data = stream_fd.read(DefaultSettings.Player.chunkSize)
                     if not data or self.playerProcess is None or self.playerProcess.poll() is not None:
                         break
-                    if not self.startEmitted:
-                        self.startEmitted = True
-                        self.streamStartedSig.emit()
                     self.playerProcess.stdin.write(data)
                     self.playerProcess.stdin.flush()
+                    if not self.startEmitted:
+                        self.startEmitted = True
+                        self.streamStartedSig.emit(self.url)
 
         except Exception as e:
             print(f"Stream error: {e}")
@@ -208,9 +209,9 @@ class Streamer(QThread):
     def handleError(self, tryLater):
         if self.streamErrorSig is not None:
             if tryLater:
-                self.streamErrorSig.emit(DefaultSettings.StreamErrorMessages.tryLater)
+                self.streamErrorSig.emit(DefaultSettings.StreamErrorMessages.tryLater, self.url)
             else:
-                self.streamErrorSig.emit(DefaultSettings.StreamErrorMessages.cantPlay)
+                self.streamErrorSig.emit(DefaultSettings.StreamErrorMessages.cantPlay, self.url)
         self.stop()
 
     def stop(self):
@@ -223,10 +224,11 @@ class Streamer(QThread):
 
         elif self.playerType == DefaultSettings.Player.PlayerTypes.http:
             self.stopHttpServer = True
-        self.closedSig.emit(True)
+        self.closedSig.emit(True, self.url)
         self.quit()
 
 
+# this is for testing only
 class Window(QMainWindow):
 
     def __init__(self, url):

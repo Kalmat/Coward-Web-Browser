@@ -1,8 +1,9 @@
 from queue import Queue
 
 from PyQt6 import sip
-from PyQt6.QtCore import QObject, pyqtSignal, QTimer, pyqtSlot
+from PyQt6.QtCore import QObject, pyqtSignal, QTimer, pyqtSlot, QSize
 from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtWebEngineCore import QWebEnginePage
 from PyQt6.QtWidgets import QDialogButtonBox
 
 import utils
@@ -15,9 +16,13 @@ class DialogsManager(QObject):
 
     _closeSig = pyqtSignal()
 
-    def __init__(self, parent):
+    def __init__(self, parent, theme, icon_size, target_dlg_func=None):
         super().__init__(parent)
 
+        self.parent = parent
+        self.theme = theme
+        self.icon_size = icon_size
+        self.targetDlgPos = target_dlg_func
         self.appIcon_32 = QPixmap(utils.resource_path(DefaultSettings.Icons.appIcon_32))
 
         # enqueue dialogs to avoid showing all at once
@@ -39,23 +44,30 @@ class DialogsManager(QObject):
         self.showingDlg = False
         self.currentDialog = None
 
-    def createDialog(self, parent, theme=None, icon=None, title=None, message=None, buttons=None,
-                     getPosFunc=None, acceptedSlot=None, rejectedSlot=None):
+    def createDialog(self, theme=None, icon=None, title=None, message=None, buttonOkOnly=False,
+                     acceptedSlot=None, rejectedSlot=None):
 
         theme = theme or DefaultSettings.Theme.defaultTheme
-        icon = icon or self.appIcon_32
+        if icon is None:
+            icon = self.appIcon_32
+        elif isinstance(icon, QIcon):
+            icon = icon.pixmap(QSize(self.icon_size, self.icon_size))
+        icon = icon
         title = title or "Warning!"
         message = message or "Lorem ipsum consectetuer adipisci est"
-        buttons = buttons or (QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        dialog = Dialog(parent,
-                        icon=icon,
-                        title=title,
-                        message=message,
-                        buttons=buttons,
-                        radius=8,
-                        getPosFunc=getPosFunc,
-                        showSig=None,
-                        closeSig=self._closeSig)
+        buttons = QDialogButtonBox.StandardButton.Ok
+        if not buttonOkOnly:
+            buttons = buttons | QDialogButtonBox.StandardButton.Cancel
+        dialog = Dialog(
+                parent=self.parent,
+                icon=icon,
+                title=title,
+                message=message,
+                buttons=buttons,
+                radius=8,
+                getPosFunc=self.targetDlgPos,
+                showSig=None,
+                closeSig=self._closeSig)
         dialog.setStyleSheet(Themes.styleSheet(theme, Themes.Section.dialog))
         if acceptedSlot is not None:
             dialog.accepted.connect(acceptedSlot)
@@ -66,7 +78,11 @@ class DialogsManager(QObject):
 
     def deleteDialog(self, dialog):
         if dialog not in self._dialogsToDelete:
-            self._dialogsToDelete.append(dialog)
+            if not sip.isdeleted(dialog):
+                if dialog.isVisible():
+                    dialog.close()
+                else:
+                    self._dialogsToDelete.append(dialog)
 
     def _queueDialogs(self, dialog):
         self._dlg_queue.put_nowait(dialog)

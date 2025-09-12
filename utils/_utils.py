@@ -1,6 +1,8 @@
 import os
+import random
 import re
 import sys
+import time
 import traceback
 
 import psutil
@@ -22,9 +24,11 @@ def set_widevine_var(widevine_relative_path):
                                                 % resource_path(widevine_relative_path, use_dist_folder="dist"))
 
 
-def fixDarkImage(self, image, width, height):
+def fixDarkImage(image, width, height, index=None):
     import imageio
     import numpy as np
+
+    temp_file = "temp_%s.png" % str(index) if index is not None else "temp.png"
 
     def is_dark(img, thrshld):
         return np.mean(img) < thrshld
@@ -44,17 +48,21 @@ def fixDarkImage(self, image, width, height):
         isIcon = False
         pixmap = image
 
-    pixmap.save("temp", "PNG")
-    f = imageio.imread("temp", mode="F")
+    pixmap.save(temp_file, "PNG")
+    if os.path.exists(temp_file):
+        f = imageio.imread(temp_file, mode="F")
 
-    if is_dark(f, 127):
-        pixmap = changePixmapBackground(pixmap, width, height)
+        if is_dark(f, 127):
+            pixmap = changePixmapBackground(pixmap, width, height)
 
-    os.remove("temp")
-    if isIcon:
-        return QIcon(pixmap)
+        os.remove(temp_file)
+        if isIcon:
+            return QIcon(pixmap)
+        else:
+            return pixmap
+
     else:
-        return pixmap
+        return image
 
 
 # new tab action ("+") in tab bar

@@ -283,4 +283,4 @@ class Ui_MainWindow:
 
     def createNewTabContextMenu(self, i):
         tab_rect = self.tabs.tabBar().tabRect(i)
-        self.tabsContextMenu.exec(self.tabs.mapToGlobal(QPoint(tab_rect.x() + tab_rect.width(), tab_rect.y())))
+        self.newTabContextMenu.exec(self.tabs.mapToGlobal(QPoint(tab_rect.x() + tab_rect.width(), tab_rect.y())))

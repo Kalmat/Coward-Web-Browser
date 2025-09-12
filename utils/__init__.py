@@ -10,5 +10,6 @@ from ._utils import (
     force_icon,
     exception_hook,
     set_widevine_var,
-    screenSize
+    screenSize,
+    fixDarkImage
 )

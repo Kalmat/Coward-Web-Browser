@@ -75,6 +75,17 @@ class DefaultSettings:
         mpvNotFound = "MPV player not found. please copy mpv.exe file in ./externalplayer/mpv folder"
         onePlayerOnly = "There is another player running. Please close it before opening a new one"
 
+    class DialogMessages:
+        featureRequest = "This page is asking for your permission to %s."
+        permissionRequest = "This page is asking for your permission to %s."
+        externalPlayerRequest = "This page contains non-compatible media.\n\n" \
+                                "Do you want to try to load it using an external player?"
+        bufferingStarted = "Buffering content to stream to external player.\n\n" \
+                           "Your stream will start soon, please be patient."
+        streamError = "There has been a problem while trying to stream this page.\n\n%s"
+        cleanAllRequest = "This will erase all your history and stored cookies.\n\n" \
+                          "Are you sure you want to proceed?"
+
     FeatureMessages = {
         QWebEnginePage.Feature.Notifications: "show Notifications",
         QWebEnginePage.Feature.Geolocation: "get your Geolocation",

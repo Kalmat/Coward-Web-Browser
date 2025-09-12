@@ -3,7 +3,6 @@ import os
 import sys
 import time
 
-from PyQt6 import sip
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from PyQt6.QtWebEngineCore import *
@@ -34,12 +33,6 @@ class MainWindow(QMainWindow):
     leaveNavBarSig = pyqtSignal()
     enterTabBarSig = pyqtSignal()
     leaveTabBarSig = pyqtSignal()
-
-    # manage page streaming lifecycle (started and errors)
-    bufferingStartedSignal = pyqtSignal(QWebEnginePage)
-    streamStartedSignal = pyqtSignal(QWebEnginePage)
-    mediaErrorSignal = pyqtSignal(QWebEnginePage)
-    streamErrorSignal = pyqtSignal(QWebEnginePage, str)
 
     # constructor
     def __init__(self, new_win=False, init_tabs=None, incognito=None):
@@ -74,6 +67,8 @@ class MainWindow(QMainWindow):
 
         # get settings
         self.settings = Settings(self, DefaultSettings.Storage.App.storageFolder, DefaultSettings.Storage.Settings.settingsFile)
+
+        # custom storage for browser profile aimed to persist cookies, cache, etc.
         self.appStorageFolder = self.settings.settingsFolder
 
         # prepare new wins config, with or without initial tabs
@@ -162,8 +157,10 @@ class MainWindow(QMainWindow):
         self.popups = []
 
         # use a dialog manager to enqueue dialogs and avoid showing all at once
-        self.dialog_manager = DialogsManager(self)
-        self.buffer_dialogs = {}
+        self.dialog_manager = DialogsManager(self,
+                                             DefaultSettings.Theme.deafultIncognitoTheme if self.isIncognito else DefaultSettings.Theme.defaultTheme,
+                                             self.icon_size,
+                                             self.targetDlgPos)
 
         # pre-load icons
         self.appIcon = QIcon(DefaultSettings.Icons.appIcon)
@@ -217,7 +214,7 @@ class MainWindow(QMainWindow):
         self.ui.dl_on_btn.clicked.connect(self.manage_downloads)
         self.ui.dl_off_btn.clicked.connect(self.manage_downloads)
         self.ui.cookie_btn.triggered.connect(lambda: self.manage_cookies(clicked=True))
-        self.ui.clean_btn.triggered.connect(self.show_clean_dlg)
+        self.ui.clean_btn.triggered.connect(self.handleCleanAllRequest)
         self.ui.ninja_btn.clicked.connect(lambda: self.show_in_new_window(incognito=True))
 
         # window buttons if custom title bar
@@ -246,12 +243,6 @@ class MainWindow(QMainWindow):
         self.leaveNavBarSig.connect(self.leaveNavBar)
         self.enterTabBarSig.connect(self.enterTabBar)
         self.leaveTabBarSig.connect(self.leaveTabBar)
-
-        # signal to show dialog to open an external player for non-compatible media
-        self.bufferingStartedSignal.connect(self.show_buffering_started)
-        self.streamStartedSignal.connect(self.show_stream_started)
-        self.mediaErrorSignal.connect(self.show_player_request)
-        self.streamErrorSignal.connect(self.show_stream_error)
 
     def show(self):
         super().show()
@@ -323,10 +314,13 @@ class MainWindow(QMainWindow):
 
         # setting tab index and default icon
         if tabIndex is None:
+            # add tab at the end
             tabIndex = self.ui.tabs.addTab(browser, label if self.h_tabbar else "")
+
         else:
+            # add tab in given position (e.g. when requested from page context menu)
             self.ui.tabs.insertTab(tabIndex, browser, label if self.h_tabbar else "")
-            # updating index-dependent signals when tab is moved
+            # updating index-dependent signals since all following tabs are moved
             for i in range(tabIndex + 1, self.ui.tabs.count() - 1):
                 self.update_index_dependent_signals(i)
 
@@ -399,7 +393,7 @@ class MainWindow(QMainWindow):
     def getPage(self, profile, browser, zoom):
 
         # this will create the page and apply all selected settings
-        page = WebPage(profile, browser, self.bufferingStartedSignal, self.streamStartedSignal, self.mediaErrorSignal, self.streamErrorSignal)
+        page = WebPage(profile, browser, self.dialog_manager)
 
         # set page zoom factor
         page.setZoomFactor(zoom)
@@ -429,7 +423,7 @@ class MainWindow(QMainWindow):
         page.fullScreenRequested.connect(self.page_fullscr)
 
         # Preparing asking for permissions
-        page.featurePermissionRequested.connect(lambda origin, feature, p=page: self.show_feature_request(origin, feature, p))
+        page.featurePermissionRequested.connect(lambda origin, feature, p=page: p.handleFeatureRequested(origin, feature))
         # Are these included in previous one? or the opposite? or none?
         # page.permissionRequested.connect(lambda request, p=page: self.show_permission_request(request, p))
         page.fileSystemAccessRequested.connect(lambda request, p=page: print("FS ACCESS REQUESTED", request))
@@ -473,101 +467,6 @@ class MainWindow(QMainWindow):
                 self.showNormal()
                 self.moveOtherWidgets()
 
-    def show_feature_request(self, origin, feature=None, page=None):
-        icon = page.icon().pixmap(QSize(self.icon_size, self.icon_size))
-        title = page.title() or page.url().toString()
-        message = "This page is asking for your permission to %s." % (DefaultSettings.FeatureMessages[feature])
-        theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
-        self.dialog_manager.createDialog(
-            parent=self,
-            theme=theme,
-            icon=icon,
-            title=title,
-            message=message,
-            getPosFunc=self.targetDlgPos,
-            acceptedSlot=(lambda o=origin, f=feature: page.accept_feature(o, f)),
-            rejectedSlot=(lambda o=origin, f=feature: page.reject_feature(o, f))
-        )
-
-    def show_permission_request(self, request, page):
-        icon = page.icon().pixmap(QSize(self.icon_size, self.icon_size))
-        title = page.title() or page.url().toString()
-        message = "This page is asking for your permission to %s." % (DefaultSettings.FeatureMessages[request.type()])
-        theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
-        self.dialog_manager.createDialog(
-            parent=self,
-            theme=theme,
-            icon=icon,
-            title=title,
-            message=message,
-            getPosFunc=self.targetDlgPos,
-            acceptedSlot=request.grant,
-            rejectedSlot=request.deny
-        )
-
-    @pyqtSlot(QWebEnginePage)
-    def show_player_request(self, page):
-        icon = page.icon().pixmap(QSize(self.icon_size, self.icon_size))
-        title = page.title() or page.url().toString()
-        message = "This page contains non-compatible media.\n\n" \
-                  "Do you want to try to load it using an external player?"
-        theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
-        self.dialog_manager.createDialog(
-            parent=self,
-            theme=theme,
-            icon=icon,
-            title=title,
-            message=message,
-            getPosFunc=self.targetDlgPos,
-            acceptedSlot=page.accept_player,
-            rejectedSlot=page.reject_player
-        )
-
-    @pyqtSlot(QWebEnginePage)
-    def show_buffering_started(self, page):
-        icon = page.icon().pixmap(QSize(self.icon_size, self.icon_size))
-        title = page.title() or page.url().toString()
-        message = ("Buffering content to stream to external player.\n\n"
-                   "Your stream will start soon, please be patient.")
-        theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
-        page: QWebEnginePage = page
-        self.buffer_dialogs[str(page)] = self.dialog_manager.createDialog(
-            parent=self,
-            theme=theme,
-            icon=icon,
-            title=title,
-            message=message,
-            buttons=QDialogButtonBox.StandardButton.Ok,
-            getPosFunc=self.targetDlgPos
-        )
-
-    @pyqtSlot(QWebEnginePage)
-    def show_stream_started(self, page):
-        dialog = self.buffer_dialogs.get(str(page), None)
-        if dialog is not None:
-            if not sip.isdeleted(dialog):
-                if dialog.isVisible():
-                    dialog.close()
-                else:
-                    self.dialog_manager.deleteDialog(dialog)
-            del self.buffer_dialogs[str(page)]
-
-    @pyqtSlot(QWebEnginePage, str)
-    def show_stream_error(self, page, error):
-        icon = page.icon().pixmap(QSize(self.icon_size, self.icon_size))
-        title = page.title() or page.url().toString()
-        message = ("There has been a problem while trying to stream this page.\n\n" + error)
-        theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
-        self.dialog_manager.createDialog(
-            parent=self,
-            theme=theme,
-            icon=icon,
-            title=title,
-            message=message,
-            buttons=QDialogButtonBox.StandardButton.Ok,
-            getPosFunc=self.targetDlgPos
-        )
-
     def title_changed(self, title, i):
         self.ui.tabs.tabBar().setTabText(i, (("  " + title[:20]) if len(title) > 20 else title) if self.h_tabbar else "")
         self.ui.tabs.setTabToolTip(i, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
@@ -576,7 +475,7 @@ class MainWindow(QMainWindow):
 
         # works fine but sometimes it takes too long (0,17sec.)...
         # TODO: find another way (test with github site)
-        # icon = utils.fixDarkImage(icon, self.icon_size, self.icon_size)
+        # icon = utils.fixDarkImage(icon, self.icon_size, self.icon_size, i)
 
         if self.h_tabbar:
             new_icon = icon
@@ -601,12 +500,14 @@ class MainWindow(QMainWindow):
     # method for adding new tab when requested by user
     def add_new_tab(self, qurl=None, setFocus=True):
         self.ui.tabs.removeTab(self.ui.tabs.count() - 1)
-        i = self.add_tab(qurl or QUrl(DefaultSettings.Browser.defaultPage),
-                         tabIndex=self.ui.tabs.currentIndex() + 1 if not setFocus else None)
-        self.add_tab_action()
+        qurl = qurl or QUrl(DefaultSettings.Browser.defaultPage)
         if setFocus:
+            i = self.add_tab(qurl)
             self.ui.tabs.setCurrentIndex(i)
+        else:
+            self.add_tab(qurl, tabIndex=self.ui.tabs.currentIndex() + 1)
         self.update_urlbar(self.ui.tabs.currentWidget().url(), self.ui.tabs.currentWidget())
+        self.add_tab_action()
 
     # method to update the url when tab is changed
     def navigate_to_url(self):
@@ -747,7 +648,7 @@ class MainWindow(QMainWindow):
         tabIndex = self.ui.tabs.tabBar().tabAt(point)
 
         if 1 <= tabIndex < self.ui.tabs.count() - 1:
-            # set buttons before running context menu
+            # set buttons before running context menu (it blocks)
             self.ui.close_action.triggered.disconnect()
             self.ui.close_action.triggered.connect(lambda checked, index=tabIndex: self.tab_closed(index))
             # create and run context menu
@@ -1030,23 +931,11 @@ class MainWindow(QMainWindow):
         #       )
         return ret
 
-    def show_clean_dlg(self):
-        # Prepare clean all warning dialog
-        icon = self.appPix_32
-        title = "Warning!"
-        message = "This will erase all your history and stored cookies.\n\n" \
-                  "Are you sure you want to proceed?"
-        theme = self.settings.incognitoTheme if self.isIncognito else self.settings.theme
+    def handleCleanAllRequest(self):
         self.dialog_manager.createDialog(
-            parent=self,
-            theme=theme,
-            icon=icon,
-            title=title,
-            message=message,
-            getPosFunc=self.targetDlgPos,
-            acceptedSlot=self.accept_clean,
-            rejectedSlot=self.reject_clean
-        )
+            title="Warning!",
+            message=DefaultSettings.DialogMessages.cleanAllRequest,
+            acceptedSlot=self.accept_clean)
 
     def accept_clean(self):
 
@@ -1078,9 +967,6 @@ class MainWindow(QMainWindow):
             self.add_tab(url, zoom)
         self.add_tab_action()
         self.ui.tabs.setCurrentIndex(currIndex)
-
-    def reject_clean(self):
-        pass
 
     def showMaxRestore(self):
 

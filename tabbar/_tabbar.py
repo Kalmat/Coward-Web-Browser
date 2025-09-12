@@ -1,4 +1,6 @@
-from PyQt6.QtWidgets import QTabBar
+from PyQt6.QtCore import Qt, QRect, QSize
+from PyQt6.QtGui import QImage
+from PyQt6.QtWidgets import QTabBar, QSizePolicy, QStylePainter, QStyleOptionTab, QStyle, QTabWidget
 
 
 class TabBar(QTabBar):
@@ -27,8 +29,8 @@ class TabBar(QTabBar):
     #
     #         textGap = 8
     #         if i < self.count() - 1:
-    #             painter.drawImage(QRect(r.x() + 8, r.y() + ((r.height() - 32) // 2), self.icon_size, self.icon_size), QImage(opt.icon.pixmap(QSize(self.icon_size, self.icon_size))))
-    #             textGap = self.action_size
+    #             painter.drawImage(QRect(r.x() + 8, r.y() + ((r.height() - 32) // 2), self.iconSize().width(), self.iconSize().height()), QImage(opt.icon.pixmap(QSize(self.iconSize().width(), self.iconSize().height()))))
+    #             textGap = 32
     #
     #         if self.parent().tabPosition() == QTabWidget.TabPosition.North or i == self.count() - 1:
     #             painter.drawText(QRect(r.x() + textGap, r.y(), r.width(), r.height()), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, opt.text)
