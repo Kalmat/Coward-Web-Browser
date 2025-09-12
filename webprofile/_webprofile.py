@@ -76,7 +76,7 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
         # print("INTERCEPTOR", info.firstPartyUrl(), info.navigationType(), info.initiator(), info.requestMethod(), url)
 
         # Check if the request URL is in the blocked list
-        if url in self.blocked_urls:
+        if any(blocked in url for blocked in self.blocked_urls):
             # Block the request (redirect to about:blank? How to detect it is not the "main" url???)
             info.block(True)
             print(f"Black List Blocked: {url}")

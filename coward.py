@@ -371,6 +371,7 @@ class MainWindow(QMainWindow):
         if browser == self.ui.tabs.currentWidget():
             self.ui.reload_btn.setText(self.ui.reload_char)
             self.ui.reload_btn.setToolTip("Reload page")
+        # TODO: find a reliable way to check if there is a media playback error (most likely, there isn't)
         # browser.page().checkCanPlayMedia()
 
     def getProfile(self, browser=None):

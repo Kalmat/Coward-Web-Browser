@@ -158,6 +158,14 @@ class WebPage(QWebEnginePage):
         self.streamers[url] = stream_thread
         return stream_thread
 
+    # launch external player dialog if media can't be played
+    def handleMediaError(self, ok, qurl):
+        if not ok:
+            message = DefaultSettings.DialogMessages.externalPlayerRequest
+            self.showDialog(
+                message=message,
+                acceptSlot=self.openInExternalPlayer)
+
     def openInExternalPlayer(self):
         # allow (or not) multiple external player instances per page
         url = self.url().toString()
@@ -195,14 +203,6 @@ class WebPage(QWebEnginePage):
 
         if stream_thread is not None:
             stream_thread.start()
-
-    # launch external player dialog if media can't be played
-    def handleMediaError(self, ok, qurl):
-        if not ok:
-            message = DefaultSettings.DialogMessages.externalPlayerRequest
-            self.showDialog(
-                message=message,
-                acceptSlot=self.openInExternalPlayer)
 
     @pyqtSlot(str)
     def bufferingStarted(self, qurl):
