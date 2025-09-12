@@ -242,6 +242,7 @@ class MainWindow(QMainWindow):
         self.enterTabBarSig.connect(self.enterTabBar)
         self.leaveTabBarSig.connect(self.leaveTabBar)
 
+
     def show(self):
         super().show()
 
@@ -628,7 +629,7 @@ class MainWindow(QMainWindow):
             self.update_index_dependent_signals(i)
 
         # delete tab widget safely
-        del self.widgetToDelete
+        self.widgetToDelete.deleteLater()
 
     # method for navigate to url
     def update_index_dependent_signals(self, tabIndex):
