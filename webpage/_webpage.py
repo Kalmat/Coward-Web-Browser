@@ -1,7 +1,7 @@
 import os
 
 from PyQt6.QtCore import pyqtSignal, pyqtSlot
-from PyQt6.QtWebEngineCore import QWebEnginePage
+from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineCertificateError
 
 from mediaplayer import QtMediaPlayer
 from settings import DefaultSettings
@@ -33,6 +33,26 @@ class WebPage(QWebEnginePage):
         self.streamers = {}
         self.players = {}
         self.dialogsToDelete = {}
+
+        # manage other signals
+        self.certificateError.connect(self.handleCertificateError)
+
+    # def acceptNavigationRequest(self, url, type, isMainFrame: bool) -> bool:
+    #     print("hello", url)
+    #     if type == QWebEnginePage.NavigationType.NavigationTypeLinkClicked: return False
+    #     return super().acceptNavigationRequest(url, type, isMainFrame)
+
+    def handleCertificateError(self, error: QWebEngineCertificateError):
+        if error.url().toString().startswith(self.url().toString()):
+            message = (DefaultSettings.DialogMessages.certificateErrorFirstParty
+                       % (self.title(), self.url().toString(), error.description()))
+        else:
+            message = (DefaultSettings.DialogMessages.certificateErrorThirdParty
+                       % (error.url().toString(), self.title(), self.url().toString(), error.description()))
+        self.showDialog(
+            message=message,
+            acceptSlot=error.acceptCertificate,
+            rejectSlot=error.rejectCertificate)
 
     def handleFeatureRequested(self, origin, feature):
         message = DefaultSettings.DialogMessages.featureRequest % DefaultSettings.FeatureMessages[feature]
@@ -139,9 +159,10 @@ class WebPage(QWebEnginePage):
         return stream_thread
 
     def openInExternalPlayer(self):
-
         # allow (or not) multiple external player instances per page
-        if self.url().toString() in list(self.streamers.keys()):
+        url = self.url().toString()
+        keys = list(self.streamers.keys())
+        if any(url in key for key in keys):
             self.showDialog(
                 message=DefaultSettings.StreamErrorMessages.onePlayerOnly,
                 buttonOkOnly=True)
@@ -152,22 +173,22 @@ class WebPage(QWebEnginePage):
         # check how to manage internal/external choice:
         if DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.app:
             stream_thread = self.launchStream(url=self.url().toString(),
-                                                   title=self.title(),
-                                                   player_type=DefaultSettings.Player.PlayerTypes.app)
+                                              title=self.title(),
+                                              player_type=DefaultSettings.Player.PlayerTypes.app)
 
         elif DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.http:
             stream_thread = self.launchStream(url=self.url().toString(),
-                                                   title=self.title(),
-                                                   player_type=DefaultSettings.Player.PlayerTypes.http)
+                                              title=self.title(),
+                                              player_type=DefaultSettings.Player.PlayerTypes.http)
 
         elif DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.internal:
             stream_thread = self.launchStream(url=self.url().toString(),
-                                                   title="",
-                                                   player_type=DefaultSettings.Player.PlayerTypes.internal)
+                                              title="",
+                                              player_type=DefaultSettings.Player.PlayerTypes.internal)
 
             if stream_thread is not None:
                 media_player = QtMediaPlayer(title=self.title(),
-                                                  closedSig=(lambda u=self.url: self._playerClosedSig(u)))
+                                             closedSig=(lambda u=self.url: self._playerClosedSig(u)))
                 media_player.show()
                 media_player.start()
                 self.players[self.url().toString()] = media_player
@@ -242,6 +263,7 @@ class WebPage(QWebEnginePage):
             rejectedSlot=rejectSlot
         )
         return dialog
+
 
 """
     {

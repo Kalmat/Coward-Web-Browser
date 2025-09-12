@@ -7,6 +7,10 @@ from settings import DefaultSettings
 
 
 def setAppAttributes(parent):
+
+    # is this useful in any scenario?
+    # QApplication.setAttribute(Qt.ApplicationAttribute.AA_UseSoftwareOpenGL)
+
     # setting window title and icon
     parent.setWindowTitle(DefaultSettings.App.appName)
     parent.setWindowIcon(QIcon(DefaultSettings.App.appIcon))

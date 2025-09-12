@@ -85,6 +85,15 @@ class DefaultSettings:
         streamError = "There has been a problem while trying to stream this page.\n\n%s"
         cleanAllRequest = "This will erase all your history and stored cookies.\n\n" \
                           "Are you sure you want to proceed?"
+        certificateErrorThirdParty = "Certificate error while loading this URL:\n%s\n\n" \
+                                     "From page:\n%s (%s)\n\n" \
+                                     "%s\n\n" \
+                                     "Do you want to ignore these errors and continue loading the page?"
+        certificateErrorFirstParty = "The connection to this site is not secure\n\n" \
+                                     "Certificate error from page:\n%s (%s)\n\n" \
+                                     "%s\n\n" \
+                                     "Do you want to ignore these errors and continue loading the page?"
+
 
     FeatureMessages = {
         QWebEnginePage.Feature.Notifications: "show Notifications",

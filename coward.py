@@ -347,9 +347,6 @@ class MainWindow(QMainWindow):
         page = self.getPage(self._profile, browser, zoom)
         browser.setPage(page)
 
-        # prepare to accept fullscreen requests
-        browser.settings().setAttribute(QWebEngineSettings.WebAttribute.FullScreenSupportEnabled, True)
-
         # setting url to browser. Using a timer (thread) it seems to load faster
         QTimer.singleShot(0, lambda u=qurl: browser.load(u))
 
@@ -433,8 +430,6 @@ class MainWindow(QMainWindow):
         # page.permissionRequested.connect(lambda request, p=page: self.show_permission_request(request, p))
         page.fileSystemAccessRequested.connect(lambda request, p=page: print("FS ACCESS REQUESTED", request))
         page.desktopMediaRequested.connect(lambda request, p=page: print("MEDIA REQUESTED", request))
-        # how to fix this (live video)?
-        # JavaScriptConsoleMessageLevel.ErrorMessageLevel requestStorageAccessFor: Permission denied. 0 https://www.youtube.com/watch?v=cj-CoeHpXWQ
 
         # adding action to the browser when title or icon change
         page.titleChanged.connect(lambda title, index=tabIndex: self.title_changed(title, index))
@@ -1161,27 +1156,24 @@ class MainWindow(QMainWindow):
 
 def main():
 
-    # Qt is DPI-Aware, so all this is not likely required
+    # Qt6 is DPI-Aware, so all this is not likely required
     # setDPIAwareness()
     # setSystemDPISettings()
     # setApplicationDPISettings()
 
+    # try to load widevine if available
     utils.set_widevine_var(os.path.join("externalplayer", "widevine", "widevinecdm.dll"))
 
     # creating a PyQt5 application and (windows only) force dark mode
     app = QApplication(sys.argv + ['-platform', 'windows:darkmode=1'])
 
-    # setting name to the application
-    # app.setApplicationName("Coward")
-    # app.setWindowIcon(QIcon(resource_path("res/coward.png")))
-
     if not utils.is_packaged():
         # change application icon even when running as Python script
         utils.force_icon('kalmat.coward.nav.01')
 
-        # This will allow to show some tracebacks (not all, anyway)
-        sys._excepthook = sys.excepthook
-        sys.excepthook = utils.exception_hook
+    # This will allow to show some tracebacks (not all, anyway)
+    sys._excepthook = sys.excepthook
+    sys.excepthook = utils.exception_hook
 
     # creating and showing MainWindow object
     window = MainWindow()

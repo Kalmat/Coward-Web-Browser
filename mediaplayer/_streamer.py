@@ -52,7 +52,6 @@ class Streamer(QThread):
         else:
             options = {}
         session = Streamlink(options=options)
-        self.bufferingStartedSig.emit(self.url)
 
         stream = None
         errorRaised = False
@@ -83,6 +82,7 @@ class Streamer(QThread):
             self.handleError(tryLater)
 
         else:
+            self.bufferingStartedSig.emit(self.url)
 
             if self.playerType == DefaultSettings.Player.PlayerTypes.app:
                 self.runExternalPlayer(stream)
