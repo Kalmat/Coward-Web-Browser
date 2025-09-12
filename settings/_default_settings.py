@@ -26,6 +26,29 @@ class DefaultSettings:
         # path separator inverted ("/") for qss files
         tabSeparator = utils.resource_path("res/tabsep.png", True)
 
+    class Storage:
+
+        class App:
+            storageFolder = ".kalmat"
+
+        class Cache:
+            cacheFolder = ".cache"
+            cacheFile = "coward_" + str(qWebEngineChromiumVersion()) + ("_debug" if not utils.is_packaged() else "")
+
+        class Settings:
+            settingsFile = "Coward" + ("_debug" if not utils.is_packaged() else "")
+
+    class Browser:
+        defaultPage = 'https://start.duckduckgo.com/?kae=d'
+        defaultTabs = [[defaultPage, 1.0, True]]
+        rulesFile = 'https://easylist.to/easylist/easylist.txt'
+
+    class Cookies:
+        allow = True
+        allowThirdParty = False
+        persistentPolicy = QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies
+        incognitoPersistentPolicy = QWebEngineProfile.PersistentCookiesPolicy.AllowPersistentCookies
+
     class Media:
         dialogInformationSound = utils.resource_path("res/dialog-information.wav")
         bufferingVideo = utils.resource_path("res/loading.mp4")
@@ -47,28 +70,6 @@ class DefaultSettings:
         httpStreamPort = 5467
         httpServerPort = 8098
         htmlPath = utils.resource_path("html")
-
-    class Storage:
-
-        class App:
-            storageFolder = ".kalmat"
-
-        class Cache:
-            cacheFolder = ".cache"
-            cacheFile = "coward_" + str(qWebEngineChromiumVersion()) + ("_debug" if not utils.is_packaged() else "")
-
-        class Settings:
-            settingsFile = "Coward" + ("_debug" if not utils.is_packaged() else "")
-
-    class Browser:
-        defaultPage = 'https://start.duckduckgo.com/?kae=d'
-        defaultTabs = [[defaultPage, 1.0, True]]
-
-    class Cookies:
-        allow = True
-        allowThirdParty = False
-        persistentPolicy = QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies
-        incognitoPersistentPolicy = QWebEngineProfile.PersistentCookiesPolicy.AllowPersistentCookies
 
     class StreamErrorMessages:
         tryLater = "Try after some minutes. If the problem persists, most likely the page can't be streamed"

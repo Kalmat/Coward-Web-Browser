@@ -1,7 +1,7 @@
 import os
 import time
+import requests
 
-import utils
 from PyQt6.QtWebEngineCore import QWebEngineProfile, QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo
 from adblockparser import AdblockRules
 
@@ -94,9 +94,7 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
 
     def updateRules(self, rulesPath):
 
-        import requests
-        url = 'https://easylist.to/easylist/easylist.txt'
-        response = requests.get(url)
+        response = requests.get(DefaultSettings.Browser.rulesFile)
         if response.status_code == 200:
             with open(rulesPath, "wb") as file:
                 file.write(response.content)
