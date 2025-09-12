@@ -130,8 +130,6 @@ class MainWindow(QMainWindow):
 
         # set initial position and size
         self.setGeometry(appconfig.appGeometry(self, self.settings.position, self.settings.size, self.settings.isCustomTitleBar, self.isNewWin))
-        self.setMinimumWidth(48*16)
-        self.setMinimumHeight(96)
 
     def setUI(self):
 
@@ -247,6 +245,10 @@ class MainWindow(QMainWindow):
     def show(self):
         super().show()
 
+        # apply minimum size to main window according to actual sizes (after show)
+        self.setMinimumWidth(self.ui.ninja_btn.width() * len(self.ui.navtab.findChildren(QToolButton)))
+        self.setMinimumHeight(self.ui.navtab.height()+1)
+
         # setup autohide if enabled
         self.manage_autohide(enabled=self.autoHide)
 
@@ -345,6 +347,7 @@ class MainWindow(QMainWindow):
         page = self.getPage(self._profile, browser, zoom)
         browser.setPage(page)
 
+        # prepare to accept fullscreen requests
         browser.settings().setAttribute(QWebEngineSettings.WebAttribute.FullScreenSupportEnabled, True)
 
         # setting url to browser. Using a timer (thread) it seems to load faster
@@ -1108,7 +1111,7 @@ class MainWindow(QMainWindow):
         for i in range(1, self.ui.tabs.count() - 1):
             browser = self.ui.tabs.widget(i)
             page = browser.page()
-            page.closeExternalPlayer(False)
+            page.closeExternalPlayer(False, page.url().toString())
             tabs.append([browser.url().toString(), browser.page().zoomFactor(), i == self.ui.tabs.currentIndex()])
 
         # save other open windows

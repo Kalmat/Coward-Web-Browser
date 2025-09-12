@@ -73,7 +73,7 @@ class DefaultSettings:
         tryLater = "Try after some minutes. If the problem persists, most likely the page can't be streamed"
         cantPlay = "Probably this content can't be streamed"
         mpvNotFound = "MPV player not found. please copy mpv.exe file in ./externalplayer/mpv folder"
-        onePlayerOnly = "There is another player running. Please close it before opening a new one"
+        onePlayerOnly = "There is another player running for this URL. Please close it before opening a new one"
 
     class DialogMessages:
         featureRequest = "This page is asking for your permission to %s."
