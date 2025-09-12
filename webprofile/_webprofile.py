@@ -1,6 +1,7 @@
 import os
 import time
 
+import utils
 from PyQt6.QtWebEngineCore import QWebEngineProfile, QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo
 from adblockparser import AdblockRules
 
@@ -9,7 +10,7 @@ from settings import DefaultSettings
 
 class WebProfile(QWebEngineProfile):
 
-    def __init__(self, cache_path, browser=None, cookie_filter=None):
+    def __init__(self, cache_path, browser=None, cookie_filter=None, enableAdBlocker=False, rulesFolder=""):
 
         if cache_path is None:
             super(WebProfile, self).__init__(browser)
@@ -25,7 +26,7 @@ class WebProfile(QWebEngineProfile):
         # set request interceptor
         # this ad page makes the whole browser crash: https://aswpsdkeu.com/notify/v2/ua-sdk.min.js
         # TODO: how to fix it? (it's going to be impossible to manage all these pages)
-        self.interceptor = RequestInterceptor(["aswpsdkeu"], DefaultSettings.App.enableAdBlocker)
+        self.interceptor = RequestInterceptor(["aswpsdkeu"], enableAdBlocker, rulesFolder)
         self.setUrlRequestInterceptor(self.interceptor)
 
     def _setNormalPage(self, cache_path):
@@ -50,26 +51,30 @@ class WebProfile(QWebEngineProfile):
 
 class RequestInterceptor(QWebEngineUrlRequestInterceptor):
 
-    def __init__(self, blocked_urls, enableAdBlocker=False):
+    def __init__(self, blocked_urls, enableAdBlocker=False, rulesFolder=""):
         super().__init__()
 
         # List of URLs (as strings or patterns) to block
         self.blocked_urls = blocked_urls
+        self.rulesPath = os.path.join(rulesFolder, "easylist.txt")
 
         # enable / disable adblocker
         self.enableAdBlocker = enableAdBlocker
 
-        # this is extremely slow!!!! Unable to install pyre2 (wheel build fails)
-        if self.enableAdBlocker:
-            if time.time() - os.path.getmtime("easylist.txt") >= 7 * 86400:
-                self.updateRules()
+        # this is extremely slow!!!!
+        # Installing pyre2 may improve performance, but fails to install (wheel build fails)
+        if enableAdBlocker:
+            if not os.path.exists(self.rulesPath) or time.time() - os.path.getmtime(self.rulesPath) >= 7 * 86400:
+                self.updateRules(self.rulesPath)
 
             # Load EasyList rules (download easylist.txt beforehand)
-            with open("easylist.txt", "r", encoding="utf-8") as f:
+            with open(self.rulesPath, "r", encoding="utf-8") as f:
                 raw_rules = f.readlines()
 
             # Create AdblockRules instance
-            self.rules = AdblockRules(raw_rules, skip_unsupported_rules=False, use_re2=True)
+            self.rules = AdblockRules(raw_rules,
+                                      # use_re2 = True,  # enable this again when pyre2 is installed
+                                      skip_unsupported_rules=False)
 
     def interceptRequest(self, info: QWebEngineUrlRequestInfo):
         url = info.requestUrl().url()
@@ -87,13 +92,13 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
                 info.block(True)
                 print(f"AD Blocked: {url}")
 
-    def updateRules(self):
+    def updateRules(self, rulesPath):
 
         import requests
         url = 'https://easylist.to/easylist/easylist.txt'
         response = requests.get(url)
         if response.status_code == 200:
-            with open("easylist.txt", "wb") as file:
+            with open(rulesPath, "wb") as file:
                 file.write(response.content)
             print("File downloaded successfully!")
         else:
