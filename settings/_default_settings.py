@@ -10,6 +10,7 @@ class DefaultSettings:
         appName = "Coward"
         appIcon = utils.resource_path("res/coward.png")
         appIcon_32 = utils.resource_path("res/coward_32.png")
+        enableAdBlocker = False
 
     class Grips:
         gripSize = 8
