@@ -62,6 +62,12 @@ class WebPage(QWebEnginePage):
 
     def javaScriptConsoleMessage(self, level, message, lineNumber=0, sourceID=""):
 
+        # TWITCH:
+        # Error Level: JavaScriptConsoleMessageLevel.ErrorMessageLevel --- URL: ... --- Message: Player stopping playback - error Player:2 (ErrorNotSupported code 0 - No playable format) --- Line number: 1
+
+        # YOUTUBE:
+        # --> No error
+
         if self._debugInfoEnabled:
             debugInfo = "Error Level: {} --- URL: {} --- Message: {} --- Line number: {}".format(level, sourceID, message, lineNumber)
             if self._logToFile:
@@ -89,7 +95,7 @@ class WebPage(QWebEnginePage):
         #             # this works, but throws too many "false" alarms
         #             self.checkCanPlayMedia()
 
-    def enableDebugInfo(self, enable, logging):
+    def enableDebugInfo(self, enable, logging=False):
         # We could add the level of debugging (Info, Warning, Error...), but not for now
         self._debugInfoEnabled = enable
         self._logToFile = logging
@@ -103,9 +109,22 @@ class WebPage(QWebEnginePage):
         # see example of debug data at the end of the file. How could we get this info from python/PyQt?
         # this is ASYNCHRONOUS, so can't be used to return any value. Must use a method/function to handle return
         self.runJavaScript("""
-                            var mediaElements = document.querySelectorAll('video, audio');
-                            var canPlay = Array.from(mediaElements).every(media => media.canPlayType(media.type) !== '');
-                            canPlay;""", lambda ok: self.handleMediaError(ok))
+            var mediaElements = document.querySelectorAll('video, audio');
+            var canPlay = Array.from(mediaElements).every(media => media.canPlayType(media.type) !== '');
+            canPlay;
+        """, lambda ok, u=self.url().toString(): self.handleMediaError(ok, u))
+
+        # self.runJavaScript("""
+        #     var mediaElements = document.querySelectorAll('video, audio');
+        #     var canPlay = true;
+        #     mediaElements.forEach(function(media) {
+        #         media.onerror = function() {
+        #             canPlay = false;
+        #             console.log('COWARD --- Media playback error detected.');
+        #         };
+        #     });
+        #     canPlay;
+        # """, lambda ok, u=self.url().toString(): self.handleMediaError(ok, u))
 
     def launchStream(self, url, title, player_type):
         stream_thread = Streamer(url=url,
@@ -159,7 +178,6 @@ class WebPage(QWebEnginePage):
     # launch external player dialog if media can't be played
     def handleMediaError(self, ok, qurl):
         if not ok:
-            self.dialog_manager.show_media_error(self)
             message = DefaultSettings.DialogMessages.externalPlayerRequest
             self.showDialog(
                 message=message,

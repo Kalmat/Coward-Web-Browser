@@ -364,16 +364,17 @@ class MainWindow(QMainWindow):
         browser.loadStarted.connect(lambda b=browser, index=tabIndex: self.onLoadStarted(b, index))
         browser.loadFinished.connect(lambda a, b=browser, index=tabIndex: self.onLoadFinished(a, b, index))
 
-    def onLoadStarted(self, browser, index):
-        self.ui.tabs.setTabIcon(index, self.web_ico)
+    def onLoadStarted(self, browser, tabIndex):
+        self.ui.tabs.setTabIcon(tabIndex, self.web_ico)
         if browser == self.ui.tabs.currentWidget():
             self.ui.reload_btn.setText(self.ui.stop_char)
             self.ui.reload_btn.setToolTip("Stop loading page")
 
-    def onLoadFinished(self, a0, browser, index):
+    def onLoadFinished(self, loadedOk, browser, tabIndex):
         if browser == self.ui.tabs.currentWidget():
             self.ui.reload_btn.setText(self.ui.reload_char)
             self.ui.reload_btn.setToolTip("Reload page")
+        # browser.page().checkCanPlayMedia()
 
     def getProfile(self, browser=None):
 
@@ -397,6 +398,7 @@ class MainWindow(QMainWindow):
 
         # this will create the page and apply all selected settings
         page = WebPage(profile, browser, self.dialog_manager)
+        # page.enableDebugInfo(True)
 
         # set page zoom factor
         page.setZoomFactor(zoom)
@@ -612,9 +614,9 @@ class MainWindow(QMainWindow):
             # calculate next tab position
             targetIndex = self.ui.tabs.currentIndex() if tabIndex != self.ui.tabs.currentIndex() else self.ui.tabs.currentIndex() + 1
 
-            # just removing the tab doesn't destroy associated widget. This must go before removing the tab
-            self.ui.tabs.widget(tabIndex).deleteLater()
-            # then remove the tab
+            # just removing the tab doesn't destroy associated widget. Using deleteLater() deletes the next tab widget
+            self.widgetToDelete = self.ui.tabs.widget(tabIndex)
+            # remove the tab
             self.ui.tabs.removeTab(tabIndex)
 
             # adjust target tab index according to new tabs number (but not tab 0, the toggle button)
@@ -627,6 +629,9 @@ class MainWindow(QMainWindow):
         # updating index-dependent signals when tab is moved
         for i in range(tabIndex, self.ui.tabs.count() - 1):
             self.update_index_dependent_signals(i)
+
+        # delete tab widget safely
+        del self.widgetToDelete
 
     # method for navigate to url
     def update_index_dependent_signals(self, tabIndex):

@@ -12,7 +12,7 @@ class WebView(QWebEngineView):
 
         # Enabling some extra features (only those allegedly required for a "normal" / "safe" use only)
         # page.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanAccessClipboard, True)
-        self.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
+        # self.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
         # self.settings().setAttribute(QWebEngineSettings.WebAttribute.AllowRunningInsecureContent, True)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanOpenWindows, True)
