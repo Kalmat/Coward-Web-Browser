@@ -348,6 +348,9 @@ class MainWindow(QMainWindow):
         page = self.getPage(self._profile, browser, zoom)
         browser.setPage(page)
 
+        # prepare to accept fullscreen requests. Must be set AFTER applying profile and setting page
+        browser.settings().setAttribute(QWebEngineSettings.WebAttribute.FullScreenSupportEnabled, True)
+
         # setting url to browser. Using a timer (thread) it seems to load faster
         QTimer.singleShot(0, lambda u=qurl: browser.load(u))
 
@@ -612,7 +615,7 @@ class MainWindow(QMainWindow):
             # calculate next tab position
             targetIndex = self.ui.tabs.currentIndex() if tabIndex != self.ui.tabs.currentIndex() else self.ui.tabs.currentIndex() + 1
 
-            # just removing the tab doesn't destroy associated widget. Using deleteLater() deletes the next tab widget
+            # just removing the tab doesn't destroy associated widget.
             self.widgetToDelete = self.ui.tabs.widget(tabIndex)
             # remove the tab
             self.ui.tabs.removeTab(tabIndex)

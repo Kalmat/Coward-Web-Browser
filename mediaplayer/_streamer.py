@@ -82,7 +82,7 @@ class Streamer(QThread):
             self.handleError(tryLater)
 
         else:
-            self.bufferingStartedSig.emit(self.url)
+            # self.bufferingStartedSig.emit(self.url)
 
             if self.playerType == DefaultSettings.Player.PlayerTypes.app:
                 self.runExternalPlayer(stream)
@@ -238,18 +238,19 @@ class Window(QMainWindow):
 
         self.stream_thread = Streamer(url=url,
                                       title="lvpes - Twitch",
-                                      player_type=DefaultSettings.Player.PlayerTypes.http
+                                      player_type=DefaultSettings.Player.PlayerTypes.internal
                                       )
-        # qualities="720p,720p60,best", title="Coward stream", player_type=None
         self.stream_thread.start()
 
     def closeEvent(self, a0):
         self.stream_thread.stop()
+        self.stream_thread.wait()
+        QApplication.quit()
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv + ['-platform', 'windows:darkmode=1'])
-    window = Window("https://www.twitch.tv/lvpes")
+    window = Window("https://www.twitch.tv/eslcs")
     window.show()
 
     app.exec()

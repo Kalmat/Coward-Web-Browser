@@ -20,5 +20,3 @@ class WebView(QWebEngineView):
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.PdfViewerEnabled, True)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.FocusOnNavigationEnabled, False)
 
-        # prepare to accept fullscreen requests
-        self.settings().setAttribute(QWebEngineSettings.WebAttribute.FullScreenSupportEnabled, True)
