@@ -13,17 +13,20 @@ class WebPage(QWebEnginePage):
     _bufferingStartedSig = pyqtSignal(str)
     _streamStartedSig = pyqtSignal(str)
     _streamErrorSig = pyqtSignal(str, str)
-    _playerClosedSig = pyqtSignal(bool, str)
+    _streamClosedSig = pyqtSignal(bool, str)
+    _playerClosedSig = pyqtSignal(str)
 
-    def __init__(self, profile, parent, dialog_manager):
+    def __init__(self, profile, parent, dialog_manager, http_manager=None):
         super(WebPage, self).__init__(profile, parent)
 
         self.dialog_manager = dialog_manager
+        self.http_manager = http_manager
 
         self._bufferingStartedSig.connect(self.bufferingStarted)
         self._streamStartedSig.connect(self.streamStarted)
         self._streamErrorSig.connect(self.handleStreamError)
-        self._playerClosedSig.connect(self.closeExternalPlayer)
+        self._streamClosedSig.connect(self.closeExternalPlayer)
+        self._playerClosedSig.connect(self.externalPlayerClosed)
 
         self._debugInfoEnabled = False
         self._logToFile = False
@@ -33,6 +36,7 @@ class WebPage(QWebEnginePage):
         self.streamers = {}
         self.players = {}
         self.dialogsToDelete = {}
+        self.http_manager = http_manager
 
         # manage other signals
         self.certificateError.connect(self.handleCertificateError)
@@ -150,10 +154,11 @@ class WebPage(QWebEnginePage):
         stream_thread = Streamer(url=url,
                                  title=title,
                                  player_type=player_type,
+                                 http_manager=self.http_manager,
                                  buffering_started_sig=self._bufferingStartedSig,
                                  stream_started_sig=self._streamStartedSig,
                                  stream_error_sig=self._streamErrorSig,
-                                 closed_sig=self._playerClosedSig,
+                                 closed_sig=self._streamClosedSig,
                                  index=len(self.streamers))
         self.streamers[url] = stream_thread
         return stream_thread
@@ -179,24 +184,26 @@ class WebPage(QWebEnginePage):
         stream_thread = None
 
         # check how to manage internal/external choice:
-        if DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.app:
+        if DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.mpv:
             stream_thread = self.launchStream(url=self.url().toString(),
                                               title=self.title(),
-                                              player_type=DefaultSettings.Player.PlayerTypes.app)
+                                              player_type=DefaultSettings.Player.PlayerTypes.mpv)
 
         elif DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.http:
+            self.http_manager.start()
             stream_thread = self.launchStream(url=self.url().toString(),
                                               title=self.title(),
                                               player_type=DefaultSettings.Player.PlayerTypes.http)
 
-        elif DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.internal:
+        elif DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.qt:
             stream_thread = self.launchStream(url=self.url().toString(),
                                               title="",
-                                              player_type=DefaultSettings.Player.PlayerTypes.internal)
+                                              player_type=DefaultSettings.Player.PlayerTypes.qt)
 
             if stream_thread is not None:
                 media_player = QtMediaPlayer(title=self.title(),
-                                             closedSig=(lambda u=self.url: self._playerClosedSig(u)))
+                                             url=self.url().toString(),
+                                             closedSig=self._playerClosedSig)
                 media_player.show()
                 media_player.start()
                 self.players[self.url().toString()] = media_player
@@ -229,14 +236,22 @@ class WebPage(QWebEnginePage):
         self.streamStarted(qurl)
 
     # close evertything related to streaming media: streamer (if not already closed), media player and delete files
+    @pyqtSlot(str)
+    def externalPlayerClosed(self, qurl):
+        self.closeExternalPlayer(False, qurl)
+
     @pyqtSlot(bool, str)
     def closeExternalPlayer(self, streamStopped, qurl):
+        # close evertything related to streaming media: streamer (if not already closed), media player and delete files
         stream_thread = self.streamers.get(qurl, None)
         self.streamStarted(qurl)
         if stream_thread is not None:
             if not streamStopped:
                 stream_thread.stop()
-            del self.streamers[qurl]
+            if qurl in self.streamers.keys():
+                del self.streamers[qurl]
+        if self.http_manager is not None:
+            self.http_manager.stop()
         media_player = self.players.get(qurl, None)
         if media_player is not None:
             media_player.stop()
@@ -251,7 +266,8 @@ class WebPage(QWebEnginePage):
                     os.remove(DefaultSettings.Player.streamTempFile_2)
                 except:
                     pass
-            del self.players[qurl]
+            if qurl in self.players.keys():
+                del self.players[qurl]
 
     def showDialog(self, message, buttonOkOnly=False, acceptSlot=None, rejectSlot=None, canBeDeleted=False):
         dialog = self.dialog_manager.createDialog(

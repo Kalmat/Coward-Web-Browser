@@ -1,8 +1,6 @@
 import os
-import random
 import re
 import sys
-import time
 import traceback
 
 import psutil
@@ -15,13 +13,21 @@ def screenSize(parent):
     return parent.screen().availableGeometry()
 
 
+def enableChromiumDebug():
+    # this must be set before creating QWebEngineView objects
+    # TODO: Check this for more info and options (can this be useful to relaibly  detect media playback errors?)
+    # https://doc.qt.io/qtforpython-6/overviews/qtwebengine-features.html
+    flags = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "")
+    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = (flags + ' --enable-logging=stderr --v=0')
+
+
 def set_widevine_var(widevine_relative_path):
     # to play some media which uses non-built-in codecs, QtWebEngine must be built with option -webengine-proprietary-codecs
     # https://doc.qt.io/qt-6/qtwebengine-features.html#audio-and-video-codecs
     # in addition to that, for some sites using widevine (DRM protection), this variable must also be set before creating app:
     flags = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "")
     os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = (flags + ' --widevine-path="%s"'
-                                                % resource_path(widevine_relative_path, use_dist_folder="dist"))
+                                                % resource_path(widevine_relative_path, inverted=True, use_dist_folder="dist"))
 
 
 def fixDarkImage(image, width, height, index=None):
@@ -65,7 +71,6 @@ def fixDarkImage(image, width, height, index=None):
         return image
 
 
-# new tab action ("+") in tab bar
 def kill_process(proc_pid):
     # Thanks to Jovik: https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
     process = psutil.Process(proc_pid)

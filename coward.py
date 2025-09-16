@@ -13,6 +13,7 @@ import appconfig
 from appconfig import Options
 from cachemanager import CacheManager
 from dialog import DialogsManager
+from mediaplayer import HttpManager
 from settings import Settings, DefaultSettings
 from themes import Themes
 from ui import Ui_MainWindow
@@ -159,6 +160,9 @@ class MainWindow(QMainWindow):
                                              DefaultSettings.Theme.deafultIncognitoTheme if self.isIncognito else DefaultSettings.Theme.defaultTheme,
                                              self.icon_size,
                                              self.targetDlgPos)
+
+        # manage http server
+        self.http_manager = None
 
         # pre-load icons
         self.appIcon = QIcon(DefaultSettings.Icons.appIcon)
@@ -399,9 +403,15 @@ class MainWindow(QMainWindow):
 
     def getPage(self, profile, browser, zoom):
 
+        if (DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.http
+                and self.http_manager is None):
+            self.http_manager = HttpManager()
+            self.http_manager.start()
+
         # this will create the page and apply all selected settings
-        page = WebPage(profile, browser, self.dialog_manager)
-        # page.enableDebugInfo(True)
+        page = WebPage(profile, browser, self.dialog_manager, self.http_manager)
+        page.enableDebugInfo(DefaultSettings.App.enableDebug or Options.enableDebug in sys.argv,
+                             DefaultSettings.App.enableLogging or Options.enableLogging in sys.argv)
 
         # set page zoom factor
         page.setZoomFactor(zoom)
@@ -474,7 +484,7 @@ class MainWindow(QMainWindow):
                 self.moveOtherWidgets()
 
     def title_changed(self, title, i):
-        self.ui.tabs.tabBar().setTabText(i, (("  " + title[:20]) if len(title) > 20 else title) if self.h_tabbar else "")
+        self.ui.tabs.tabBar().setTabText(i, (title + " " * 30)[:29] if self.h_tabbar else "")
         self.ui.tabs.setTabToolTip(i, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
 
     def icon_changed(self, icon, i):
@@ -522,13 +532,13 @@ class MainWindow(QMainWindow):
         qurl = QUrl(self.ui.urlbar.text())
 
         # if scheme is blank
-        if not qurl.isValid() or "." not in qurl.url() or " " in qurl.url():
+        if not qurl.isValid() or " " in qurl.url():
             # search in Google
             # qurl.setUrl("https://www.google.es/search?q=%s&safe=off" % self.urlbar.text())
             # search in DuckDuckGo (safer)
             qurl.setUrl("https://duckduckgo.com/?t=h_&hps=1&start=1&q=%s&ia=web&kae=d" % self.ui.urlbar.text().replace(" ", "+"))
 
-        elif qurl.scheme() == "":
+        if qurl.scheme() == "":
             # set scheme
             qurl.setScheme("https")
 
@@ -1106,11 +1116,16 @@ class MainWindow(QMainWindow):
         self.ui.hoverHWidget.close()
         self.ui.hoverVWidget.close()
         self.inspector.close()
-        # this may not exist (whilst others may be queued)
+        # this dialog may not exist (whilst others may be queued)
         try:
             self.dialog_manager.currentDialog.close()
         except:
             pass
+        if self.http_manager is not None:
+            try:
+                self.http_manager.stop()
+            except:
+                pass
 
         # save open tabs and close external players
         tabs = []
@@ -1169,6 +1184,10 @@ def main():
 
     # try to load widevine if available
     utils.set_widevine_var(os.path.join("externalplayer", "widevine", "widevinecdm.dll"))
+
+    # enable debug, including Chromium debug info
+    if DefaultSettings.App.enableDebug or Options.enableDebug in sys.argv:
+        utils.enableChromiumDebug()
 
     # creating a PyQt5 application and (windows only) force dark mode
     app = QApplication(sys.argv + ['-platform', 'windows:darkmode=1'])

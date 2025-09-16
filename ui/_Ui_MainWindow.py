@@ -110,8 +110,8 @@ class Ui_MainWindow:
 
         # adding stream button
         self.ext_player_btn = QAction("ျ", self.navtab)  # ြ🗔🗔🕹ျ𓂀⏿
-        font = self.next_btn.font()
-        font.setPointSize(font.pointSize() + 4)
+        font = self.ext_player_btn.font()
+        font.setPointSize(font.pointSize() + 6)
         self.ext_player_btn.setFont(font)
         self.ext_player_btn.setToolTip("Open in external player\n"
                                        "(may fix non-compatible media issues)")

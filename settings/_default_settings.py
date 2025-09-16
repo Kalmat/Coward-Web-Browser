@@ -10,6 +10,8 @@ class DefaultSettings:
         appName = "Coward"
         appIcon = utils.resource_path("res/coward.png")
         appIcon_32 = utils.resource_path("res/coward_32.png")
+        enableDebug = False
+        enableLogging = False
 
     class Grips:
         gripSize = 8
@@ -49,7 +51,7 @@ class DefaultSettings:
 
     class AdBlocker:
         enableAdBlocker = False   # way too slow (perhaps pyre2 may improve performance, but fails to install)
-        urlBlackList = ["aswpsdkeu", "ads"]  # this is totally empyrical
+        urlBlackList = ["aswpsdkeu"]  # , "ads"]  # this is totally empyrical
         rulesFileUrl = 'https://easylist.to/easylist/easylist.txt'
         rulesFile = "easylist.txt"
 
@@ -60,19 +62,22 @@ class DefaultSettings:
     class Player:
 
         class PlayerTypes:
-            app = "mpv"      # strongly recommended, but requires mpv.exe in ./externalplayer/mpv/ folder
-            internal = "qt"  # experimental. Not very well resolved
-            http = "http"    # not working. Requires ffmpeg or similar to encode video output
+            mpv = "mpv"          # strongly recommended, but requires mpv.exe in ./externalplayer/mpv/ folder
+            qt = "qt"            # experimental. Caching is not very well resolved
+            qt_ffmpeg = "qt_ff"  # Not working with QMediaPlayer. Requires ffmpeg in ./externalplayer/ffmpeg/ folder
+            http = "http"        # Not working with QtWebEngine. Requires ffmpeg in ./externalplayer/ffmpeg/ folder
 
-        externalPlayerType = PlayerTypes.app
+        externalPlayerType = PlayerTypes.http
         streamTempFile = "temp_1.mp4"
         streamTempFile_2 = "temp_2.mp4"
         chunkSize = 8192
         bufferSize = 5*1000*1000
         streamTempFileSize = 20 * 1000 * 1000
-        appPlayerPath = utils.resource_path("externalplayer/mpv/mpv.exe", use_dist_folder="dist")
-        httpStreamPort = 5467
-        httpServerPort = 8098
+        mpvPlayerPath = utils.resource_path("externalplayer/mpv/mpv.exe", use_dist_folder="dist")
+        ffmpegPath = utils.resource_path("externalplayer/ffmpeg/bin/ffmpeg.exe", use_dist_folder="dist")
+        httpStreamPort = 5123
+        httpServerHost = "0.0.0.0"
+        httpServerPort = 5000
         htmlPath = utils.resource_path("html")
 
     class StreamErrorMessages:

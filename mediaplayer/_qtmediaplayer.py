@@ -17,8 +17,10 @@ class QtMediaPlayer(QWidget):
 
     swapTempAvailableSig = pyqtSignal()
 
-    def __init__(self, title="Coward - Stream Player", closedSig=None):
+    def __init__(self, title="Coward - Stream Player", url="", closedSig=None):
         super().__init__()
+
+        self.url = url
 
         # manage input temporary files
         self.temp_file = QUrl.fromLocalFile(DefaultSettings.Player.streamTempFile)
@@ -99,7 +101,7 @@ class QtMediaPlayer(QWidget):
         self.swapAvailable = True
 
     def togglePlayPause(self):
-        # MANAGE PAUSE at streamer level, avoiding to write,
+        # MANAGE PAUSE at streamer level, avoiding writing,
         # thus skipping all content when in pause and coming back to live when playing again
 
         if self.mediaplayer.mediaStatus == QMediaPlayer.PlaybackState.PlayingState:
@@ -111,8 +113,7 @@ class QtMediaPlayer(QWidget):
 
     def play_loading_video(self):
         # self.playBtn.setDisabled(True)
-        # self.mediaplayer.setSource(self.loading_video)
-        self.mediaplayer.setSource(QUrl("http://127.0.0.1:1331"))
+        self.mediaplayer.setSource(self.loading_video)
         self.mediaplayer.setLoops(QMediaPlayer.Loops.Infinite)
         self.mediaplayer.play()
 
@@ -143,9 +144,8 @@ class QtMediaPlayer(QWidget):
             self.mediaplayer.setSource(QUrl())
             time.sleep(.01)
             self.mediaplayer.setSource(self.temp_file)
+            # self.mediaplayer.setSource("udp://127.0.0.1:5000")
             self.mediaplayer.play()
-            # delete this (it's only for debugging)
-            self.setWindowTitle(self.temp_file.fileName())
 
         else:
             if os.path.exists(self.temp_file.fileName()):
@@ -185,4 +185,4 @@ class QtMediaPlayer(QWidget):
     def closeEvent(self, a0):
         self.mediaplayer.stop()
         if self.closedSig is not None and self.userClosed:
-            self.closedSig.emit()
+            self.closedSig.emit(self.url)

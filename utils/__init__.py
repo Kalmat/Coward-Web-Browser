@@ -9,6 +9,7 @@ from ._utils import (
     setApplicationDPISettings,
     force_icon,
     exception_hook,
+    enableChromiumDebug,
     set_widevine_var,
     screenSize,
     fixDarkImage
