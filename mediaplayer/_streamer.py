@@ -15,7 +15,7 @@ class Streamer(QThread):
 
     def __init__(self, url, qualities="720p,720p60,best", title="Coward stream", player_type=None, http_manager=None,
                        buffering_started_sig=None, stream_started_sig=None, stream_error_sig=None, closed_sig=None,
-                       index=0):
+                       ffmpeg_started_sig=None, index=0):
         super().__init__()
 
         self.url = url
@@ -34,6 +34,7 @@ class Streamer(QThread):
         self.startEmitted = False
         self.streamErrorSig = stream_error_sig
         self.closedSig = closed_sig
+        self.ffmpegStartedSig = ffmpeg_started_sig
 
         self.mpv_process = None
         self.ffmpeg_process = None
@@ -162,63 +163,75 @@ class Streamer(QThread):
 
     def runQtPlayerFFmpeg(self, stream):
 
-        # FFmpeg input: stream URL
-        stream = ffmpeg.input(
-            stream.to_url(),
-            re=None,  # Allow real-time streaming
-        )
-        # Output: pipe as fragmented MP4 (streamable, supports seeking)
-        stream = ffmpeg.output(
-            stream, DefaultSettings.Player.ffmpegStreamUrl,
-            format='mpegts',  # Use mpegts to stream to UDP
-            vcodec='copy',    # Copy video without re-encoding
-            acodec='aac',     # Use AAC audio
-            flags='+global_header',
-            # **{'bsf:a': 'aac_adtstoasc'},
-            # movflags='frag_keyframe+empty_moov+default_base_moof',  # For streaming
-            # pix_fmt='bgr24',
-            # flush_packets=0,
-            # pkt_size=1316,
-            # overrun_nonfatal=1,
-            # fifo_size=50*1024*1024/188,
-        )
-        # Run: start ffmpeg process in separate thread
-        self.ffmpeg_process = ffmpeg.run_async(
-            stream,
-            pipe_stdout=False,
-            pipe_stderr=False,
-            cmd=DefaultSettings.Player.ffmpegPath
-        )
+        try:
+            # FFmpeg input: stream URL
+            stream = ffmpeg.input(
+                stream.to_url(),
+                re=None,  # Allow real-time streaming
+            )
+            # Output: pipe as fragmented MP4 (streamable, supports seeking)
+            # ffmpeg -f gdigrab -framerate 30 -probesize 100M -i title="" -c:v libx264 -preset veryfast -maxrate 1000k -bufsize 1000k -pix_fmt yuv420p -g 50 -c:a aac -b:a 128k -f rtsp -rtsp_transport udp rtsp://129.0.0.1:8554/stream
+            stream = ffmpeg.output(
+                stream, DefaultSettings.Player.ffmpegStreamUrl,
+                format='mpegts',  # Use mpegts to stream to UDP
+                vcodec='copy',    # Copy video without re-encoding
+                acodec='aac',     # Use AAC audio
+                flags='+global_header',
+                # **{'bsf:a': 'aac_adtstoasc'},
+                movflags='frag_keyframe+empty_moov+default_base_moof',  # For streaming
+                pix_fmt='bgr24',
+                # flush_packets=0,
+                # pkt_size=1316,
+                # overrun_nonfatal=1,
+                # fifo_size=50*1024*1024/188,
+            )
+            # Run: start ffmpeg process in separate thread
+            self.ffmpeg_process = ffmpeg.run_async(
+                stream,
+                pipe_stdout=True,
+                pipe_stderr=False,
+                cmd=DefaultSettings.Player.ffmpegPath
+            )
+
+        except Exception as e:
+            self.handleError(True)
+
+        self.ffmpegStartedSig.emit(self.ffmpeg_process)
 
     def runHttpPlayer(self, stream):
 
-        # FFmpeg input: stream URL
-        stream = ffmpeg.input(
-            stream.to_url(),
-            re=None,  # Allow real-time streaming
-        )
-        # Output: pipe as fragmented MP4 (streamable, supports seeking)
-        stream = ffmpeg.output(
-            stream, 'pipe:',
-            format='mp4',  # Use mp4 container with fragmentation
-            vcodec='copy',  # Copy video without re-encoding
-            acodec='copy',  # Copy audio
-            movflags='frag_keyframe+empty_moov+default_base_moof',  # For streaming
-            pix_fmt='bgr24',
-            **{'bsf:a': 'aac_adtstoasc'}
-        )
-        # Run ffmpeg to stream to stdout
-        self.ffmpeg_process = ffmpeg.run_async(
-            stream,
-            pipe_stdout=True,
-            pipe_stderr=False,
-            cmd=DefaultSettings.Player.ffmpegPath
-        )
-        self.http_manager.setStreamData(self.ffmpeg_process.stdout, self.title, self.url)
-        self.streamStartedSig.emit(self.url)
+        try:
 
-        # Ideal scenario: launch a new window containing the stream, but... it doesn't work in QWebEngine
-        # self.openPlayerInNewWindowSig.emit()
+            # FFmpeg input: stream URL
+            stream = ffmpeg.input(
+                stream.to_url(),
+                re=None,  # Allow real-time streaming
+            )
+            # Output: pipe as fragmented MP4 (streamable, supports seeking)
+            stream = ffmpeg.output(
+                stream, 'pipe:',
+                format='mp4',   # Use mp4 container with fragmentation
+                vcodec='copy',  # Copy video without re-encoding
+                acodec='copy',  # Copy audio
+                movflags='frag_keyframe+empty_moov+default_base_moof',  # For streaming
+                pix_fmt='bgr24',  # not sure if this helps
+                **{'bsf:a': 'aac_adtstoasc'}
+            )
+            # Run ffmpeg to stream to stdout
+            self.ffmpeg_process = ffmpeg.run_async(
+                stream,
+                pipe_stdout=True,
+                pipe_stderr=False,
+                cmd=DefaultSettings.Player.ffmpegPath
+            )
+            self.http_manager.setStreamData(self.ffmpeg_process.stdout, self.title, self.url)
+            self.streamStartedSig.emit(self.url)
+
+            # Ideal scenario: launch a new window containing the stream, but... it doesn't work in QWebEngine
+            # self.openPlayerInNewWindowSig.emit()
+
+        except Exception as e:
+            self.handleError(True)
 
     def _fetchStream(self, streams, qualities):
 
@@ -248,12 +261,9 @@ class Streamer(QThread):
                 self.send_mpv_command('quit')
                 self.mpv_process = None
                 self.send_mpv_command = None
+
         elif self.ffmpeg_process is not None:
-            self.ffmpeg_process.kill()
-            # if self.http_manager is not None:
-            #    stop only if it's the last client
-            #    self.http_manager.stop()
-            #    self.http_manager = None
+                self.ffmpeg_process.kill()
 
         self.closedSig.emit(True, self.url)
         self.quit()
@@ -269,7 +279,7 @@ class Window(QMainWindow):
 
         self.stream_thread = Streamer(url=url,
                                       title="lvpes - Twitch",
-                                      player_type=DefaultSettings.Player.PlayerTypes.internal
+                                      player_type=DefaultSettings.Player.PlayerTypes.qt
                                       )
         self.stream_thread.start()
 

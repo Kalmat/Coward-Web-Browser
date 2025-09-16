@@ -1,10 +1,11 @@
 import os
 import time
 
+from PyQt6.QtNetwork import QUdpSocket, QHostAddress
 from PyQt6.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QSlider, QGraphicsScene, QGraphicsView
 from PyQt6.QtGui import QIcon
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
-from PyQt6.QtCore import Qt, QUrl, QTimer, pyqtSignal
+from PyQt6.QtCore import Qt, QUrl, QTimer, pyqtSignal, QByteArray, QThread, QBuffer, QIODevice, pyqtSlot
 from PyQt6.QtMultimediaWidgets import QGraphicsVideoItem
 
 from settings import DefaultSettings
@@ -16,6 +17,7 @@ os.environ['QT_MULTIMEDIA_PREFERRED_PLUGINS'] = 'windowsmediafoundation'
 class QtMediaPlayer(QWidget):
 
     swapTempAvailableSig = pyqtSignal()
+    streamStartedSig = pyqtSignal(object)
 
     def __init__(self, title="Coward - Stream Player", url="", useFFmpeg=False, closedSig=None):
         super().__init__()
@@ -27,8 +29,12 @@ class QtMediaPlayer(QWidget):
         self.temp_file = QUrl.fromLocalFile(DefaultSettings.Player.streamTempFile)
         self.next_temp_file = QUrl.fromLocalFile(DefaultSettings.Player.streamTempFile_2)
         self.prev_temp_file = ""
+
         self.swapTempAvailableSig.connect(self.manage_swap)
         self.swapAvailable = True
+
+        self.streamStartedSig.connect(self.onMediaStarted)
+        self.stream_process = None
 
         # buffer size
         self.buffer_size = DefaultSettings.Player.bufferSize
@@ -95,7 +101,8 @@ class QtMediaPlayer(QWidget):
         if self.useFFmpeg:
             # self.play_video_ffmpeg()
             # give time for the stream to start
-            QTimer.singleShot(3000, self.play_video_ffmpeg)
+            # QTimer.singleShot(3000, self.play_video_ffmpeg)
+            pass
 
         else:
             self.play_loading_video()
@@ -107,6 +114,11 @@ class QtMediaPlayer(QWidget):
         self.mediaplayer.setLoops(QMediaPlayer.Loops.Infinite)
         self.mediaplayer.play()
 
+    @pyqtSlot(object)
+    def onMediaStarted(self, stream_process):
+        self.stream_process = stream_process
+        QTimer().singleShot(1000, self.play_video_ffmpeg)
+
     def play_video_ffmpeg(self):
         self.playBtn.setEnabled(True)
         self.playBtn.setText(self.pauseText)
@@ -117,55 +129,26 @@ class QtMediaPlayer(QWidget):
         self.mediaplayer.stop()
         self.mediaplayer.setSource(QUrl())
         time.sleep(.01)
-        self.mediaplayer.setSource(QUrl(DefaultSettings.Player.ffmpegStreamUrl))
-        self.mediaplayer.play()
-        # self.play_stream()
+        # Read directly from udp (not working) or buffered (not working either)
+        # self.mediaplayer.setSource(QUrl(DefaultSettings.Player.ffmpegStreamUrl))
+        self.setBuffer()
+        QTimer().singleShot(1000, self.mediaplayer.play)
 
-    # def play_stream(self):
-    #
-    #     self.udp_address = ('127.0.0.1', 5000)  # Replace with your UDP address and port
-    #
-    #     self.byte_array = QByteArray()
-    #     self.buffer.setData(self.byte_array)
-    #
-    #     self.stream_thread = threading.Thread(target=lambda u=self.ffmpeg_process, b=self.byte_array: self.fetch_stream_data(u, b))
-    #     self.stream_thread.start()
-    #
-    #     # Fetch the stream data
-    #     # self.fetch_stream_data(self.udp_address, self.byte_array)
-    #
-    #     # Cache the stream data in the buffer
-    #     self.buffer.open(QBuffer.OpenModeFlag.ReadOnly)
-    #
-    #     # Set the source device to the player
-    #     self.mediaplayer.setSourceDevice(self.buffer)
-    #
-    #     # Start playback
-    #     self.mediaplayer.play()
-    #
-    # def fetch_stream_data(self, udp_address, byte_array):
-    #     try:
-    #         # Create a UDP socket
-    #         # sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    #         # sock.bind(udp_address)  # Bind to the UDP address
-    #         stdout, stderr = udp_address().communicate()
-    #
-    #         print("Listening for UDP stream...")
-    #
-    #         max_buffer_size = 1024 * 1024 * 50  # Example: 10 MB
-    #         while not self.stopStreaming:
-    #             # Receive data from the UDP stream
-    #             # data, _ = sock.recvfrom(1024 * 1024)  # Buffer size is 2048 bytes
-    #             data = stdout.read(2048)
-    #             byte_array.append(data)
-    #
-    #             # Manage buffer size
-    #             if byte_array.size() > max_buffer_size:
-    #                 # Remove old data to keep the buffer size manageable
-    #                 byte_array.remove(0, byte_array.size() - max_buffer_size)
-    #
-    #     except Exception as e:
-    #         print(f"Error fetching stream data: {e}")
+    def setBuffer(self):
+
+        self.byte_array = QByteArray()
+        self.buffer = QBuffer(self.byte_array)
+        self.buffer.setOpenMode(QIODevice.OpenModeFlag.ReadWrite)
+        self.mediaplayer.setSourceDevice(self.buffer)
+
+        if self.stream_process is None:
+            # read from UDP port
+            self.udp_receiver = UdpReceiver(self.buffer, self.byte_array)
+            self.udp_receiver.start()
+
+        else:
+            self.stdout_receiver = StdoutReceiver(self.stream_process, self.buffer, self.byte_array)
+            self.stdout_receiver.start()
 
     def play_video(self):
 
@@ -185,7 +168,6 @@ class QtMediaPlayer(QWidget):
             self.mediaplayer.setSource(QUrl())
             time.sleep(.01)
             self.mediaplayer.setSource(self.temp_file)
-            # self.mediaplayer.setSource("udp://127.0.0.1:5000")
             self.mediaplayer.play()
 
         else:
@@ -254,3 +236,81 @@ class QtMediaPlayer(QWidget):
         self.mediaplayer.stop()
         if self.closedSig is not None and self.userClosed:
             self.closedSig.emit(self.url)
+
+
+class UdpReceiver(QThread):
+
+    def __init__(self, buffer, byte_array):
+        super().__init__()
+
+        self.stopReading = False
+
+        self.buffer = buffer
+        self.byte_array = byte_array
+        self.socket = QUdpSocket()
+        self.socket.bind(QHostAddress.SpecialAddress.Any, 5000)  # Bind to port 5000
+
+    def run(self):
+        self.process_data()
+        # self.socket.readyRead.connect(self.process_data)
+
+    def process_data(self):
+
+        # max_size = 5 * 1024 * 1024  # 5 MB
+
+        while not self.stopReading:
+
+            while self.socket.hasPendingDatagrams():
+
+                print("READING")
+                datagram, sender, port = self.socket.readDatagram(self.socket.pendingDatagramSize())
+                if not datagram:
+                    print("NO DATA")
+                    break
+
+                self.byte_array.append(datagram)  # Store the received data in QByteArray
+
+                # if self.buffer.size() > max_size:
+                #     # Resize the QByteArray to the maximum size
+                #     self.media_data = self.media_data.mid(0, max_size)
+
+                # Write the data to the QBuffer
+                # self.buffer.write(self.byte_array)
+                # self.buffer.seek(0)  # Reset the buffer position to the beginning
+
+    def stop(self):
+        self.stopReading = True
+        self.quit()
+
+
+class StdoutReceiver(QThread):
+
+    def __init__(self, stream_process, buffer, byte_array):
+        super().__init__()
+
+        self.stopReading = False
+
+        self.stream_process = stream_process
+        self.buffer = buffer
+        self.byte_array = byte_array
+
+    def run(self):
+
+        while not self.stopReading:
+
+            print("READING")
+            # Read data from FFmpeg's stdout
+            data = self.stream_process.stdout.read(8192)
+            if not data:
+                print("NO DATA")
+                break  # Exit if no more data
+
+            # Append data to QByteArray
+            self.byte_array.append(data)
+
+        self.stream_process.stdout.close()
+        self.stream_process.wait()
+
+    def stop(self):
+        self.stopReading = True
+        self.quit()
