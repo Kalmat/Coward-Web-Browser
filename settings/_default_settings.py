@@ -67,7 +67,7 @@ class DefaultSettings:
             qt_ffmpeg = "qt_ff"  # Not working with QMediaPlayer. Requires ffmpeg in ./externalplayer/ffmpeg/ folder
             http = "http"        # Not working with QtWebEngine. Requires ffmpeg in ./externalplayer/ffmpeg/ folder
 
-        externalPlayerType = PlayerTypes.qt_ffmpeg
+        externalPlayerType = PlayerTypes.mpv
         streamTempFile = "temp_1.mp4"
         streamTempFile_2 = "temp_2.mp4"
         ffmpegStreamUrl = "udp://127.0.0.1:5000/stream"
