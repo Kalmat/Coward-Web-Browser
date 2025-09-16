@@ -37,7 +37,7 @@ class Streamer(QThread):
 
         self.mpv_process = None
         self.ffmpeg_process = None
-        self.stop_treaming = False
+        self.stopStreaming = False
         self.send_mpv_command = None
 
     def run(self):
@@ -81,19 +81,18 @@ class Streamer(QThread):
             self.handleError(tryLater)
 
         else:
-            self.bufferingStartedSig.emit(self.url)
 
             if self.playerType == DefaultSettings.Player.PlayerTypes.qt:
                 self.runQtPlayer(stream)
 
+            elif self.playerType == DefaultSettings.Player.PlayerTypes.qt_ffmpeg:
+                self.runQtPlayerFFmpeg(stream)
+
             elif self.playerType == DefaultSettings.Player.PlayerTypes.http:
                 self.runHttpPlayer(stream)
 
-            elif self.playerType == DefaultSettings.Player.PlayerTypes.qt_ffmpeg:
-                # TODO: find a solution to allow QMediaPlayer to read from ffmpeg pipe
-                pass
-
             else:
+                self.bufferingStartedSig.emit(self.url)
                 self.runMPVPlayer(stream)
 
     def runMPVPlayer(self, stream):
@@ -116,7 +115,7 @@ class Streamer(QThread):
         # write stream data to mpv's STDIN
         try:
             with stream.open() as stream_fd:
-                while not self.stop_treaming:
+                while not self.stopStreaming:
                     data = stream_fd.read(DefaultSettings.Player.chunkSize)
                     if not data or self.mpv_process is None or self.mpv_process.poll() is not None:
                         break
@@ -141,12 +140,12 @@ class Streamer(QThread):
         totalbytes = 0
         try:
             with stream.open() as stream_fd:
-                while not self.stop_treaming:
+                while not self.stopStreaming:
                     with open(self.stream_file, "wb") as f:
-                        while not self.stop_treaming:
+                        while not self.stopStreaming:
                             data = stream_fd.read(DefaultSettings.Player.chunkSize)
                             if not data:
-                                self.stop_treaming = True
+                                self.stopStreaming = True
                                 break
                             f.write(data)
                             f.flush()
@@ -161,8 +160,37 @@ class Streamer(QThread):
         except Exception as e:
             self.handleError(True)
 
+    def runQtPlayerFFmpeg(self, stream):
+
+        # FFmpeg input: stream URL
+        stream = ffmpeg.input(
+            stream.to_url(),
+            re=None,  # Allow real-time streaming
+        )
+        # Output: pipe as fragmented MP4 (streamable, supports seeking)
+        stream = ffmpeg.output(
+            stream, DefaultSettings.Player.ffmpegStreamUrl,
+            format='mpegts',  # Use mpegts to stream to UDP
+            vcodec='copy',    # Copy video without re-encoding
+            acodec='aac',     # Use AAC audio
+            flags='+global_header',
+            # **{'bsf:a': 'aac_adtstoasc'},
+            # movflags='frag_keyframe+empty_moov+default_base_moof',  # For streaming
+            # pix_fmt='bgr24',
+            # flush_packets=0,
+            # pkt_size=1316,
+            # overrun_nonfatal=1,
+            # fifo_size=50*1024*1024/188,
+        )
+        # Run: start ffmpeg process in separate thread
+        self.ffmpeg_process = ffmpeg.run_async(
+            stream,
+            pipe_stdout=False,
+            pipe_stderr=False,
+            cmd=DefaultSettings.Player.ffmpegPath
+        )
+
     def runHttpPlayer(self, stream):
-        # TODO: avoid starting several flask processes, assigning a different port to every stream (unique http-manager class)
 
         # FFmpeg input: stream URL
         stream = ffmpeg.input(
@@ -177,7 +205,7 @@ class Streamer(QThread):
             acodec='copy',  # Copy audio
             movflags='frag_keyframe+empty_moov+default_base_moof',  # For streaming
             pix_fmt='bgr24',
-            **{'c': 'copy', 'bsf:a': 'aac_adtstoasc'}
+            **{'bsf:a': 'aac_adtstoasc'}
         )
         # Run ffmpeg to stream to stdout
         self.ffmpeg_process = ffmpeg.run_async(
@@ -188,8 +216,9 @@ class Streamer(QThread):
         )
         self.http_manager.setStreamData(self.ffmpeg_process.stdout, self.title, self.url)
         self.streamStartedSig.emit(self.url)
-        # # Ideal scenario: launch a new window containing the stream, but... it doesn't work in QWebEngine
-        # # self.openPlayerInNewWindowSig.emit()
+
+        # Ideal scenario: launch a new window containing the stream, but... it doesn't work in QWebEngine
+        # self.openPlayerInNewWindowSig.emit()
 
     def _fetchStream(self, streams, qualities):
 
@@ -213,15 +242,14 @@ class Streamer(QThread):
         self.stop()
 
     def stop(self):
-        self.stop_treaming = True
+        self.stopStreaming = True
         if self.playerType == DefaultSettings.Player.PlayerTypes.mpv:
             if self.mpv_process is not None and self.send_mpv_command is not None:
                 self.send_mpv_command('quit')
                 self.mpv_process = None
                 self.send_mpv_command = None
-        elif self.playerType == DefaultSettings.Player.PlayerTypes.http:
-            if self.ffmpeg_process is not None:
-                self.ffmpeg_process.kill()
+        elif self.ffmpeg_process is not None:
+            self.ffmpeg_process.kill()
             # if self.http_manager is not None:
             #    stop only if it's the last client
             #    self.http_manager.stop()

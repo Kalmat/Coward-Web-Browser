@@ -1,11 +1,9 @@
-import os
-
 from PyQt6.QtCore import QThread
 from flask import Flask, Response, url_for
 
 from settings import DefaultSettings
 
-app = Flask("Coward - Stream Player", template_folder=os.path.abspath("html"))
+app = Flask("Coward - Stream Server")
 _endpointIndex = 0
 _page_stream_data = {}
 
