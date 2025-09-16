@@ -99,9 +99,7 @@ class QtMediaPlayer(QWidget):
     def start(self):
         self.play_loading_video()
         if self.useFFmpeg:
-            # self.play_video_ffmpeg()
-            # give time for the stream to start
-            # QTimer.singleShot(3000, self.play_video_ffmpeg)
+            # can't play media until stream is started (by onMediaStarted signal)
             pass
 
         else:
