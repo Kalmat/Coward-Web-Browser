@@ -1,5 +1,6 @@
 # based on: https://www.geeksforgeeks.org/python/creating-a-tabbed-browser-using-pyqt5/
 import os
+import shutil
 import sys
 import time
 
@@ -1094,14 +1095,9 @@ class MainWindow(QMainWindow):
 
     def deletePreviousTemp(self):
         if Options.DeletePlayerTemp in sys.argv:
-            if os.path.exists(DefaultSettings.Player.streamTempFile):
+            if os.path.exists(DefaultSettings.App.tempFolder):
                 try:
-                    os.remove(DefaultSettings.Player.streamTempFile)
-                except:
-                    pass
-            if os.path.exists(DefaultSettings.Player.streamTempFile_2):
-                try:
-                    os.remove(DefaultSettings.Player.streamTempFile_2)
+                    shutil.rmtree(DefaultSettings.App.tempFolder)
                 except:
                     pass
             QApplication.quit()
@@ -1167,8 +1163,7 @@ class MainWindow(QMainWindow):
             # restart app to wipe all cache folders but the last one (not possible while running since it's locked)
             args += [appconfig.Options.DeleteCache] + [self.cache_manager.lastCache]
 
-        if (os.path.exists(DefaultSettings.Player.streamTempFile) or
-                os.path.exists(DefaultSettings.Player.streamTempFile_2)):
+        if os.path.exists(DefaultSettings.App.tempFolder):
             args += [appconfig.Options.DeletePlayerTemp]
 
         if args:

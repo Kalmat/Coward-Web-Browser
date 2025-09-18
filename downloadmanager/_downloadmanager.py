@@ -9,6 +9,8 @@ from PyQt6.QtWidgets import QPushButton, QProgressBar, QLabel, QGridLayout, QWid
     QApplication, QGraphicsDropShadowEffect
 
 import utils
+from settings import DefaultSettings
+
 
 class DownloadManager(QWidget):
 
@@ -47,7 +49,7 @@ class DownloadManager(QWidget):
         self.folder_char = "🗀"
 
         # to avoid garbage, downloads will be stored in system Temp folder, then moved to selected location
-        self.tempFolder = os.path.join(os.getenv("SystemDrive"), os.path.sep, "Windows", "Temp", "Coward")
+        self.tempFolder = os.path.join(DefaultSettings.App.tempFolder, DefaultSettings.Downloads.downloadTempFolder)
         try:
             shutil.rmtree(self.tempFolder)
         except:

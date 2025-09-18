@@ -1,3 +1,5 @@
+import os
+
 from PyQt6.QtWebEngineCore import qWebEngineChromiumVersion, QWebEngineProfile, QWebEnginePage
 
 import utils
@@ -12,6 +14,7 @@ class DefaultSettings:
         appIcon_32 = utils.resource_path("res/coward_32.png")
         enableDebug = False
         enableLogging = False
+        tempFolder = os.path.join(os.getenv("SystemDrive"), "Windows", "Temp", "Coward")
 
     class Grips:
         gripSize = 8
@@ -65,21 +68,25 @@ class DefaultSettings:
             mpv = "mpv"          # strongly recommended, but requires mpv.exe in ./externalplayer/mpv/ folder
             http = "http"        # Not working with QtWebEngine. Requires ffmpeg in ./externalplayer/ffmpeg/ folder
             qt = "qt"            # experimental. Caching is not very well resolved
-            qt_ffmpeg = "qt_ff"  # Not working with QMediaPlayer. Requires ffmpeg in ./externalplayer/ffmpeg/ folder
+            qt_ffmpeg_Udp = "qt_ff_u"     # Not working with QMediaPlayer. Requires ffmpeg in ./externalplayer/ffmpeg/ folder
+            qt_ffmpeg_Stdout = "qt_ff_s"  # Not working with QMediaPlayer. Requires ffmpeg in ./externalplayer/ffmpeg/ folder
 
-        externalPlayerType = PlayerTypes.mpv
-        streamTempFile = "temp_1.mp4"
-        streamTempFile_2 = "temp_2.mp4"
-        ffmpegStreamUrl = "udp://127.0.0.1:5000/stream"
+        externalPlayerType = PlayerTypes.qt
+        streamTempFiles = ["temp_1.mp4", "temp_2.mp4", "temp_3.mp4"]
+        streamTempFolder = "stream"
+        ffmpegStreamUrl = "udp://@127.0.0.1:5000/stream?overrun_nonfatal=1&fifo_size=50000000"
         chunkSize = 8192
-        bufferSize = 5*1000*1000
-        streamTempFileSize = 20 * 1000 * 1000
+        bufferSize = 5 * 1024 * 1024
+        streamTempFileSize = 50 * 1024 * 1024
         mpvPlayerPath = utils.resource_path("externalplayer/mpv/mpv.exe", use_dist_folder="dist")
         ffmpegPath = utils.resource_path("externalplayer/ffmpeg/bin/ffmpeg.exe", use_dist_folder="dist")
         httpStreamPort = 5123
         httpServerHost = "0.0.0.0"
         httpServerPort = 5000
         htmlPath = utils.resource_path("html")
+
+    class Downloads:
+        downloadTempFolder = "downloads"
 
     class StreamErrorMessages:
         tryLater = "Try after some minutes. If the problem persists, most likely the page can't be streamed"

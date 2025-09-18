@@ -1,10 +1,12 @@
 import os
+import shutil
 import subprocess
 import sys
+import time
 
 import ffmpeg
 import streamlink.exceptions
-from PyQt6.QtCore import QThread
+from PyQt6.QtCore import QThread, QUrl
 from PyQt6.QtWidgets import QMainWindow, QWidget, QApplication
 from streamlink import Streamlink
 
@@ -24,11 +26,19 @@ class Streamer(QThread):
         self.playerType = player_type
         self.index = index
         self.http_manager = http_manager
+        self.temp_folder = str(os.path.join(DefaultSettings.App.tempFolder, DefaultSettings.Player.streamTempFolder))
 
-        self.stream_file = DefaultSettings.Player.streamTempFile
-        self.next_stream_file = DefaultSettings.Player.streamTempFile_2
+        # mpv player path
         self.externalPlayerPath = DefaultSettings.Player.mpvPlayerPath
 
+        # setting qt player temporary files
+        self.stream_files = [os.path.normpath(os.path.join(self.temp_folder, str(index), temp_file))
+                                    for temp_file in DefaultSettings.Player.streamTempFiles]
+        self.stream_file_index = 0
+        if not os.path.exists(os.path.normpath(os.path.join(self.temp_folder, str(index)))):
+            os.makedirs(os.path.normpath(os.path.join(self.temp_folder, str(index))))
+
+        # setting signals to control dialogs and stream lifecycle
         self.bufferingStartedSig = buffering_started_sig
         self.streamStartedSig = stream_started_sig
         self.startEmitted = False
@@ -36,6 +46,7 @@ class Streamer(QThread):
         self.closedSig = closed_sig
         self.ffmpegStartedSig = ffmpeg_started_sig
 
+        # setting processes control variables
         self.mpv_process = None
         self.ffmpeg_process = None
         self.stopStreaming = False
@@ -86,8 +97,11 @@ class Streamer(QThread):
             if self.playerType == DefaultSettings.Player.PlayerTypes.qt:
                 self.runQtPlayer(stream)
 
-            elif self.playerType == DefaultSettings.Player.PlayerTypes.qt_ffmpeg:
-                self.runQtPlayerFFmpeg(stream)
+            elif self.playerType == DefaultSettings.Player.PlayerTypes.qt_ffmpeg_Udp:
+                self.runQtPlayerFFmpegUdp(stream)
+
+            elif self.playerType == DefaultSettings.Player.PlayerTypes.qt_ffmpeg_Stdout:
+                self.runQtPlayerFFmpegStdout(stream)
 
             elif self.playerType == DefaultSettings.Player.PlayerTypes.http:
                 self.runHttpPlayer(stream)
@@ -135,33 +149,38 @@ class Streamer(QThread):
     def runQtPlayer(self, stream):
         ##### THIS WORKS!!! But must find a way to:
         #           1. Avoid huge temporary files
-        #           2. Avoid QMediaPlayer stopping when getting to the end of file
+        #           2. Avoid files to be overwritten before qmediaplayer reads them
 
         # write to temporary stream file (will be read by QMediaPlayer)
-        totalbytes = 0
-        try:
-            with stream.open() as stream_fd:
-                while not self.stopStreaming:
-                    with open(self.stream_file, "wb") as f:
-                        while not self.stopStreaming:
-                            data = stream_fd.read(DefaultSettings.Player.chunkSize)
-                            if not data:
-                                self.stopStreaming = True
-                                break
+        with stream.open() as stream_fd:
+            tries_count = 0
+            while not self.stopStreaming:
+                self.temp_file = self.stream_files[self.stream_file_index]
+                with open(self.temp_file, "wb") as f:
+                    while not self.stopStreaming:
+                        data = stream_fd.read(DefaultSettings.Player.chunkSize)
+                        if data:
                             f.write(data)
                             f.flush()
-                            totalbytes += DefaultSettings.Player.chunkSize
-                            if totalbytes >= DefaultSettings.Player.streamTempFileSize:
-                                totalbytes = 0
-                                curr_stream_file = self.stream_file
-                                self.stream_file = self.next_stream_file
-                                self.next_stream_file = curr_stream_file
+                            tries_count = 0
+                            if os.path.getsize(self.temp_file) >= DefaultSettings.Player.streamTempFileSize:
+                                self.stream_file_index = (self.stream_file_index + 1) % len(self.stream_files)
+                                # optimize disk space wiping the content of non-used file
+                                del_file = self.stream_files[(self.stream_file_index + 1) % len(self.stream_files)]
+                                if os.path.exists(del_file):
+                                    with open(del_file, "wb") as file:
+                                        pass
                                 break
+                        else:
+                            # give some time to retrieve more data before giving up
+                            tries_count += 1
+                            if tries_count > 3:
+                                self.stopStreaming = True
+                                break
+                            else:
+                                time.sleep(1)
 
-        except Exception as e:
-            self.handleError(True)
-
-    def runQtPlayerFFmpeg(self, stream):
+    def runQtPlayerFFmpegUdp(self, stream):
 
         try:
             # FFmpeg input: stream URL
@@ -177,6 +196,7 @@ class Streamer(QThread):
                 vcodec='copy',    # Copy video without re-encoding
                 acodec='aac',     # Use AAC audio
                 flags='+global_header',
+                **{'fifo_size': 50*1024*1024/188, 'overrun_nonfatal': 1},
                 # **{'bsf:a': 'aac_adtstoasc'},
                 movflags='frag_keyframe+empty_moov+default_base_moof',  # For streaming
                 pix_fmt='bgr24',
@@ -184,6 +204,41 @@ class Streamer(QThread):
                 # pkt_size=1316,
                 # overrun_nonfatal=1,
                 # fifo_size=50*1024*1024/188,
+            )
+            # Run: start ffmpeg process in separate thread
+            self.ffmpeg_process = ffmpeg.run_async(
+                stream,
+                pipe_stdout=False,
+                pipe_stderr=False,
+                cmd=DefaultSettings.Player.ffmpegPath
+            )
+
+        except Exception as e:
+            self.handleError(True)
+
+        self.ffmpegStartedSig.emit(self.ffmpeg_process, QUrl(DefaultSettings.Player.ffmpegStreamUrl))
+
+    def runQtPlayerFFmpegStdout(self, stream):
+
+        try:
+            # FFmpeg input: stream URL
+            stream = ffmpeg.input(
+                stream.to_url(),
+                re=None,  # Allow real-time streaming
+            )
+            # Output: pipe as fragmented MP4 (streamable, supports seeking)
+            stream = ffmpeg.output(
+                stream, 'pipe:',
+                format='mp4',      # check which format is better to read from stdout
+                vcodec='copy',     # Copy video without re-encoding
+                acodec='copy',     # Copy audio without re-encoding
+                movflags='frag_keyframe+empty_moov+default_base_moof',  # For streaming
+                pix_fmt='bgr24',
+                # flush_packets=0,
+                # pkt_size=1316,
+                # overrun_nonfatal=1,
+                # fifo_size=50*1024*1024/188,
+                **{'bsf:a': 'aac_adtstoasc'}
             )
             # Run: start ffmpeg process in separate thread
             self.ffmpeg_process = ffmpeg.run_async(
@@ -196,7 +251,7 @@ class Streamer(QThread):
         except Exception as e:
             self.handleError(True)
 
-        self.ffmpegStartedSig.emit(self.ffmpeg_process)
+        self.ffmpegStartedSig.emit(self.ffmpeg_process, QUrl())
 
     def runHttpPlayer(self, stream):
 
@@ -212,7 +267,7 @@ class Streamer(QThread):
                 stream, 'pipe:',
                 format='mp4',   # Use mp4 container with fragmentation
                 vcodec='copy',  # Copy video without re-encoding
-                acodec='copy',  # Copy audio
+                acodec='copy',  # Copy audio without re-encoding
                 movflags='frag_keyframe+empty_moov+default_base_moof',  # For streaming
                 pix_fmt='bgr24',  # not sure if this helps
                 **{'bsf:a': 'aac_adtstoasc'}
@@ -225,7 +280,6 @@ class Streamer(QThread):
                 cmd=DefaultSettings.Player.ffmpegPath
             )
             self.http_manager.setStreamData(self.ffmpeg_process.stdout, self.title, self.url)
-            self.streamStartedSig.emit(self.url)
 
             # Ideal scenario: launch a new window containing the stream, but... it doesn't work in QWebEngine
             # self.openPlayerInNewWindowSig.emit()
@@ -264,6 +318,18 @@ class Streamer(QThread):
 
         elif self.ffmpeg_process is not None:
                 self.ffmpeg_process.kill()
+
+        temp_folder = os.path.normpath(os.path.join(self.temp_folder, str(self.index)))
+        if os.path.exists(temp_folder):
+            try:
+                # try to delete the temp folder
+                shutil.rmtree(temp_folder)
+            except:
+                # if it fails (very likely), try to at least free the unnecessary space
+                for file in os.listdir(temp_folder):
+                    with open(file, "w") as f:
+                        pass
+                pass
 
         self.closedSig.emit(True, self.url)
         self.quit()

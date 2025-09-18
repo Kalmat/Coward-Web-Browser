@@ -150,10 +150,10 @@ class WebPage(QWebEnginePage):
         #     canPlay;
         # """, lambda ok, u=self.url().toString(): self.handleMediaError(ok, u))
 
-    def launchStream(self, url, title, player_type, ffmpeg_started_sig=None):
+    def launchStream(self, url, title, ffmpeg_started_sig=None):
         stream_thread = Streamer(url=url,
                                  title=title,
-                                 player_type=player_type,
+                                 player_type=DefaultSettings.Player.externalPlayerType,
                                  http_manager=self.http_manager,
                                  buffering_started_sig=self._bufferingStartedSig,
                                  stream_started_sig=self._streamStartedSig,
@@ -187,29 +187,27 @@ class WebPage(QWebEnginePage):
         # check how to manage internal/external choice:
         if DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.mpv:
             stream_thread = self.launchStream(url=self.url().toString(),
-                                              title=self.title(),
-                                              player_type=DefaultSettings.Player.externalPlayerType)
+                                              title=self.title())
             stream_thread.start()
 
         elif DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.http:
             self.http_manager.start()
             stream_thread = self.launchStream(url=self.url().toString(),
-                                              title=self.title(),
-                                              player_type=DefaultSettings.Player.externalPlayerType)
+                                              title=self.title())
             stream_thread.start()
 
         elif DefaultSettings.Player.externalPlayerType in (DefaultSettings.Player.PlayerTypes.qt,
-                                                           DefaultSettings.Player.PlayerTypes.qt_ffmpeg):
+                                                           DefaultSettings.Player.PlayerTypes.qt_ffmpeg_Udp,
+                                                           DefaultSettings.Player.PlayerTypes.qt_ffmpeg_Stdout):
             media_player = QtMediaPlayer(title=self.title(),
                                          url=self.url().toString(),
-                                         useFFmpeg=DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.qt_ffmpeg,
+                                         player_type=DefaultSettings.Player.externalPlayerType,
+                                         index=len(self.streamers),
                                          closedSig=self._playerClosedSig)
 
             stream_thread = self.launchStream(url=self.url().toString(),
                                               title="",
-                                              player_type=DefaultSettings.Player.externalPlayerType,
                                               ffmpeg_started_sig=media_player.streamStartedSig)
-
             stream_thread.start()
             media_player.show()
             media_player.start()
@@ -261,16 +259,6 @@ class WebPage(QWebEnginePage):
         if media_player is not None:
             media_player.stop()
             media_player.close()
-            if os.path.exists(DefaultSettings.Player.streamTempFile):
-                try:
-                    (DefaultSettings.Player.streamTempFile)
-                except:
-                    pass
-            if os.path.exists(DefaultSettings.Player.streamTempFile_2):
-                try:
-                    os.remove(DefaultSettings.Player.streamTempFile_2)
-                except:
-                    pass
             if qurl in self.players.keys():
                 del self.players[qurl]
 
