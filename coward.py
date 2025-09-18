@@ -529,7 +529,7 @@ class MainWindow(QMainWindow):
         # TODO: find another way (test with github site)
         # icon = utils.fixDarkImage(icon, self.icon_size, self.icon_size, i)
 
-        pixmap = icon.pixmap(QSize(self.icon_size, self.icon_size))
+        pixmap: QPixmap = icon.pixmap(QSize(self.icon_size, self.icon_size))
         if self.h_tabbar:
             new_icon = icon
         else:
@@ -541,7 +541,8 @@ class MainWindow(QMainWindow):
             filename = str(abs(hash(self.ui.tabs.widget(i).url().toString())))
             full_filename = os.path.join(self.history_manager.historyFolder, filename)
             if not os.path.exists(full_filename):
-                pixmap.save(full_filename, "PNG")
+                (pixmap.scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                       .save(full_filename, "PNG"))
 
     def add_toggletab_action(self):
         self.toggletab_btn = QLabel()

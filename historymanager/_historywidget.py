@@ -50,7 +50,7 @@ class HistoryWidget(QWidget):
 
         widget = QWidget()
         widget.setObjectName("item")
-        widget.setContentsMargins(0, 0, 0, 0)
+        widget.setContentsMargins(5, 0, 0, 0)
         widget.setFixedSize(400, 32)
         layout = QGridLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -60,7 +60,7 @@ class HistoryWidget(QWidget):
         entryIcon = QLabel()
         entryIcon.setObjectName("entryIcon")
         # entryIcon.setDisabled(True)
-        entryIcon.setFixedSize(32, 32)
+        entryIcon.setFixedSize(24, 24)
         if not os.path.exists(icon):
             icon = DefaultSettings.Icons.loading
         entryIcon.setPixmap(QPixmap(icon))
