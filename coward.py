@@ -1,4 +1,5 @@
 # based on: https://www.geeksforgeeks.org/python/creating-a-tabbed-browser-using-pyqt5/
+import hashlib
 import os
 import shutil
 import sys
@@ -514,7 +515,8 @@ class MainWindow(QMainWindow):
         self.ui.tabs.setTabToolTip(i, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
 
         if DefaultSettings.History.enableHistory and self.history_manager is not None:
-            filename = str(abs(hash(self.ui.tabs.widget(i).url().toString())))
+            hash_object = hashlib.sha256(self.ui.tabs.widget(i).url().toString().encode())
+            filename = str(hash_object.hexdigest())
             full_filename = os.path.join(self.history_manager.historyFolder, filename)
             self.history_manager.addHistoryEntry([
                 time.time(),
@@ -538,7 +540,8 @@ class MainWindow(QMainWindow):
         self.ui.tabs.tabBar().setTabIcon(i, new_icon)
 
         if DefaultSettings.History.enableHistory:
-            filename = str(abs(hash(self.ui.tabs.widget(i).url().toString())))
+            hash_object = hashlib.sha256(self.ui.tabs.widget(i).url().toString().encode())
+            filename = str(hash_object.hexdigest())
             full_filename = os.path.join(self.history_manager.historyFolder, filename)
             if not os.path.exists(full_filename):
                 (pixmap.scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
