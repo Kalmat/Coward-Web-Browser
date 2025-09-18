@@ -88,6 +88,8 @@ class HistoryWidget(QWidget):
         self.mainLayout.setRowStretch(0, 0)
         self.mainLayout.setRowStretch(1, 1)
 
+        self.eraseHistorySig.connect(self.eraseHistory)
+
         self.pendingIcons = {}
         self.loading_ico = QPixmap(DefaultSettings.Icons.loading).scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
 
@@ -97,8 +99,6 @@ class HistoryWidget(QWidget):
             url = self.history_manager.history[key]["url"]
             icon = self.history_manager.history[key]["icon"]
             self.addHistoryEntry([date, title, url, icon])
-
-        self.eraseHistorySig.connect(self.eraseHistory)
 
     def addHistoryEntry(self, entry):
 
@@ -153,8 +153,9 @@ class HistoryWidget(QWidget):
         if entryIcon is not None:
             entryIcon.setPixmap(QPixmap(icon))
             entryIcon.update()
-            self.hide()
-            self.show()
+            if self.isVisible():
+                self.hide()
+                self.show()
             del self.pendingIcons[icon]
 
     def loadHistoryEntry(self, url):

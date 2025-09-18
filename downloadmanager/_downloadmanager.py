@@ -23,12 +23,12 @@ class DownloadManager(QWidget):
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
         self.setWindowFlag(Qt.WindowType.Tool, True)
 
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-        effect = QGraphicsDropShadowEffect()
-        effect.setColor(QApplication.palette().color(QPalette.ColorRole.Shadow))
-        effect.setBlurRadius(50)
-        effect.setOffset(5)
-        self.setGraphicsEffect(effect)
+        # self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        # effect = QGraphicsDropShadowEffect()
+        # effect.setColor(QApplication.palette().color(QPalette.ColorRole.Shadow))
+        # effect.setBlurRadius(50)
+        # effect.setOffset(5)
+        # self.setGraphicsEffect(effect)
 
         self.setWindowTitle("Coward - Downloads")
         self.mainLayout = QVBoxLayout()
