@@ -2,6 +2,7 @@ from PyQt6.QtCore import Qt, QCoreApplication, QSize, QPoint
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QToolButton, QLabel, QSizePolicy, QMenu, QStyle, QTabWidget
 
+from TabWidget import TabWidget
 from downloadmanager import DownloadManager
 from lineedit import LineEdit
 from searchwidget import SearchWidget
@@ -225,7 +226,7 @@ class Ui_MainWindow:
         self.v_tab_style = self.v_tab_style % (parent.action_size, parent.action_size)
 
         # creating a tab widget
-        self.tabs = QTabWidget(parent)
+        self.tabs = TabWidget(parent)
         self.tabBar = TabBar(self.tabs, None, parent.leaveTabBarSig)
         self.tabs.setTabBar(self.tabBar)
         self.tabs.setMovable(True)

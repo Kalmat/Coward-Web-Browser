@@ -1,0 +1,1 @@
+from ._tabwidget import TabWidget

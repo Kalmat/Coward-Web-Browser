@@ -1040,6 +1040,14 @@ class MainWindow(QMainWindow):
         elif a0.key() == Qt.Key.Key_A:
             self.manage_autohide(enabled=False)
 
+        # moving between tabs using Ctl-Tab or Ctl-Shift-Tab keys is handled in TabBar class
+        # elif a0.key() == Qt.Key.Key_Tab:
+
+        elif Qt.Key.Key_1 <= a0.key() <= Qt.Key.Key_9:
+            if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                new_index = min(self.ui.tabs.count() - 2, int(chr(a0.key())))
+                self.ui.tabs.setCurrentIndex(new_index)
+
     def targetDlgPos(self):
         return QPoint(self.x() + 100,
                       self.y() + self.ui.navtab.height() + (

@@ -1,6 +1,5 @@
-from PyQt6.QtCore import Qt, QRect, QSize
-from PyQt6.QtGui import QImage
-from PyQt6.QtWidgets import QTabBar, QSizePolicy, QStylePainter, QStyleOptionTab, QStyle, QTabWidget
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QTabBar
 
 
 class TabBar(QTabBar):
