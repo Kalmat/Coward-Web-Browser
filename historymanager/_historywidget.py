@@ -37,6 +37,9 @@ class HistoryWidget(QWidget):
         # self.init_label.setFixedSize(self._item_width, self._item_height)
         self.mainLayout.addWidget(self.init_label)
 
+        self.pendingIcons = {}
+        self.loading_ico = QPixmap(DefaultSettings.Icons.loading).scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+
         for key in self.history_manager.history.keys():
             date = key
             title = self.history_manager.history[key]["title"]
@@ -64,7 +67,8 @@ class HistoryWidget(QWidget):
         # entryIcon.setDisabled(True)
         entryIcon.setFixedSize(24, 24)
         if not os.path.exists(icon):
-            icon = DefaultSettings.Icons.loading
+            self.pendingIcons[icon] = entryIcon
+            icon = self.loading_ico
         entryIcon.setPixmap(QPixmap(icon))
         layout.addWidget(entryIcon, 0, 0)
 
@@ -82,6 +86,20 @@ class HistoryWidget(QWidget):
 
         widget.setLayout(layout)
         self.mainLayout.insertWidget(1, widget)
+
+        self.update()
+        if self.isVisible():
+            self.hide()
+            self.show()
+
+    def updateEntryIcon(self, icon):
+        entryIcon = self.pendingIcons.get(icon, None)
+        if entryIcon is not None:
+            entryIcon.setPixmap(QPixmap(icon))
+            entryIcon.update()
+            self.hide()
+            self.show()
+
 
     def loadUrl(self, url):
         self.load_url_sig.emit(QUrl(url))
