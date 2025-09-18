@@ -217,7 +217,8 @@ class MainWindow(QMainWindow):
         # apply styles to independent widgets
         self.ui.dl_manager.setStyleSheet(Themes.styleSheet(theme, Themes.Section.downloadManager))
         self.ui.search_widget.setStyleSheet(Themes.styleSheet(theme, Themes.Section.searchWidget))
-        self.history_widget.setStyleSheet(Themes.styleSheet(theme, Themes.Section.historyWidget))
+        if DefaultSettings.History.enableHistory:
+            self.history_widget.setStyleSheet(Themes.styleSheet(theme, Themes.Section.historyWidget))
 
         # context menu styles
         self.ui.tabsContextMenu.setStyleSheet(Themes.styleSheet(theme, Themes.Section.contextmenu))
@@ -236,6 +237,9 @@ class MainWindow(QMainWindow):
         self.ui.search_on_btn.clicked.connect(self.manage_search)
         self.ui.dl_on_btn.clicked.connect(self.manage_downloads)
         self.ui.dl_off_btn.clicked.connect(self.manage_downloads)
+        if DefaultSettings.History.enableHistory:
+            self.ui.hist_on_btn.clicked.connect(self.manage_history)
+            self.ui.hist_off_btn.clicked.connect(self.manage_history)
         self.ui.cookie_btn.triggered.connect(lambda: self.manage_cookies(clicked=True))
         self.ui.clean_btn.triggered.connect(self.handleCleanAllRequest)
         self.ui.ninja_btn.clicked.connect(lambda: self.show_in_new_window(incognito=True))
@@ -517,7 +521,7 @@ class MainWindow(QMainWindow):
                 title,
                 self.ui.tabs.widget(i).url().toString(),
                 full_filename,
-            ])
+            ], permanent=True)
 
     def icon_changed(self, icon, i):
 
@@ -968,6 +972,18 @@ class MainWindow(QMainWindow):
         self.ui.dl_manager.show()
         self.ui.dl_manager.move(self.get_dl_manager_pos())
 
+    def manage_history(self):
+
+        if self.history_widget.isVisible():
+            self.ui.hist_on_act.setVisible(True)
+            self.ui.hist_off_act.setVisible(False)
+            self.history_widget.hide()
+
+        else:
+            self.ui.hist_on_act.setVisible(False)
+            self.ui.hist_off_act.setVisible(True)
+            self.show_history_widget()
+
     def get_history_widget_geom(self):
 
         # getting title bar height (custom or standard)
@@ -1094,11 +1110,10 @@ class MainWindow(QMainWindow):
         elif a0.key() == Qt.Key.Key_A:
             self.manage_autohide(enabled=False)
 
-        elif a0.key() == Qt.Key.Key_H:
+        elif a0.key() == Qt.Key.Key_H and DefaultSettings.History.enableHistory:
             if self.history_widget.isVisible():
-                # this is handled within HistoryWidget class
-                # self.history_widget.hide()
-                pass
+                # this must be handled within HistoryWidget class too
+                self.history_widget.hide()
             else:
                 self.show_history_widget()
 

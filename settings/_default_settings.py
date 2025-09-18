@@ -110,7 +110,8 @@ class DefaultSettings:
         bufferingStarted = "Buffering content to stream to external player.\n\n" \
                            "Your stream will start soon, please be patient."
         streamError = "There has been a problem while trying to stream this page.\n\n%s"
-        cleanAllRequest = "This will erase all your history and stored cookies.\n\n" \
+        cleanAllRequest = "This will erase all your history and stored cookies.\n" \
+                          "This action can not be undone.\n\n" \
                           "Are you sure you want to proceed?"
         certificateErrorThirdParty = "Certificate error while loading this URL:\n%s\n\n" \
                                      "From page:\n%s (%s)\n\n" \
