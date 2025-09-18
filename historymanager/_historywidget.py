@@ -42,11 +42,13 @@ class HistoryWidget(QWidget):
             title = self.history_manager.history[key]["title"]
             url = self.history_manager.history[key]["url"]
             icon = self.history_manager.history[key]["icon"]
-            self._add(date, title, url, icon)
+            self.addHistoryEntry([date, title, url, icon])
 
-    def _add(self, date, title, url, icon):
+    def addHistoryEntry(self, entry):
 
         self.init_label.setText("Places visited so far")
+
+        date, title, url, icon = entry
 
         widget = QWidget()
         widget.setObjectName("item")

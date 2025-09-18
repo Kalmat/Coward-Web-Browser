@@ -59,10 +59,12 @@ class History:
         return self._historyValues
 
     def addHistoryEntry(self, value, permanent=True):
+        added = True
         date, title, url, icon = value
         for key in self._historyValues.keys():
             item_url = self._historyValues[key]["url"]
             if url == item_url:
+                added = False
                 del self._historyValues[key]
                 break
         self._historyValues[date] = {
@@ -72,6 +74,7 @@ class History:
         }
         if permanent:
             self.saveHistory()
+        return added
 
     def saveHistory(self):
         self._historyObj.setValue("History/history", self._historyValues)
