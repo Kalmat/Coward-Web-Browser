@@ -4,6 +4,7 @@ QTabBar {
     background: #161616;
     color: lightgrey;
     qproperty-drawBase: 0;
+    border-bottom: 1px solid #646464;
 }
 
 QTabBar::tab {
@@ -22,16 +23,15 @@ QTabBar::tab {
 
 QTabBar::tab:selected {
     background-color: #646464;
-    border: none;
+    border-bottom: 1px solid #646464;
 }
 
 QTabBar::tab:hover {
     background-color: #646464;
-    border: none;
 }
 
 QTabWidget::pane {
-    border: 0;
+    border: none;
 }
 
 QTabBar::tab:first {

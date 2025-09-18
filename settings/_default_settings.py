@@ -66,8 +66,8 @@ class DefaultSettings:
 
         class PlayerTypes:
             mpv = "mpv"          # strongly recommended, but requires mpv.exe in ./externalplayer/mpv/ folder
-            http = "http"        # Not working with QtWebEngine. Requires ffmpeg in ./externalplayer/ffmpeg/ folder
-            qt = "qt"            # experimental. Caching is not very well resolved
+            http = "http"        # Not working with QWebEngine. Requires ffmpeg in ./externalplayer/ffmpeg/ folder
+            qt = "qt"            # experimental. Buffering is not very well resolved
             qt_ffmpeg_Udp = "qt_ff_u"     # Not working with QMediaPlayer. Requires ffmpeg in ./externalplayer/ffmpeg/ folder
             qt_ffmpeg_Stdout = "qt_ff_s"  # Not working with QMediaPlayer. Requires ffmpeg in ./externalplayer/ffmpeg/ folder
 
