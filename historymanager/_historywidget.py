@@ -99,6 +99,7 @@ class HistoryWidget(QWidget):
             entryIcon.update()
             self.hide()
             self.show()
+            del self.pendingIcons[icon]
 
 
     def loadUrl(self, url):

@@ -28,19 +28,13 @@ QWidget#item:hover {
 QLabel#entryIcon {
     font-family: "MS Shell Dlg 2";
     font-size: 9pt;
-    background: #161616;
+    background: transparent;
     color: white;
     border: none;
 }
 
 QLabel#entryIcon:hover {
-    background: #161616;
-    color: white;
-    border: none;
-}
-
-QLabel#entryIcon:disabled {
-    background: #161616;
+    background: transparent;
     color: white;
     border: none;
 }
