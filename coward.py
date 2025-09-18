@@ -59,24 +59,24 @@ class MainWindow(QMainWindow):
         self.configureMainWindow()
 
         # history manager to store / retrieve previous history (if enabled)
-        self.history_manager = None
-        if DefaultSettings.History.enableHistory:
-            history_folder = os.path.normpath(os.path.join(DefaultSettings.Storage.App.storageFolder,
-                                                           DefaultSettings.Storage.Cache.cacheFolder,
-                                                           DefaultSettings.Storage.Cache.cacheFile,
-                                                           DefaultSettings.Storage.History.historyFolder))
-            full_history_folder = os.path.normpath(os.path.join(self.cache_manager.cachePath, DefaultSettings.Storage.History.historyFolder))
-            if not os.path.exists(full_history_folder):
-                os.makedirs(full_history_folder)
-            self.history_manager = History(history_folder, DefaultSettings.Storage.History.historyFile)
-            # creating history widget
-            self.history_widget = HistoryWidget(self, self.history_manager, self.loadHistoryUrlSig)
+        history_folder = os.path.normpath(os.path.join(DefaultSettings.Storage.App.storageFolder,
+                                                       DefaultSettings.Storage.Cache.cacheFolder,
+                                                       DefaultSettings.Storage.Cache.cacheFile,
+                                                       DefaultSettings.Storage.History.historyFolder))
+        full_history_folder = os.path.normpath(os.path.join(self.cache_manager.cachePath, DefaultSettings.Storage.History.historyFolder))
+        if not os.path.exists(full_history_folder):
+            os.makedirs(full_history_folder)
+        self.history_manager = History(history_folder, DefaultSettings.Storage.History.historyFile)
 
         # create UI
         self.setUI()
 
         # create and initialize independent widgets and variables
         self.preInit()
+
+        # creating history widget
+        self.history_widget = HistoryWidget(self, self.settings, self.history_manager, self.dialog_manager, self.loadHistoryUrlSig)
+        self.history_widget.setStyleSheet(Themes.styleSheet(self.settings.theme, Themes.Section.historyWidget))
 
         # open previous tabs and child windows
         self.createTabs(init_tabs)
@@ -218,8 +218,6 @@ class MainWindow(QMainWindow):
         # apply styles to independent widgets
         self.ui.dl_manager.setStyleSheet(Themes.styleSheet(theme, Themes.Section.downloadManager))
         self.ui.search_widget.setStyleSheet(Themes.styleSheet(theme, Themes.Section.searchWidget))
-        if DefaultSettings.History.enableHistory:
-            self.history_widget.setStyleSheet(Themes.styleSheet(theme, Themes.Section.historyWidget))
 
         # context menu styles
         self.ui.tabsContextMenu.setStyleSheet(Themes.styleSheet(theme, Themes.Section.contextmenu))
@@ -238,9 +236,8 @@ class MainWindow(QMainWindow):
         self.ui.search_on_btn.clicked.connect(self.manage_search)
         self.ui.dl_on_btn.clicked.connect(self.manage_downloads)
         self.ui.dl_off_btn.clicked.connect(self.manage_downloads)
-        if DefaultSettings.History.enableHistory:
-            self.ui.hist_on_btn.clicked.connect(self.manage_history)
-            self.ui.hist_off_btn.clicked.connect(self.manage_history)
+        self.ui.hist_on_btn.clicked.connect(self.manage_history)
+        self.ui.hist_off_btn.clicked.connect(self.manage_history)
         self.ui.cookie_btn.triggered.connect(lambda: self.manage_cookies(clicked=True))
         self.ui.clean_btn.triggered.connect(self.handleCleanAllRequest)
         self.ui.ninja_btn.clicked.connect(lambda: self.show_in_new_window(incognito=True))
@@ -514,7 +511,7 @@ class MainWindow(QMainWindow):
         self.ui.tabs.tabBar().setTabText(i, (title + " " * 30)[:29] if self.h_tabbar else "")
         self.ui.tabs.setTabToolTip(i, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
 
-        if DefaultSettings.History.enableHistory and self.history_manager is not None:
+        if self.settings.enableHistory and self.history_manager is not None:
             hash_object = hashlib.sha256(self.ui.tabs.widget(i).url().toString().encode())
             filename = str(hash_object.hexdigest())
             full_filename = os.path.join(self.history_manager.historyFolder, filename)
@@ -537,7 +534,7 @@ class MainWindow(QMainWindow):
             new_icon = QIcon(pixmap.transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
         self.ui.tabs.tabBar().setTabIcon(i, new_icon)
 
-        if DefaultSettings.History.enableHistory:
+        if self.settings.enableHistory:
             hash_object = hashlib.sha256(self.ui.tabs.widget(i).url().toString().encode())
             filename = str(hash_object.hexdigest())
             full_filename = os.path.join(self.history_manager.historyFolder, filename)
@@ -1113,7 +1110,7 @@ class MainWindow(QMainWindow):
         elif a0.key() == Qt.Key.Key_A:
             self.manage_autohide(enabled=False)
 
-        elif a0.key() == Qt.Key.Key_H and DefaultSettings.History.enableHistory:
+        elif a0.key() == Qt.Key.Key_H and self.settings.enableHistory:
             if self.history_widget.isVisible():
                 # this must be handled within HistoryWidget class too
                 self.history_widget.hide()

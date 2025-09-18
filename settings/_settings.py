@@ -18,6 +18,7 @@ class Settings:
                                    )
 
         self._allowCookies = self._getBool("Security/cookies", True)
+        self._enableHistory = self._getBool("Security/history", True)
         self._theme = self._getStr("Appearance/theme", DefaultSettings.Theme.defaultTheme)
         self._incognitoTheme = self._getStr("Appearance/incognito_theme", DefaultSettings.Theme.deafultIncognitoTheme)
         self._isCustomTitleBar = self._getBool("Appearance/custom_title", True)
@@ -162,6 +163,15 @@ class Settings:
             self._settings.setValue("Security/cookies", value)
 
     @property
+    def enableHistory(self):
+        return self._enableHistory
+
+    def setEnableHistory(self, value, persistent=False):
+        self._enableHistory = value
+        if persistent:
+            self._settings.setValue("Security/history", value)
+
+    @property
     def isTabBarHorizontal(self):
         return self._horizontalTabBar
 
@@ -198,7 +208,6 @@ class Settings:
             self._settings.setValue("Session/new_wins", value)
 
     def instance(self):
-
         if self._settings is None:
             return None
         else:

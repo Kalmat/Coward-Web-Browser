@@ -1,16 +1,62 @@
 QWidget#main {
-    background: #161616;
+    background: transparent;
     color: white;
     padding: 0;
     border: none;
 }
 
-QLabel {
-    font-family: "MS Shell Dlg 2";
-    font-size: 10pt;
+QWidget#init_widget {
     background: #323232;
     color: white;
     border: none;
+}
+
+QCheckBox {
+    background: #323232;
+    color: white;
+}
+
+QCheckBox::indicator {
+    background: #161616;
+    color: white;
+    border: 1px solid #646464;
+}
+
+QCheckBox::indicator:checked {
+    background-color: lightgrey;
+    color: white;
+    border: 1px solid #646464;
+}
+
+QLabel {
+    font-family: "MS Shell Dlg 2";
+    font-size: 11pt;
+    background: #323232;
+    color: white;
+    border: none;
+}
+
+QPushButton {
+    font-family: "MS Shell Dlg 2";
+    font-size: 9pt;
+    background: #161616;
+    color: white;
+    border-left: 1px solid lightgrey;
+    border-top: 1px solid lightgrey;
+    border-right: 1px solid black;
+    border-bottom: 1px solid black;
+    border-radius: 4px;
+    padding: 5px;
+}
+
+QPushButton:hover {
+    background: #646464;
+    color: black;
+}
+
+QPushButton:pressed {
+    background: lightgrey;
+    color: black;
 }
 
 QWidget#item {
@@ -53,3 +99,42 @@ QLabel#entryText:hover {
     border: none;
 }
 
+QScrollArea {
+    background: transparent;
+    border: none;
+}
+
+QScrollBar:vertical {
+    border: none;
+    background: black;
+    width: 15px;
+    margin: 20px 0 20px 0;
+}
+
+QScrollBar::handle:vertical {
+    background: #323232;
+    min-height: 20px;
+}
+
+QScrollBar::add-line:vertical {
+    border: none;
+    background: #161616;
+    height: 20px;
+    subcontrol-position: bottom;
+    subcontrol-origin: margin;
+}
+
+QScrollBar::sub-line:vertical {
+    border: none;
+    background: #161616;
+    height: 20px;
+    subcontrol-position: top;
+    subcontrol-origin: margin;
+}
+
+QWidget#content {
+    background: #161616;
+    color: white;
+    padding: 0;
+    border: none;
+}

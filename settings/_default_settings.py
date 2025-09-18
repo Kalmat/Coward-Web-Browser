@@ -17,7 +17,6 @@ class DefaultSettings:
         tempFolder = os.path.join(os.getenv("SystemDrive"), "Windows", "Temp", "Coward")
 
     class History:
-        enableHistory = True
         historySize = 100
 
     class Grips:
@@ -113,6 +112,9 @@ class DefaultSettings:
         cleanAllRequest = "This will erase all your history and stored cookies.\n" \
                           "This action can not be undone.\n\n" \
                           "Are you sure you want to proceed?"
+        eraseHistorylRequest = "This will erase your navigation history.\n" \
+                               "This action can not be undone.\n\n" \
+                               "Are you sure you want to proceed?"
         certificateErrorThirdParty = "Certificate error while loading this URL:\n%s\n\n" \
                                      "From page:\n%s (%s)\n\n" \
                                      "%s\n\n" \
