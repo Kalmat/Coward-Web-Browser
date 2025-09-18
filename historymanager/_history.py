@@ -45,11 +45,12 @@ class History:
             sorted = {}
             for i, key in enumerate(keys):
                 if i <= DefaultSettings.History.historySize:
-                    sorted = {key: self._historyValues[key] for i, key in enumerate(keys)}
+                    sorted[key] = self._historyValues[key]
                 else:
-                    if os.path.exists(self._historyValues[key]["icon"]):
+                    icon_file = self._historyValues[key]["icon"]
+                    if os.path.exists(icon_file):
                         try:
-                            os.remove(self._historyValues[key]["icon"])
+                            os.remove(icon_file)
                         except:
                             pass
             self._historyValues = sorted
