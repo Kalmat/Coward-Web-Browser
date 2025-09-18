@@ -216,7 +216,6 @@ class Ui_MainWindow:
             self.closewin_btn.setFont(font)
             self.navtab.addWidget(self.closewin_btn)
 
-
         # tab bar styles
         # horizontal
         self.h_tab_style = Themes.styleSheet(DefaultSettings.Theme.defaultTheme, Themes.Section.horizontalTabs)

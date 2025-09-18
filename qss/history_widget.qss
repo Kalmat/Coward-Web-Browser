@@ -1,0 +1,61 @@
+QWidget#main {
+    background: #161616;
+    color: white;
+    padding: 0;
+    border: none;
+}
+
+QLabel {
+    font-family: "MS Shell Dlg 2";
+    font-size: 10pt;
+    background: #323232;
+    color: white;
+    border: none;
+}
+
+QWidget#item {
+    background: #161616;
+    color: white;
+    border: none;
+}
+
+QWidget#item:hover {
+    background: #323232;
+    color: white;
+    border: none;
+}
+
+QLabel#entryIcon {
+    font-family: "MS Shell Dlg 2";
+    font-size: 9pt;
+    background: #161616;
+    color: white;
+    border: none;
+}
+
+QLabel#entryIcon:hover {
+    background: #161616;
+    color: white;
+    border: none;
+}
+
+QLabel#entryIcon:disabled {
+    background: #161616;
+    color: white;
+    border: none;
+}
+
+QLabel#entryText {
+    font-family: "MS Shell Dlg 2";
+    font-size: 9pt;
+    background: #161616;
+    color: white;
+    border: none;
+}
+
+QLabel#entryText:hover {
+    background: #323232;
+    color: white;
+    border: none;
+}
+

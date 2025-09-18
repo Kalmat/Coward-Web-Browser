@@ -17,6 +17,7 @@ class Themes:
         dialog = "dialog"
         contextmenu = "contextmenu"
         mediaplayer = "mediaplayer"
+        historyWidget = "historyWidget"
 
     _themes = {
         "Dark": {
@@ -28,7 +29,8 @@ class Themes:
             "downloadManager": 'download_manager.qss',
             "dialog": 'dialog.qss',
             "contextmenu": "contextmenu.qss",
-            "mediaplayer": "mediaplayer.qss"
+            "mediaplayer": "mediaplayer.qss",
+            "historyWidget": "history_widget.qss"
         },
         "Incognito": {
             "mainWindow": 'main.qss',
@@ -39,8 +41,9 @@ class Themes:
             "downloadManager": 'download_manager.qss',
             "dialog": 'dialog.qss',
             "contextmenu": "contextmenu.qss",
-            "mediaplayer": "mediaplayer.qss"
-        }
+            "mediaplayer": "mediaplayer.qss",
+            "historyWidget": "history_widget.qss"
+    }
     }
 
     @staticmethod

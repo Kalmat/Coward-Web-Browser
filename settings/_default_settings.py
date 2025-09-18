@@ -16,6 +16,10 @@ class DefaultSettings:
         enableLogging = False
         tempFolder = os.path.join(os.getenv("SystemDrive"), "Windows", "Temp", "Coward")
 
+    class History:
+        enableHistory = True
+        historySize = 100
+
     class Grips:
         gripSize = 8
 
@@ -41,6 +45,10 @@ class DefaultSettings:
 
         class Settings:
             settingsFile = "Coward" + ("_debug" if not utils.is_packaged() else "")
+
+        class History:
+            historyFolder = "coward.history"
+            historyFile = "data"
 
     class Browser:
         defaultPage = 'https://start.duckduckgo.com/?kae=d'
@@ -71,7 +79,7 @@ class DefaultSettings:
             qt_ffmpeg_Udp = "qt_ff_u"     # Not working with QMediaPlayer. Requires ffmpeg in ./externalplayer/ffmpeg/ folder
             qt_ffmpeg_Stdout = "qt_ff_s"  # Not working with QMediaPlayer. Requires ffmpeg in ./externalplayer/ffmpeg/ folder
 
-        externalPlayerType = PlayerTypes.qt
+        externalPlayerType = PlayerTypes.mpv
         streamTempFiles = ["temp_1.mp4", "temp_2.mp4", "temp_3.mp4"]
         streamTempFolder = "stream"
         ffmpegStreamUrl = "udp://@127.0.0.1:5000/stream?overrun_nonfatal=1&fifo_size=50000000"

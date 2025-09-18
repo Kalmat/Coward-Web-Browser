@@ -16,6 +16,7 @@ from cachemanager import CacheManager
 from dialog import DialogsManager
 from mediaplayer import HttpManager
 from settings import Settings, DefaultSettings
+from historymanager import History, HistoryWidget
 from themes import Themes
 from ui import Ui_MainWindow
 import utils
@@ -36,6 +37,9 @@ class MainWindow(QMainWindow):
     enterTabBarSig = pyqtSignal()
     leaveTabBarSig = pyqtSignal()
 
+    # load history url
+    loadHistoryUrlSig = pyqtSignal(QUrl)
+
     # constructor
     def __init__(self, new_win=False, init_tabs=None, incognito=None):
         super(MainWindow, self).__init__()
@@ -52,6 +56,20 @@ class MainWindow(QMainWindow):
 
         # apply main window settings
         self.configureMainWindow()
+
+        # history manager to store / retrieve previous history (if enabled)
+        self.history_manager = None
+        if DefaultSettings.History.enableHistory:
+            history_folder = os.path.normpath(os.path.join(DefaultSettings.Storage.App.storageFolder,
+                                                           DefaultSettings.Storage.Cache.cacheFolder,
+                                                           DefaultSettings.Storage.Cache.cacheFile,
+                                                           DefaultSettings.Storage.History.historyFolder))
+            full_history_folder = os.path.normpath(os.path.join(self.cache_manager.cachePath, DefaultSettings.Storage.History.historyFolder))
+            if not os.path.exists(full_history_folder):
+                os.makedirs(full_history_folder)
+            self.history_manager = History(history_folder, DefaultSettings.Storage.History.historyFile)
+            # creating history widget
+            self.history_widget = HistoryWidget(self, self.history_manager, self.loadHistoryUrlSig)
 
         # create UI
         self.setUI()
@@ -170,6 +188,7 @@ class MainWindow(QMainWindow):
         self.appIcon_32 = QIcon(DefaultSettings.Icons.appIcon_32)
         self.appPix = QPixmap(DefaultSettings.Icons.appIcon)
         self.appPix_32 = QPixmap(DefaultSettings.Icons.appIcon_32)
+        self.web_pix = QPixmap(DefaultSettings.Icons.loading)
         self.web_ico = QIcon(DefaultSettings.Icons.loading)
 
         # webpage common profile to keep session logins, cookies, etc.
@@ -198,6 +217,7 @@ class MainWindow(QMainWindow):
         # apply styles to independent widgets
         self.ui.dl_manager.setStyleSheet(Themes.styleSheet(theme, Themes.Section.downloadManager))
         self.ui.search_widget.setStyleSheet(Themes.styleSheet(theme, Themes.Section.searchWidget))
+        self.history_widget.setStyleSheet(Themes.styleSheet(theme, Themes.Section.historyWidget))
 
         # context menu styles
         self.ui.tabsContextMenu.setStyleSheet(Themes.styleSheet(theme, Themes.Section.contextmenu))
@@ -247,6 +267,7 @@ class MainWindow(QMainWindow):
         self.enterTabBarSig.connect(self.enterTabBar)
         self.leaveTabBarSig.connect(self.leaveTabBar)
 
+        self.loadHistoryUrlSig.connect(self.add_new_tab)
 
     def show(self):
         super().show()
@@ -488,18 +509,35 @@ class MainWindow(QMainWindow):
         self.ui.tabs.tabBar().setTabText(i, (title + " " * 30)[:29] if self.h_tabbar else "")
         self.ui.tabs.setTabToolTip(i, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
 
+        if DefaultSettings.History.enableHistory and self.history_manager is not None:
+            filename = str(abs(hash(self.ui.tabs.widget(i).url().toString())))
+            full_filename = os.path.join(self.history_manager.historyFolder, filename)
+            self.history_manager.addHistoryEntry([
+                time.time(),
+                title,
+                self.ui.tabs.widget(i).url().toString(),
+                full_filename,
+            ])
+
     def icon_changed(self, icon, i):
 
         # works fine but sometimes it takes too long (0,17sec.)...
         # TODO: find another way (test with github site)
         # icon = utils.fixDarkImage(icon, self.icon_size, self.icon_size, i)
 
+        pixmap = icon.pixmap(QSize(self.icon_size, self.icon_size))
         if self.h_tabbar:
             new_icon = icon
         else:
             # icon rotation is required if not using custom painter in TabBar class
-            new_icon = QIcon(icon.pixmap(QSize(self.icon_size, self.icon_size)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
+            new_icon = QIcon(pixmap.transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
         self.ui.tabs.tabBar().setTabIcon(i, new_icon)
+
+        if DefaultSettings.History.enableHistory:
+            filename = str(abs(hash(self.ui.tabs.widget(i).url().toString())))
+            full_filename = os.path.join(self.history_manager.historyFolder, filename)
+            if not os.path.exists(full_filename):
+                pixmap.save(full_filename, "PNG")
 
     def add_toggletab_action(self):
         self.toggletab_btn = QLabel()
@@ -930,6 +968,22 @@ class MainWindow(QMainWindow):
         self.ui.dl_manager.show()
         self.ui.dl_manager.move(self.get_dl_manager_pos())
 
+    def get_history_widget_geom(self):
+
+        # getting title bar height (custom or standard)
+        gap = self.mapToGlobal(self.ui.navtab.pos()).y() - self.y()
+
+        # calculate position
+        x = self.x() + self.width() - self.history_widget.width()
+        y = self.y() + self.ui.navtab.height() + gap
+        w = 300
+        h = self.height() - (self.ui.navtab.height() + (self.ui.tabs.tabBar().height() if self.h_tabbar else 0))
+        return QRect(x, y, w, h)
+
+    def show_history_widget(self):
+        self.history_widget.show()
+        self.history_widget.setGeometry(self.get_history_widget_geom())
+
     # adding action to download files
     def download_file(self, item: QWebEngineDownloadRequest):
         if self.ui.dl_manager.addDownload(item):
@@ -1040,13 +1094,20 @@ class MainWindow(QMainWindow):
         elif a0.key() == Qt.Key.Key_A:
             self.manage_autohide(enabled=False)
 
-        # moving between tabs using Ctl-Tab or Ctl-Shift-Tab keys is handled in TabBar class
+        elif a0.key() == Qt.Key.Key_H:
+            if self.history_widget.isVisible():
+                # this is handled within HistoryWidget class
+                # self.history_widget.hide()
+                pass
+            else:
+                self.show_history_widget()
+
+        # moving between tabs using Ctl-Tab or Ctl-Shift-Tab keys is handled in TabWidget class
         # elif a0.key() == Qt.Key.Key_Tab:
 
         elif Qt.Key.Key_1 <= a0.key() <= Qt.Key.Key_9:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
-                new_index = min(self.ui.tabs.count() - 2, int(chr(a0.key())))
-                self.ui.tabs.setCurrentIndex(new_index)
+                self.ui.tabs.setCurrentIndex(int(chr(a0.key())))
 
     def targetDlgPos(self):
         return QPoint(self.x() + 100,
@@ -1063,6 +1124,10 @@ class MainWindow(QMainWindow):
         if hasattr(self, "search_widget") and self.search_widget.isVisible():
             # reposition search widget
             self.search_widget.move(self.get_search_widget_pos())
+
+        if hasattr(self, "history_widget") and self.history_widget.isVisible():
+            # reposition search widget
+            self.history_widget.setGeometry(self.get_history_widget_geom())
 
         if self.dialog_manager.showingDlg and self.dialog_manager.currentDialog is not None:
             # reposition any open dialog
@@ -1117,6 +1182,7 @@ class MainWindow(QMainWindow):
         self.ui.dl_manager.cancelAllDownloads()
         self.ui.dl_manager.close()
         self.ui.search_widget.close()
+        self.history_widget.close()
         self.ui.hoverHWidget.close()
         self.ui.hoverVWidget.close()
         self.inspector.close()
@@ -1165,6 +1231,9 @@ class MainWindow(QMainWindow):
         # only main window can save settings
         if not self.isNewWin and not self.isIncognito:
             self.saveSettings(tabs, new_wins)
+
+        if not self.isIncognito:
+            self.history_manager.saveHistory()
 
         args = []
         if self.cache_manager.deleteCacheRequested and not self.isNewWin and not self.isIncognito:

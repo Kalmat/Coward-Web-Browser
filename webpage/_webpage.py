@@ -2,6 +2,7 @@ import os
 
 from PyQt6.QtCore import pyqtSignal, pyqtSlot
 from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineCertificateError
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 from mediaplayer import QtMediaPlayer
 from settings import DefaultSettings
