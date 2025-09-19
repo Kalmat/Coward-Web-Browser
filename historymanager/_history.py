@@ -85,7 +85,6 @@ class History:
         self._historyObj.setValue("History/history", self._historyValues)
 
     def instance(self):
-
         if self._historyObj is None:
             return None
         else:

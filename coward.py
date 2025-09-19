@@ -274,6 +274,7 @@ class MainWindow(QMainWindow):
         self.enterTabBarSig.connect(self.enterTabBar)
         self.leaveTabBarSig.connect(self.leaveTabBar)
 
+        # signal to load page when clicked in history
         self.loadHistoryUrlSig.connect(self.add_new_tab)
 
     def show(self):
@@ -301,7 +302,6 @@ class MainWindow(QMainWindow):
             painter.setBrush(Qt.GlobalColor.color1)
             painter.drawRoundedRect(rect, self.settings.radius, self.settings.radius, Qt.SizeMode.AbsoluteSize)
             painter.end()
-            self.setMask(b)
             self.setMask(b)
 
     def createTabs(self, init_tabs):
@@ -338,6 +338,7 @@ class MainWindow(QMainWindow):
         # add the new tab action ("+") in tab bar
         self.add_tab_action()
 
+        # set current index AFTER creating all tabs
         self.ui.tabs.setCurrentIndex(current)
 
         self.instances = []
@@ -1119,11 +1120,12 @@ class MainWindow(QMainWindow):
             self.manage_autohide(enabled=False)
 
         elif a0.key() == Qt.Key.Key_H and self.settings.enableHistory:
-            if self.history_widget.isVisible():
-                # this must be handled within HistoryWidget class too
-                self.history_widget.hide()
-            else:
-                self.show_history_widget()
+            if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                if self.history_widget.isVisible():
+                    # this must be handled within HistoryWidget class too
+                    self.history_widget.hide()
+                else:
+                    self.show_history_widget()
 
         # moving between tabs using Ctl-Tab or Ctl-Shift-Tab keys is handled in TabWidget class
         # elif a0.key() == Qt.Key.Key_Tab:
