@@ -74,10 +74,6 @@ class MainWindow(QMainWindow):
         # create and initialize independent widgets and variables
         self.preInit()
 
-        # creating history widget
-        self.history_widget = HistoryWidget(self, self.settings, self.history_manager, self.dialog_manager, self.loadHistoryUrlSig)
-        self.history_widget.setStyleSheet(Themes.styleSheet(self.settings.theme, Themes.Section.historyWidget))
-
         # open previous tabs and child windows
         self.createTabs(init_tabs)
 
@@ -184,6 +180,15 @@ class MainWindow(QMainWindow):
         # manage http server
         self.http_manager = None
 
+        # creating history widget
+        if self.isIncognito:
+            self.settings.setEnableHistory(False)
+        self.history_widget = HistoryWidget(self, self.settings, self.history_manager, self.dialog_manager, self.loadHistoryUrlSig)
+        self.history_widget.setStyleSheet(Themes.styleSheet(self.settings.theme, Themes.Section.historyWidget))
+        if self.isIncognito:
+            self.history_widget.toggle_chk.hide()
+            self.history_widget.eraseHistory_btn.hide()
+
         # pre-load icons
         self.appIcon = QIcon(DefaultSettings.Icons.appIcon)
         self.appIcon_32 = QIcon(DefaultSettings.Icons.appIcon_32)
@@ -230,7 +235,7 @@ class MainWindow(QMainWindow):
         self.ui.next_btn.triggered.connect(self.goForward)
         self.ui.urlbar.returnPressed.connect(self.navigate_to_url)
         self.ui.reload_btn.triggered.connect(self.reloadPage)
-        self.ui.ext_player_btn.triggered.connect(self.openExternalPlayer)
+        self.ui.ext_player_btn.clicked.connect(self.openExternalPlayer)
         self.ui.auto_btn.clicked.connect(self.manage_autohide)
         self.ui.search_off_btn.clicked.connect(self.manage_search)
         self.ui.search_on_btn.clicked.connect(self.manage_search)
@@ -329,10 +334,11 @@ class MainWindow(QMainWindow):
 
         else:
             self.add_tab(QUrl(DefaultSettings.Browser.defaultPage))
-        self.ui.tabs.setCurrentIndex(current)
 
         # add the new tab action ("+") in tab bar
         self.add_tab_action()
+
+        self.ui.tabs.setCurrentIndex(current)
 
         self.instances = []
         for new_tabs in new_wins:
@@ -1220,7 +1226,7 @@ class MainWindow(QMainWindow):
             browser = self.ui.tabs.widget(i)
             page = browser.page()
             page.closeExternalPlayer(False, page.url().toString())
-            tabs.append([browser.url().toString(), browser.page().zoomFactor(), i == self.ui.tabs.currentIndex()])
+            tabs.append([browser.url().toString(), page.zoomFactor(), i == self.ui.tabs.currentIndex()])
 
         # save other open windows
         # only open windows when main instance is closed will be remembered

@@ -221,7 +221,7 @@ class HistoryWidget(QWidget):
         except:
             pass
         for i in range(0, self.content_layout.count()):
-            w = self.mainLayout.itemAt(1).widget().layout().itemAt(i).widget()
+            w = self.content_layout.itemAt(i).widget()
             w.deleteLater()
 
     def showContextMenu(self, point):
