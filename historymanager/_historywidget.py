@@ -2,10 +2,12 @@ import os.path
 import shutil
 
 from PyQt6.QtCore import Qt, QUrl, pyqtSlot, pyqtSignal
-from PyQt6.QtGui import QPixmap
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QGridLayout, QPushButton, QCheckBox, QScrollArea
+from PyQt6.QtGui import QPixmap, QAction
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QGridLayout, QPushButton, QCheckBox, QScrollArea, QMenu, \
+    QStyle, QApplication
 
 from settings import DefaultSettings, Settings
+from themes import Themes
 
 
 class HistoryWidget(QWidget):
@@ -88,6 +90,19 @@ class HistoryWidget(QWidget):
         self.mainLayout.setRowStretch(0, 0)
         self.mainLayout.setRowStretch(1, 1)
 
+        # creating a context menu to delete history entry
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.entryContextMenu = QMenu()
+        self.entryContextMenu.setMinimumHeight(40)
+        self.entryContextMenu.setContentsMargins(0, 5, 0, 0)
+        self.delete_action = QAction()
+        self.delete_action.setText("Delete this link from history")
+        self.delete_action.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxCritical))
+        self.entryContextMenu.setStyleSheet(Themes.styleSheet(DefaultSettings.Theme.defaultTheme, Themes.Section.contextmenu))
+        self.entryContextMenu.addAction(self.delete_action)
+
+        self.customContextMenuRequested.connect(self.showContextMenu)
+
         self.eraseHistorySig.connect(self.eraseHistory)
 
         self.pendingIcons = {}
@@ -127,6 +142,7 @@ class HistoryWidget(QWidget):
 
         entryText = QLabel()
         entryText.setObjectName("entryText")
+        entryText.setAccessibleName(str(date))
         entryText.setContentsMargins(5, 0, 0, 0)
         entryText.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         entryText.setFixedSize(400, 32)
@@ -147,6 +163,17 @@ class HistoryWidget(QWidget):
         if self.isVisible():
             self.hide()
             self.show()
+
+    def updateHistoryEntry(self, entry):
+
+        date, title, url, icon = entry
+
+        for i in range(self.content_layout.count()):
+            w = self.content_layout.itemAt(i).widget().layout().itemAt(1).widget()
+            item_url = w.toolTip()
+            if url == item_url:
+                w.setAccessibleName(date)
+                break
 
     def updateEntryIcon(self, icon):
         entryIcon = self.pendingIcons.get(icon, None)
@@ -194,20 +221,60 @@ class HistoryWidget(QWidget):
         except:
             pass
         for i in range(0, self.content_layout.count()):
-            w = self.mainLayout.itemAt(i).widget()
+            w = self.mainLayout.itemAt(1).widget().layout().itemAt(i).widget()
             w.deleteLater()
 
-    def mousePressEvent(self, a0):
-        index = int((a0.pos().y() - self.init_label.height()) / (32 + 3))
+    def showContextMenu(self, point):
+        self.delete_action.triggered.disconnect()
+        self.delete_action.triggered.connect(lambda checked, p=point: self.deleteHistoryEntry(checked, p))
+        self.entryContextMenu.exec(self.mapToGlobal(point))
+
+    def _getIndexByPosition(self, point):
+        index = int((point.y() - self.init_widget.height()) / (32 + 3))
+        return index
+
+    def _getWidgetByPosition(self, point):
+        index = self._getIndexByPosition(point)
         try:
-            url = self.layout().itemAt(index + 1).widget().layout().itemAt(1).widget().toolTip()
+            w = self.content_layout.itemAt(index).widget()
         except:
-            url = ""
-        if url:
-            self.loadHistoryEntry(url)
+            w = None
+        return w
+
+    def _getUrlByPosition(self, point):
+        w = self._getWidgetByPosition(point)
+        if w:
+            url = w.layout().itemAt(1).widget().toolTip()
+        else:
+            url = None
+        return url
+
+    def _getDateByPosition(self, point):
+        w = self._getWidgetByPosition(point)
+        if w:
+            date = w.layout().itemAt(1).widget().accessibleName()
+        else:
+            date = ""
+        return date
+
+    def deleteHistoryEntry(self, checked, point):
+        w = self._getWidgetByPosition(point)
+        if w:
+            w.deleteLater()
+            self.update()
+            if self.isVisible():
+                self.hide()
+                self.show()
+            key = self._getDateByPosition(point)
+            self.history_manager.deleteHistoryEntry(key)
+
+    def mousePressEvent(self, a0):
+        if QApplication.mouseButtons() == Qt.MouseButton.LeftButton:
+            url = self._getUrlByPosition(a0.pos())
+            if url:
+                self.loadHistoryEntry(url)
 
     def keyReleaseEvent(self, a0):
-
         if a0.key() == Qt.Key.Key_H:
             if self.isVisible():
                 self.hide()

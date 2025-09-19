@@ -515,10 +515,12 @@ class MainWindow(QMainWindow):
             hash_object = hashlib.sha256(self.ui.tabs.widget(i).url().toString().encode())
             filename = str(hash_object.hexdigest())
             full_filename = os.path.join(self.history_manager.historyFolder, filename)
-            item = [time.time(), title, self.ui.tabs.widget(i).url().toString(), full_filename]
+            item = [str(time.time()), title, self.ui.tabs.widget(i).url().toString(), full_filename]
             added = self.history_manager.addHistoryEntry(item)
             if added:
                 self.history_widget.addHistoryEntry(item)
+            else:
+                self.history_widget.updateHistoryEntry(item)
 
     def icon_changed(self, icon, i):
 

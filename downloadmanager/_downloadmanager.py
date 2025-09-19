@@ -32,7 +32,7 @@ class DownloadManager(QWidget):
 
         self.setWindowTitle("Coward - Downloads")
         self.mainLayout = QVBoxLayout()
-        self.mainLayout.setContentsMargins(0, 0, 5, 5)
+        self.mainLayout.setContentsMargins(5, 5, 5, 5)
         self.mainLayout.setSpacing(10)
         self.setLayout(self.mainLayout)
 
