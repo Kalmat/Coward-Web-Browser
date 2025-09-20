@@ -23,7 +23,6 @@ Rationally, this will never be a good replacement for any of the commercial web 
 
 | Shortcut             | Action                        |
 |----------------------|-------------------------------|
-| `Ctrl` `F`           | Show search box               |
 | `Ctrl` `T`           | Open new tab                  |
 | `Ctrl` `N`           | Open new window               |
 | `Ctrl` `Shift` `N`   | Open new incognito window     |
@@ -35,6 +34,7 @@ Rationally, this will never be a good replacement for any of the commercial web 
 | `Ctrl` `Tab`         | Select tab Forward            |
 | `Ctrl` `Shift` `Tab` | Select tab Backward           |
 | `Ctrl` `1` - `9`     | Select tab 1 to 9             |
+| `Ctrl` `F`           | Show search box               |
 | `Ctrl` `H`           | Show / hide History           |
 
 ### Mouse shortcuts
