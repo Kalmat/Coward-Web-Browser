@@ -98,11 +98,12 @@ class DialogsManager(QObject):
             try:
                 dialog = self._dlg_queue.get_nowait()
                 if dialog in self._dialogsToDelete:
-                    self._dialogsToDelete.pop(dialog)
+                    self._dialogsToDelete.pop(self._dialogsToDelete.index(dialog))
                 else:
                     dialog.show()
                     self.currentDialog = dialog
                     self.showingDlg = True
             except:
-                with self._dlg_queue.mutex:
-                    self._dlg_queue.queue.clear()
+                # with self._dlg_queue.mutex:
+                #     self._dlg_queue.queue.clear()
+                pass

@@ -1,8 +1,5 @@
-import os
-
 from PyQt6.QtCore import pyqtSignal, pyqtSlot
 from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineCertificateError
-from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 from mediaplayer import QtMediaPlayer
 from settings import DefaultSettings
@@ -183,8 +180,6 @@ class WebPage(QWebEnginePage):
                 buttonOkOnly=True)
             return
 
-        stream_thread = None
-
         # check how to manage internal/external choice:
         if DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.mpv:
             stream_thread = self.launchStream(url=self.url().toString(),
@@ -233,9 +228,9 @@ class WebPage(QWebEnginePage):
     @pyqtSlot(str, str)
     def handleStreamError(self, error, qurl):
         message = DefaultSettings.DialogMessages.streamError % error
-        self.showDialog(
-            message=message,
-            buttonOkOnly=True)
+        dialog = self.showDialog(
+                    message=message,
+                    buttonOkOnly=True)
         self.streamStarted(qurl)
 
     # close evertything related to streaming media: streamer (if not already closed), media player and delete files
