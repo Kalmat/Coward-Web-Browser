@@ -45,16 +45,16 @@ Rationally, this will never be a good replacement for any of the commercial web 
 
 ### Mouse shortcuts
 
-| Shortcut                     | Action                                    |
-|------------------------------|-------------------------------------------|
-| `Button` `Left`              | Click                                     |
-| `Button` `Left`              | Open new Tab (in "+" option)              |
-| `Button` `Right`             | Show contextual Menu                      |
-| `Button` `Right`             | Show close Tab Menu (in tab icon)         |
-| `Button` `Right`             | Show open new Window Menu (in "+" option) |
-| `Wheel` `Up` / `Down`        | Scroll Up / Down                          |
-| `Ctrl` `Wheel` `Up` / `Down` | Zoom In / Out                             |
-| `Ctrl` `Wheel` `Up` / `Down` | Select tab Forward / Back (in tab bar)    |
+| Shortcut                     | Action                                     |
+|------------------------------|--------------------------------------------|
+| `Button` `Left`              | Click                                      |
+| `Button` `Left`              | Open new Tab (in "+" option)               |
+| `Button` `Right`             | Show contextual Menu                       |
+| `Button` `Right`             | Show close Tab Menu (in tab icon)          |
+| `Button` `Right`             | Show open new Window Menu (in "+" option)  |
+| `Wheel` `Up` / `Down`        | Scroll Up / Down                           |
+| `Ctrl` `Wheel` `Up` / `Down` | Zoom In / Out                              |
+| `Ctrl` `Wheel` `Up` / `Down` | Select tab Forward / Backward (in tab bar) |
 
 ### Known issues (due to QtWebEngine limitations or web sites constraints)
 
