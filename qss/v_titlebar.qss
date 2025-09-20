@@ -1,0 +1,145 @@
+QToolBar {
+    background: #323232;
+    color: white;
+    height: 48px;
+    border-bottom: 1px solid #646464;
+}
+
+QLineEdit {
+    font-family: "MS Shell Dlg 2";
+    font-size: 10pt;
+    background: #161616;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    height: 40px;
+}
+
+QLineEdit:hover {
+    font-family: "MS Shell Dlg 2";
+    font-size: 10pt;
+    background: #484848;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    height: 40px;
+}
+
+QLineEdit:focus {
+    font-family: "MS Shell Dlg 2";
+    font-size: 10pt;
+    background: #323232;
+    color: white;
+    border: 1px solid lightgrey;
+    border-radius: 8px;
+    height: 40px;
+}
+
+QLabel#spacer {
+    font-family: "MS Shell Dlg 2";
+    font-size: 10pt;
+    background: #323232;
+    color: white;
+    border: none;
+}
+
+QToolButton {
+    background: #323232;
+    color: white;
+    width: 48px;
+    height: 48px;
+    border: none;
+}
+
+QToolButton:disabled {
+    background: #323232;
+    color: grey;
+}
+
+QToolButton:hover {
+    background: #646464;
+}
+
+QToolBar::separator {
+    background: grey;
+    width: 2px;
+    max-height: 24px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+QToolButton#search_on {
+    background: #323232;
+    color: white;
+    width: 48px;
+    height: 48px;
+    border: none;
+}
+
+QToolButton#search_on:hover {
+    background: #646464;
+}
+
+QToolButton#search_off {
+    background: #646464;
+    color: white;
+    width: 48px;
+    height: 48px;
+    border: none;
+}
+
+QToolButton#search_off:hover {
+    background: #646464;
+}
+
+QToolButton#dl_on {
+    background: #323232;
+    color: white;
+    width: 48px;
+    height: 48px;
+    border: none;
+}
+
+QToolButton#dl_on:hover {
+    background: #646464;
+}
+
+QToolButton#dl_off {
+    background: #646464;
+    color: white;
+    width: 48px;
+    height: 48px;
+    border: none;
+}
+
+QToolButton#dl_off:hover {
+    background: #646464;
+}
+
+QToolButton#hist_on {
+    background: #323232;
+    color: white;
+    width: 48px;
+    height: 48px;
+    border: none;
+}
+
+QToolButton#hist_on:hover {
+    background: #646464;
+}
+
+QToolButton#hist_off {
+    background: #646464;
+    color: white;
+    width: 48px;
+    height: 48px;
+    border: none;
+}
+
+QToolButton#hist_off:hover {
+    background: #646464;
+}
+
+QToolButton#close_win:hover {
+    background: red;
+}

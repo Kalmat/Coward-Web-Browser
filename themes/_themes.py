@@ -9,7 +9,8 @@ class Themes:
     # styles within themes
     class Section:
         mainWindow = "mainWindow"
-        titleBar = "titleBar"
+        horizontalTitleBar = "horizontalTitleBar"
+        verticalTitleBar = "verticalTitleBar"
         horizontalTabs = "horizontalTabs"
         verticalTabs = "verticalTabs"
         searchWidget = "searchWidget"
@@ -22,7 +23,8 @@ class Themes:
     _themes = {
         "Dark": {
             "mainWindow": 'main.qss',
-            "titleBar": 'titlebar.qss',
+            "horizontalTitleBar": 'h_titlebar.qss',
+            "verticalTitleBar": 'v_titlebar.qss',
             "horizontalTabs": 'h_tabs.qss',
             "verticalTabs": 'v_tabs.qss',
             "searchWidget": 'search_widget.qss',
@@ -34,7 +36,8 @@ class Themes:
         },
         "Incognito": {
             "mainWindow": 'main.qss',
-            "titleBar": 'titlebar_incognito.qss',
+            "horizontalTitleBar": 'h_titlebar.qss',
+            "verticalTitleBar": 'v_titlebar.qss',
             "horizontalTabs": 'h_tabs.qss',
             "verticalTabs": 'v_tabs.qss',
             "searchWidget": 'search_widget.qss',

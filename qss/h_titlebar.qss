@@ -2,7 +2,7 @@ QToolBar {
     background: #323232;
     color: white;
     height: 48px;
-    border-bottom: 1px solid #646464;
+    border: none;
 }
 
 QLineEdit {
@@ -64,8 +64,8 @@ QToolBar::separator {
     background: grey;
     width: 2px;
     max-height: 24px;
-    margin-top: 8px;
-    margin-bottom: 8px;
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
 
 QToolButton#search_on {

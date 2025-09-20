@@ -209,7 +209,8 @@ class MainWindow(QMainWindow):
             theme = self.settings.theme
 
         # navigation bar styles
-        self.ui.navtab.setStyleSheet(Themes.styleSheet(theme, Themes.Section.titleBar))
+        self.h_navtab_style = Themes.styleSheet(theme, Themes.Section.horizontalTitleBar)
+        self.v_navtab_style = Themes.styleSheet(theme, Themes.Section.verticalTitleBar)
 
         # tab bar styles
         self.h_tab_style = Themes.styleSheet(theme, Themes.Section.horizontalTabs)
@@ -797,6 +798,7 @@ class MainWindow(QMainWindow):
         self.ui.tabs.tabBar().setTabButton(0, QTabBar.ButtonPosition.RightSide, None)
         self.ui.tabs.tabBar().setTabButton(self.ui.tabs.count() - 1, QTabBar.ButtonPosition.RightSide, None)
         self.ui.tabs.tabBar().setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)
+        self.ui.navtab.setStyleSheet(self.h_navtab_style if self.h_tabbar else self.v_navtab_style)
         self.ui.tabs.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu if self.h_tabbar else Qt.ContextMenuPolicy.CustomContextMenu)
         self.ui.tabs.setTabToolTip(0, "Set %s tabs" % ("vertical" if self.h_tabbar else "horizontal"))
 
