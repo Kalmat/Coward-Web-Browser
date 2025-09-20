@@ -21,18 +21,21 @@ Rationally, this will never be a good replacement for any of the commercial web 
 
 ### Keyboard shortcuts
 
-| Shortcut             | Action                                 |
-|----------------------|----------------------------------------|
-| `Ctrl` `F`           | Show search box                        |
-| `Ctrl` `T`           | Open new tab                           |
-| `Ctrl` `N`           | Open new window                        |
-| `Ctrl` `Shift` `N`   | Open new incognito window              |
-| `Ctrl` `W`           | Close current tab                      |
-| `Alt` `F4`           | Close current window                   |
-| `F11`                | Enter fullscreen                       |
-| `Esc`                | Exit fullscreen                        |
-| `Esc`                | Cancel url input (in url bar)          |
-| `Ctrl` `A`           | Force showing Navigation and Tab bars  |
+| Shortcut             | Action                        |
+|----------------------|-------------------------------|
+| `Ctrl` `F`           | Show search box               |
+| `Ctrl` `T`           | Open new tab                  |
+| `Ctrl` `N`           | Open new window               |
+| `Ctrl` `Shift` `N`   | Open new incognito window     |
+| `Ctrl` `W`           | Close current tab             |
+| `Alt` `F4`           | Close current window          |
+| `F11`                | Enter fullscreen              |
+| `Esc`                | Exit fullscreen               |
+| `Esc`                | Cancel url input (in url bar) |
+| `Ctrl` `Tab`         | Select tab Forward            |
+| `Ctrl` `Shift` `Tab` | Select tab Backward           |
+| `Ctrl` `1` - `9`     | Select tab 1 to 9             |
+| `Ctrl` `H`           | Show / hide History           |
 
 ### Mouse shortcuts
 
@@ -46,8 +49,6 @@ Rationally, this will never be a good replacement for any of the commercial web 
 | `Wheel` `Up` / `Down`        | Scroll Up / Down                          |
 | `Ctrl` `Wheel` `Up` / `Down` | Zoom In / Out                             |
 | `Ctrl` `Wheel` `Up` / `Down` | Select tab Forward / Back (in tab bar)    |
-| `Ctrl` `Tab`                 | Select tab Forward                        |
-| `Ctrl` `Shift` `Tab`         | Select tab Back                           |
 
 ### Known issues (due to QtWebEngine limitations or web sites constraints)
 
