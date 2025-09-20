@@ -1283,6 +1283,7 @@ def main():
 
     # try to load widevine if available
     utils.set_widevine_var(os.path.join("externalplayer", "widevine", "widevinecdm.dll"))
+    utils.set_multimedia_preferred_plugins()
 
     # enable debug, including Chromium debug info
     if DefaultSettings.App.enableDebug or Options.enableDebug in sys.argv:

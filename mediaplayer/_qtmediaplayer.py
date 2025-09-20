@@ -12,8 +12,6 @@ from PyQt6.QtMultimediaWidgets import QGraphicsVideoItem
 from settings import DefaultSettings
 from themes import Themes
 
-os.environ['QT_MULTIMEDIA_PREFERRED_PLUGINS'] = 'windowsmediafoundation'
-
 
 class QtMediaPlayer(QWidget):
 
@@ -54,7 +52,7 @@ class QtMediaPlayer(QWidget):
 
         # configure window
         self.setGeometry(200, 200, 700, 400)
-        self.setWindowTitle(title + " / " + str(self.stream_file_index))
+        self.setWindowTitle(title)
         self.setWindowIcon(QIcon(DefaultSettings.Icons.appIcon_32))
         self.setStyleSheet(Themes.styleSheet(DefaultSettings.Theme.defaultTheme, Themes.Section.mediaplayer))
 
@@ -246,7 +244,7 @@ class QtMediaPlayer(QWidget):
             if os.path.exists(self.temp_file) and os.path.getsize(self.temp_file) >= DefaultSettings.Player.streamTempFileSize:
                 # reached swap size: read from next file
                 self.stream_file_index = (self.stream_file_index + 1) % len(DefaultSettings.Player.streamTempFiles)
-                self.setWindowTitle(self.title + " / " + str(self.stream_file_index))
+                self.setWindowTitle(self.title)
             else:
                 self.mediaplayer.pause()
                 position = self.mediaplayer.position()
@@ -327,9 +325,6 @@ class UdpReceiver(QThread):
             finally:
                 self.stream_process.kill()
 
-
-
-
     def stop(self):
         self.stopReading = True
         self.quit()
@@ -351,7 +346,6 @@ class StdoutReceiver(QThread):
         try:
 
             while not self.stopReading:
-
                 print("READING STDOUT")
                 # Read data from FFmpeg's stdout
                 data = self.stream_process.stdout.read(8192)
@@ -371,7 +365,6 @@ class StdoutReceiver(QThread):
                 self.stream_process.kill()
             except:
                 pass
-
 
     def stop(self):
         self.stopReading = True

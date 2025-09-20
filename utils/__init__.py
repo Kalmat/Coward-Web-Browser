@@ -11,6 +11,7 @@ from ._utils import (
     exception_hook,
     enableChromiumDebug,
     set_widevine_var,
+    set_multimedia_preferred_plugins,
     screenSize,
     fixDarkImage
 )

@@ -30,6 +30,11 @@ def set_widevine_var(widevine_relative_path):
                                                 % resource_path(widevine_relative_path, inverted=True, use_dist_folder="dist"))
 
 
+def set_multimedia_preferred_plugins():
+    flags = os.environ.get('QT_MULTIMEDIA_PREFERRED_PLUGINS', "")
+    os.environ['QT_MULTIMEDIA_PREFERRED_PLUGINS'] = (flags + ' windowsmediafoundation')
+
+
 def fixDarkImage(image, width, height, index=None):
     import imageio
     import numpy as np
