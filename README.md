@@ -39,6 +39,9 @@ Rationally, this will never be a good replacement for any of the commercial web 
 | `Ctrl` `1` - `9`     | Select tab 1 to 9             |
 | `Ctrl` `F`           | Show search box               |
 | `Ctrl` `H`           | Show / hide History           |
+| `Tab`                | Select next link              |
+| `Shift` `Tab`        | Select previous link          |
+| `Enter`              | Load URL or selected link     |
 
 ### Mouse shortcuts
 
@@ -90,7 +93,7 @@ If you want to use this code or contribute, you can either:
 - Create a fork of the [repository](https://github.com/Kalmat/Coward), or
 - [Download the repository](https://github.com/Kalmat/Coward/archive/refs/heads/master.zip), uncompress, and open it on your IDE of choice (e.g. PyCharm)
 
-Be sure you install all dependencies described on "requirements.txt" by using pip:
+Be sure you install all dependencies included in "requirements.txt" by using pip:
 
     python -m pip install -r requirements.txt
 
