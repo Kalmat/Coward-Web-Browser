@@ -58,21 +58,11 @@ class MainWindow(QMainWindow):
         # apply main window settings
         self.configureMainWindow()
 
-        # history manager to store / retrieve previous history (if enabled)
-        history_folder = os.path.normpath(os.path.join(DefaultSettings.Storage.App.storageFolder,
-                                                       DefaultSettings.Storage.Cache.cacheFolder,
-                                                       DefaultSettings.Storage.Cache.cacheFile,
-                                                       DefaultSettings.Storage.History.historyFolder))
-        full_history_folder = os.path.normpath(os.path.join(self.cache_manager.cachePath, DefaultSettings.Storage.History.historyFolder))
-        if not os.path.exists(full_history_folder):
-            os.makedirs(full_history_folder)
-        self.history_manager = History(history_folder, DefaultSettings.Storage.History.historyFile)
-
-        # create UI
-        self.setUI()
-
         # create and initialize independent widgets and variables
         self.preInit()
+
+        # create UI
+        self.setupUI()
 
         # open previous tabs and child windows
         self.createTabs(init_tabs)
@@ -148,28 +138,13 @@ class MainWindow(QMainWindow):
         # set initial position and size
         self.setGeometry(appconfig.appGeometry(self, self.settings.position, self.settings.size, self.settings.isCustomTitleBar, self.isNewWin))
 
-    def setUI(self):
-
-        # create UI
-        self.ui = Ui_MainWindow(self, self.settings, self.isNewWin, self.isIncognito)
-
-        # apply styles to independent widgets
-        self.applyStyles()
-
-        # connect all UI slots to handle requested actions
-        self.connectUiSlots()
-
     def preInit(self):
 
-        # set cookies configuration according to settings
-        self.manage_cookies(clicked=False)
+        # webpage common profile to keep session logins, cookies, etc.
+        self._profile = None
 
-        # set tabbar configuration according to orientation
-        self.toggle_tabbar(clicked=False)
-        self.prevTabIndex = 1
-
-        # keep track of open popups and assure their persistence (anyway, we are not allowing popups by now)
-        self.popups = []
+        # manage http server
+        self.http_manager = None
 
         # use a dialog manager to enqueue dialogs and avoid showing all at once
         self.dialog_manager = DialogsManager(self,
@@ -177,17 +152,26 @@ class MainWindow(QMainWindow):
                                              self.icon_size,
                                              self.targetDlgPos)
 
-        # manage http server
-        self.http_manager = None
+        # history manager to store / retrieve previous history (if enabled)
+        history_folder = os.path.normpath(os.path.join(DefaultSettings.Storage.App.storageFolder,
+                                                       DefaultSettings.Storage.Cache.cacheFolder,
+                                                       DefaultSettings.Storage.Cache.cacheFile,
+                                                       DefaultSettings.Storage.History.historyFolder))
+        full_history_folder = os.path.normpath(os.path.join(self.cache_manager.cachePath, DefaultSettings.Storage.History.historyFolder))
+        if not os.path.exists(full_history_folder):
+            os.makedirs(full_history_folder)
+        self.history_manager = History(history_folder, DefaultSettings.Storage.History.historyFile)
 
         # creating history widget
         if self.isIncognito:
             self.settings.setEnableHistory(False)
         self.history_widget = HistoryWidget(self, self.settings, self.history_manager, self.dialog_manager, self.loadHistoryUrlSig)
-        self.history_widget.setStyleSheet(Themes.styleSheet(self.settings.theme, Themes.Section.historyWidget))
         if self.isIncognito:
             self.history_widget.toggle_chk.hide()
             self.history_widget.eraseHistory_btn.hide()
+
+        # keep track of open popups and assure their persistence (anyway, we are not allowing popups by now)
+        self.popups = []
 
         # pre-load icons
         self.appIcon = QIcon(DefaultSettings.Icons.appIcon)
@@ -197,8 +181,23 @@ class MainWindow(QMainWindow):
         self.web_pix = QPixmap(DefaultSettings.Icons.loading)
         self.web_ico = QIcon(DefaultSettings.Icons.loading)
 
-        # webpage common profile to keep session logins, cookies, etc.
-        self._profile = None
+    def setupUI(self):
+
+        # create UI
+        self.ui = Ui_MainWindow(self, self.settings, self.isNewWin, self.isIncognito)
+
+        # apply styles to independent widgets
+        self.applyStyles()
+
+        # set cookies configuration according to settings
+        self.manage_cookies(clicked=False)
+
+        # set tabbar configuration according to orientation
+        self.toggle_tabbar(clicked=False)
+        self.prevTabIndex = 1
+
+        # connect all UI slots to handle requested actions
+        self.connectUiSlots()
 
     def applyStyles(self):
 
@@ -224,6 +223,7 @@ class MainWindow(QMainWindow):
         # apply styles to independent widgets
         self.ui.dl_manager.setStyleSheet(Themes.styleSheet(theme, Themes.Section.downloadManager))
         self.ui.search_widget.setStyleSheet(Themes.styleSheet(theme, Themes.Section.searchWidget))
+        self.history_widget.setStyleSheet(Themes.styleSheet(self.settings.theme, Themes.Section.historyWidget))
 
         # context menu styles
         self.ui.tabsContextMenu.setStyleSheet(Themes.styleSheet(theme, Themes.Section.contextmenu))
