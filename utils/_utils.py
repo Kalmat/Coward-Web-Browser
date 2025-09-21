@@ -15,8 +15,6 @@ def screenSize(parent):
 
 def enableChromiumDebug():
     # this must be set before creating QWebEngineView objects
-    # TODO: Check this for more info and options (can this be useful to relaibly  detect media playback errors?)
-    # https://doc.qt.io/qtforpython-6/overviews/qtwebengine-features.html
     flags = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "")
     os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = (flags + ' --enable-logging=stderr --v=0')
 

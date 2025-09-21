@@ -52,6 +52,8 @@ class DefaultSettings:
     class Browser:
         defaultPage = 'https://start.duckduckgo.com/?kae=d'
         defaultTabs = [[defaultPage, 1.0, True]]
+        htmlPath = utils.resource_path("html")
+        fatalErrorPage = "fatal_error.html"
 
     class Cookies:
         allow = True
@@ -71,7 +73,7 @@ class DefaultSettings:
 
     class AdBlocker:
         enableAdBlocker = False   # way too slow (perhaps pyre2 may improve performance, but fails to install)
-        urlBlackList = ["aswpsdkeu"]  # , "ads"]  # this is totally empyrical
+        urlBlackList = []  # "aswpsdkeu"]  # , "ads"]  # this is totally empyrical
         rulesFileUrl = 'https://easylist.to/easylist/easylist.txt'
         rulesFile = "easylist.txt"
 
@@ -100,7 +102,6 @@ class DefaultSettings:
         httpStreamPort = 5123
         httpServerHost = "0.0.0.0"
         httpServerPort = 5000
-        htmlPath = utils.resource_path("html")
 
     class Downloads:
         downloadTempFolder = "downloads"

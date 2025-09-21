@@ -397,7 +397,7 @@ class MainWindow(QMainWindow):
 
     def getBrowser(self, qurl, zoom):
 
-        # this will create the browser and apply all selected settings
+        # this will create the browser and apply profile settings
         browser = WebView()
         self._profile = self.getProfile(browser)
         page = self.getPage(self._profile, browser, zoom)

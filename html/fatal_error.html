@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>503 Service Unavailable</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      max-width: 500px;
+      width: 100%;
+    }
+    .icon {
+      width: 60px;
+      height: 60px;
+      margin: 0 auto 20px;
+      background-color: #e0e0e0;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 28px;
+    }
+    h1 {
+      font-size: 24px;
+      color: #d9534f;
+      margin-bottom: 15px;
+    }
+    .error-box {
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      overflow: hidden;
+      text-align: left;
+    }
+    .error-header {
+      background-color: #f9f9f9;
+      padding: 12px 16px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+    }
+    .error-header:hover {
+      background-color: #f0f0f0;
+    }
+    .error-details {
+      padding: 16px;
+      background-color: #fdfdfd;
+      display: none;
+      border-top: 1px solid #eee;
+    }
+    .error-details p {
+      margin: 8px 0;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    ul li, ol li {
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    color: #333;
+    line-height: 1.5;
+    }
+    .arrow {
+      transition: transform 0.3s;
+    }
+    .arrow.open {
+      transform: rotate(180deg);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">⚠️</div>
+    <h1>Fatal error</h1>
+    <div class="error-box">
+      <div class="error-header" onclick="toggleDetails()">
+        <span>This page could not be loaded</span>
+        <span class="arrow">▼</span>
+      </div>
+      <div class="error-details" id="errorDetails">
+        <p><strong>What happened?</strong><br>
+        The page has caused a fatal error in Coward browser</p>
+        <p><strong>What can you do?</strong><br>
+        <p>If you are a developer:
+            <ul font="error-details">
+                <li>Download Coward browser source code from <a href="https://github.com/Kalmat/Coward-Web-Browser">here</a></li>
+                <li>Open Coward project with your IDE of choice (e.g. PyCharm)</li>
+                <li>Activate Debug Info in settings._defaultSettings, by setting to 'true' the enableDebug option inside App Section</li>
+                <li>Run Coward</li>
+                <li>Check in output console which page is producing the error (most likely is an AD or similar page)</li>
+                <li>When found, include the problemmatic page domain in settings, within urlBlackList option in AdBlocker section</li>
+                <li>Try again. The issue should be fixed (there can be more, nevertheless)</li>
+            </ul>
+        <p>
+        If you are not a developer or don't want to mess around this code, open an issue <a href="https://github.com/Kalmat/Coward-Web-Browser/issues">here</a>
+        </p>
+        </p>
+        </p>
+        <p><strong>Support Reference:</strong><br>Fatal error when loading page (please, include the URL you were trying to load and any other relevant information)</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleDetails() {
+      const details = document.getElementById('errorDetails');
+      const arrow = document.querySelector('.arrow');
+      if (details.style.display === 'block') {
+        details.style.display = 'none';
+        arrow.classList.remove('open');
+      } else {
+        details.style.display = 'block';
+        arrow.classList.add('open');
+      }
+    }
+  </script>
+</body>
+</html>

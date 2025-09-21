@@ -102,9 +102,8 @@ class WebPage(QWebEnginePage):
 
         # if level == WebEnginePage.JavaScriptConsoleMessageLevel.ErrorMessageLevel:
         #
-        #     # this is totally empirical and based in just one a small number of cases
-        #     # TODO: find a better way to catch and handle page errors
-        #     # this is promissing but... how to access this data?
+        #     # this is totally empyrical and based in just one a small number of cases
+        #     # this is promising but... how to access this data?
         #     # "debug_error": "{\"errorCode\":\"html5.unsupportedlive\",\"errorMessage\":\"No se admite este formato de vídeo.\",\"Ua\":\"HTML5_NO_AVAILABLE_FORMATS_FALLBACK\",\"Cx\":\"\",\"cN\":\"buildRej.1;a.1;d.1;drm.0;f18.0;c18.0;f133.1;f140.1;f242.1;cAAC.0;cAVC.0;cVP9.1;a6s.1\",\"Rl\":2,\"cpn\":\"KSAdNV_auzm2Ivhf\"}",
         #
         #     # this works for twitch, but not for YT live videos

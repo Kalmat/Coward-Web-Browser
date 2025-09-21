@@ -1,6 +1,9 @@
+import os
+
 from PyQt6.QtWebEngineCore import QWebEngineSettings
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
+import utils
 from settings import DefaultSettings
 
 
@@ -8,6 +11,15 @@ class WebView(QWebEngineView):
 
     def __init__(self, parent=None):
         super(WebView, self).__init__(parent)
+
+    def setUrl(self, url):
+        self.load(url)
+
+    def load(self, *__args):
+        try:
+            super().load(*__args)
+        except:
+            self.load(os.path.join(DefaultSettings.Browser.htmlPath, DefaultSettings.Browser.fatalErrorPage))
 
     def applySettings(self, security_level, dark_mode):
 

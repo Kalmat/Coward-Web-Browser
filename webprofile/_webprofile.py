@@ -1,10 +1,8 @@
 import os
 import time
 import requests
-from PyQt6.QtCore import Qt
 
-from PyQt6.QtWebEngineCore import QWebEngineProfile, QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo, \
-    QWebEngineSettings
+from PyQt6.QtWebEngineCore import QWebEngineProfile, QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo
 from adblockparser import AdblockRules
 
 from settings import DefaultSettings
@@ -25,11 +23,12 @@ class WebProfile(QWebEngineProfile):
         if cookie_filter is not None:
             self.defaultProfile().cookieStore().setCookieFilter(cookie_filter)
 
-        # set request interceptor
+        # set request interceptor if needed
         # this ad page makes the whole browser crash: https://aswpsdkeu.com/notify/v2/ua-sdk.min.js
         # TODO: how to fix it? (it's going to be impossible to manage all these pages)
-        self.interceptor = RequestInterceptor(DefaultSettings.AdBlocker.urlBlackList, enableAdBlocker, rulesFolder)
-        self.setUrlRequestInterceptor(self.interceptor)
+        if DefaultSettings.AdBlocker.urlBlackList or enableAdBlocker:
+            self.interceptor = RequestInterceptor(DefaultSettings.AdBlocker.urlBlackList, enableAdBlocker, rulesFolder)
+            self.setUrlRequestInterceptor(self.interceptor)
 
     def _setNormalPage(self, cache_path):
 
