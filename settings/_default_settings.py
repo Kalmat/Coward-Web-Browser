@@ -69,6 +69,8 @@ class DefaultSettings:
             safe = 2
             paranoid = 3
 
+        # This affects to QWebEngineView attributes only (see WebView class)
+        # Other options like certificates, features or permissions will be asked to the user using dialogs
         securityLevel = SecurityLevels.safe
 
     class AdBlocker:

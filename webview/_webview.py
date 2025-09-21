@@ -3,7 +3,6 @@ import os
 from PyQt6.QtWebEngineCore import QWebEngineSettings
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
-import utils
 from settings import DefaultSettings
 
 
@@ -19,8 +18,10 @@ class WebView(QWebEngineView):
 
     def load(self, *__args):
         try:
+            # some pages make QWebEngineView crash (and the whole application)
             super().load(*__args)
         except:
+            # showing error page to allow to manually detect and filter problematic pages
             self.load(self.fatal_error_page)
 
     def applySettings(self, security_level, dark_mode):
