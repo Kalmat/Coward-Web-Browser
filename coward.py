@@ -98,6 +98,7 @@ class MainWindow(QMainWindow):
         # since most "icons" are actually characters, we should also adjust fonts or stick to values between 24 and 32
         self.icon_size = int(max(24, min(32, self.settings.iconSize)))
         self.action_size = self.settings.iconSize + max(16, self.settings.iconSize // 2)
+        self.small_action_size = self.action_size - 16
 
         # set auto-hide
         self.autoHide = self.settings.autoHide
@@ -300,7 +301,7 @@ class MainWindow(QMainWindow):
         super().show()
 
         # apply minimum size to main window according to actual sizes (after show)
-        self.setMinimumWidth(self.ui.ninja_btn.width() * len(self.ui.navtab.findChildren(QToolButton)))
+        self.setMinimumWidth((self.ui.ninja_btn.width() * len(self.ui.navtab.findChildren(QToolButton))) - (5 * self.small_action_size))
         self.setMinimumHeight(self.ui.navtab.height()+1)
 
         # setup autohide if enabled

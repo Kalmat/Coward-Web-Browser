@@ -108,7 +108,7 @@ class Ui_MainWindow:
         self.ext_player_btn.setToolTip("Open in external player\n"
                                        "(may fix non-compatible media issues)")
         self.ext_player_act = self.navtab.addWidget(self.ext_player_btn)
-        self.ext_player_btn.setFixedSize(24,24)
+        self.ext_player_btn.setFixedSize(parent.small_action_size, parent.small_action_size)
 
         # adding search option
         self.search_on_btn = QToolButton(self.navtab)
@@ -119,7 +119,7 @@ class Ui_MainWindow:
         self.search_on_btn.setText("⌕")
         self.search_on_btn.setToolTip("Search text in this page")
         self.search_on_act = self.navtab.addWidget(self.search_on_btn)
-        self.search_on_btn.setFixedSize(24,24)
+        self.search_on_btn.setFixedSize(parent.small_action_size, parent.small_action_size)
 
         self.search_off_btn = QToolButton(self.navtab)
         self.search_off_btn.setObjectName("search_off")
@@ -139,7 +139,7 @@ class Ui_MainWindow:
         self.dl_on_btn.setFont(font)
         self.dl_on_btn.setText("🡣")
         self.dl_on_btn.setToolTip("Show / hide downloads")
-        self.dl_on_btn.setFixedSize(24,24)
+        self.dl_on_btn.setFixedSize(parent.small_action_size, parent.small_action_size)
         self.dl_on_act = self.navtab.addWidget(self.dl_on_btn)
 
         self.dl_off_btn = QToolButton(self.navtab)
@@ -160,7 +160,7 @@ class Ui_MainWindow:
         self.hist_on_btn.setFont(font)
         self.hist_on_btn.setText("🟑")
         self.hist_on_btn.setToolTip("Show / hide navigation history")
-        self.hist_on_btn.setFixedSize(24,24)
+        self.hist_on_btn.setFixedSize(parent.small_action_size, parent.small_action_size)
         self.hist_on_act = self.navtab.addWidget(self.hist_on_btn)
 
         self.hist_off_btn = QToolButton(self.navtab)
@@ -170,7 +170,7 @@ class Ui_MainWindow:
         self.hist_off_btn.setFont(font)
         self.hist_off_btn.setText("🟑")
         self.hist_off_btn.setToolTip("Show / hide navigation history")
-        self.hist_on_btn.setFixedSize(24,24)
+        self.hist_on_btn.setFixedSize(parent.small_action_size, parent.small_action_size)
         self.hist_off_act = self.navtab.addWidget(self.hist_off_btn)
         self.hist_off_act.setVisible(False)
 
@@ -182,7 +182,7 @@ class Ui_MainWindow:
         self.dark_on_btn.setFont(font)
         self.dark_on_btn.setText("🌕")
         self.dark_on_btn.setToolTip("Enable force Dark Mode")
-        self.dark_on_btn.setFixedSize(24,24)
+        self.dark_on_btn.setFixedSize(parent.small_action_size, parent.small_action_size)
         self.dark_on_act = self.navtab.addWidget(self.dark_on_btn)
         self.dark_on_act.setVisible(not settings.forceDark)
 
