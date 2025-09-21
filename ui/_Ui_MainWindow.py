@@ -174,13 +174,13 @@ class Ui_MainWindow:
         self.hist_off_act = self.navtab.addWidget(self.hist_off_btn)
         self.hist_off_act.setVisible(False)
 
-        # adding history mgt.  🌑
+        # adding history mgt.  🌑🌕
         self.dark_on_btn = QToolButton(self.navtab)
         self.dark_on_btn.setObjectName("dark_on")
         font = self.dark_on_btn.font()
-        font.setPointSize(font.pointSize() + 2)
+        font.setPointSize(font.pointSize() + 14)
         self.dark_on_btn.setFont(font)
-        self.dark_on_btn.setText("🌕")
+        self.dark_on_btn.setText("◑")
         self.dark_on_btn.setToolTip("Enable force Dark Mode")
         self.dark_on_btn.setFixedSize(parent.small_action_size, parent.small_action_size)
         self.dark_on_act = self.navtab.addWidget(self.dark_on_btn)
@@ -189,9 +189,9 @@ class Ui_MainWindow:
         self.dark_off_btn = QToolButton(self.navtab)
         self.dark_off_btn.setObjectName("dark_off")
         font = self.dark_off_btn.font()
-        font.setPointSize(font.pointSize() + 4)
+        font.setPointSize(font.pointSize() + 14)
         self.dark_off_btn.setFont(font)
-        self.dark_off_btn.setText("🌑")
+        self.dark_off_btn.setText("◐")
         self.dark_off_btn.setToolTip("Disable force Dark Mode")
         self.dark_off_act = self.navtab.addWidget(self.dark_off_btn)
         self.dark_off_act.setVisible(settings.forceDark)
