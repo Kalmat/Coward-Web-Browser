@@ -60,6 +60,7 @@ class DefaultSettings:
         incognitoPersistentPolicy = QWebEngineProfile.PersistentCookiesPolicy.AllowPersistentCookies
 
     class Security:
+
         class SecurityLevels:
             mad = 0
             relaxed = 1

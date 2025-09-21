@@ -34,10 +34,10 @@ class WebView(QWebEngineView):
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.PdfViewerEnabled, allow)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.ScreenCaptureEnabled, allow)
 
-        # "paranoid" level will disable everything
+        # "paranoid" level means everything will be disabled
 
         # common values, not related to security level
-        self.settings().setAttribute(QWebEngineSettings.WebAttribute.ReadingFromCanvasEnabled, False)
+        # self.settings().setAttribute(QWebEngineSettings.WebAttribute.ReadingFromCanvasEnabled, False)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.FullScreenSupportEnabled, True)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.FocusOnNavigationEnabled, True)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.LinksIncludedInFocusChain, True)
