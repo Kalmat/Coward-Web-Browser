@@ -1148,7 +1148,8 @@ class MainWindow(QMainWindow):
                 self.manage_fullscr(on=not self.isFullScreen())
 
         elif a0.key() == Qt.Key.Key_A:
-            self.manage_autohide(enabled=False)
+            if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                self.manage_autohide(enabled=False)
 
         elif a0.key() == Qt.Key.Key_H and self.settings.enableHistory:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
@@ -1174,7 +1175,6 @@ class MainWindow(QMainWindow):
         elif Qt.Key.Key_1 <= a0.key() <= Qt.Key.Key_9:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
                 self.ui.tabs.setCurrentIndex(int(chr(a0.key())))
-
 
     def targetDlgPos(self):
         return QPoint(self.x() + 100,
