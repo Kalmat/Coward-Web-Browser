@@ -1040,6 +1040,13 @@ class MainWindow(QMainWindow):
             self.ui.tabs.widget(i).settings().setAttribute(QWebEngineSettings.WebAttribute.ForceDarkMode, self.dark_mode)
             self.ui.tabs.widget(i).reload()
 
+    def manage_tabs(self, index):
+        if index <= 0:
+            index = self.ui.tabs.count() - 2
+        elif index >= self.ui.tabs.count() - 1:
+            index = 1
+        self.ui.tabs.setCurrentIndex(index)
+
     # adding action to download files
     def download_file(self, item: QWebEngineDownloadRequest):
         if self.dl_manager.addDownload(item):
@@ -1158,20 +1165,20 @@ class MainWindow(QMainWindow):
         elif a0.key() == Qt.Key.Key_Backtab:
             if a0.modifiers() == Qt.KeyboardModifier.ShiftModifier | Qt.KeyboardModifier.ControlModifier:
                 index = self.ui.tabs.currentIndex() - 1
-                if index <= 0:
-                    index = self.ui.tabs.count() - 2
-                self.ui.tabs.setCurrentIndex(index)
+                self.manage_tabs(index)
 
         elif a0.key() == Qt.Key.Key_Tab:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
                 index = self.ui.tabs.currentIndex() + 1
+                self.manage_tabs(index)
                 if index >= self.ui.tabs.count() - 1:
                     index = 1
                 self.ui.tabs.setCurrentIndex(index)
 
         elif Qt.Key.Key_1 <= a0.key() <= Qt.Key.Key_9:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
-                self.ui.tabs.setCurrentIndex(int(chr(a0.key())))
+                index = int(chr(a0.key()))
+                self.manage_tabs(index)
 
     def targetDlgPos(self):
         return QPoint(self.x() + 100,
