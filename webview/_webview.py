@@ -22,10 +22,7 @@ class WebView(QWebEngineView):
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.PdfViewerEnabled, True)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.FocusOnNavigationEnabled, True)
 
-        if dark_mode:
-            self.settings().setAttribute(QWebEngineSettings.WebAttribute.ForceDarkMode, True)
-        else:
-            self.settings().setAttribute(QWebEngineSettings.WebAttribute.ForceDarkMode, False)
+        self.settings().setAttribute(QWebEngineSettings.WebAttribute.ForceDarkMode, dark_mode)
 
         """ https://doc.qt.io/qt-6/qwebenginesettings.html
             WebAttribute.FocusOnNavigationEnabled
