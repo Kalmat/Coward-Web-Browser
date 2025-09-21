@@ -24,8 +24,9 @@ class WebProfile(QWebEngineProfile):
             self.defaultProfile().cookieStore().setCookieFilter(cookie_filter)
 
         # set request interceptor if needed
-        # this ad page makes the whole browser crash: https://aswpsdkeu.com/notify/v2/ua-sdk.min.js
-        # TODO: how to fix it? (it's going to be impossible to manage all these pages)
+        # e.g. this ad page makes the whole browser crash: https://aswpsdkeu.com/notify/v2/ua-sdk.min.js
+        # it seems impossible to automatically prevent these errors
+        # included a "Fatal Error" page to manually detect these pages and manually avoid them using interceptor
         if DefaultSettings.AdBlocker.urlBlackList or enableAdBlocker:
             self.interceptor = RequestInterceptor(DefaultSettings.AdBlocker.urlBlackList, enableAdBlocker, rulesFolder)
             self.setUrlRequestInterceptor(self.interceptor)
