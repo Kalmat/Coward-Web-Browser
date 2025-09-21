@@ -9,6 +9,7 @@ This is an evolution of the many 'Simple Web Browser' examples built with PyQt5/
 - Custom title bar, whilst still allowing to move and resize window
 - Open non-compatible media in external player: MPV (not included)
 - Incognito mode
+- Enable / Disable force Dark Mode for pages
 - Enable / Disable cookies
 - Wipe all cookies, history, permissions and cache
 - Navigation History which can be enabled/disabled, as well as deleted one by one or entirely
