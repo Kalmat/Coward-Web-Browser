@@ -1153,10 +1153,7 @@ class MainWindow(QMainWindow):
 
         elif a0.key() == Qt.Key.Key_H and self.settings.enableHistory:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
-                if self.history_widget.isVisible():
-                    self.history_widget.hide()
-                else:
-                    self.show_history_widget()
+                self.manage_history()
 
         elif a0.key() == Qt.Key.Key_Backtab:
             if a0.modifiers() == Qt.KeyboardModifier.ShiftModifier | Qt.KeyboardModifier.ControlModifier:
