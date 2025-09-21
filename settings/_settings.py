@@ -20,6 +20,7 @@ class Settings:
         self._allowCookies = self._getBool("Security/cookies", True)
         self._enableHistory = self._getBool("Security/history", True)
         self._theme = self._getStr("Appearance/theme", DefaultSettings.Theme.defaultTheme)
+        self._forceDark = self._getBool("Appearance/dark", False)
         self._incognitoTheme = self._getStr("Appearance/incognito_theme", DefaultSettings.Theme.deafultIncognitoTheme)
         self._isCustomTitleBar = self._getBool("Appearance/custom_title", True)
         self._horizontalTabBar = self._getBool("Appearance/h_tabbar", False)
@@ -89,6 +90,15 @@ class Settings:
         self._theme = value
         if persistent:
             self._settings.setValue("Appearance/theme", value)
+
+    @property
+    def forceDark(self):
+        return self._forceDark
+
+    def setForceDark(self, value, persistent=False):
+        self._dark = value
+        if persistent:
+            self._settings.setValue("Appearance/dark", value)
 
     @property
     def incognitoTheme(self):

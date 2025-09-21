@@ -154,6 +154,30 @@ QToolButton#hist_off:hover {
     background: green;
 }
 
+QToolButton#dark_on {
+    background: darkgreen;
+    color: white;
+    width: 48px;
+    height: 48px;
+    border: none;
+}
+
+QToolButton#dark_on:hover {
+    background: green;
+}
+
+QToolButton#dark_off {
+    background: green;
+    color: white;
+    width: 48px;
+    height: 48px;
+    border: none;
+}
+
+QToolButton#dark_off:hover {
+    background: green;
+}
+
 QToolButton#close_win:hover {
     background: red;
 }

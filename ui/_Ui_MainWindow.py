@@ -3,9 +3,7 @@ from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QToolButton, QLabel, QSizePolicy, QMenu, QStyle, QTabWidget
 
 from TabWidget import TabWidget
-from downloadmanager import DownloadManager
 from lineedit import LineEdit
-from searchwidget import SearchWidget
 from hoverwidget import HoverWidget
 from settings import DefaultSettings
 from sidegrips import AppSideGrips
@@ -151,7 +149,6 @@ class Ui_MainWindow:
         self.dl_off_btn.setFont(font)
         self.dl_off_btn.setText("🡣")
         self.dl_off_btn.setToolTip("Show / hide downloads")
-        self.dl_on_btn.setFixedSize(24,24)
         self.dl_off_act = self.navtab.addWidget(self.dl_off_btn)
         self.dl_off_act.setVisible(False)
 
@@ -176,6 +173,28 @@ class Ui_MainWindow:
         self.hist_on_btn.setFixedSize(24,24)
         self.hist_off_act = self.navtab.addWidget(self.hist_off_btn)
         self.hist_off_act.setVisible(False)
+
+        # adding history mgt.  🌑
+        self.dark_on_btn = QToolButton(self.navtab)
+        self.dark_on_btn.setObjectName("dark_on")
+        font = self.dark_on_btn.font()
+        font.setPointSize(font.pointSize() + 12)
+        self.dark_on_btn.setFont(font)
+        self.dark_on_btn.setText("◐")
+        self.dark_on_btn.setToolTip("Enable force Dark Mode")
+        self.dark_on_btn.setFixedSize(24,24)
+        self.dark_on_act = self.navtab.addWidget(self.dark_on_btn)
+        self.dark_on_act.setVisible(not settings.forceDark)
+
+        self.dark_off_btn = QToolButton(self.navtab)
+        self.dark_off_btn.setObjectName("dark_off")
+        font = self.dark_off_btn.font()
+        font.setPointSize(font.pointSize() + 12)
+        self.dark_off_btn.setFont(font)
+        self.dark_off_btn.setText("◑")
+        self.dark_off_btn.setToolTip("Disable force Dark Mode")
+        self.dark_off_act = self.navtab.addWidget(self.dark_off_btn)
+        self.dark_off_act.setVisible(settings.forceDark)
 
         self.navtab.addSeparator()
 

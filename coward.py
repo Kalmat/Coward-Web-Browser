@@ -91,6 +91,9 @@ class MainWindow(QMainWindow):
             self.cookies = self.settings.allowCookies
             self.isIncognito = False
 
+        # Enable/disabling froce dark mode in pages
+        self.dark_mode = self.settings.forceDark
+
         # set icon size (also affects to tabs and actions sizes)
         # since most "icons" are actually characters, we should also adjust fonts or stick to values between 24 and 32
         self.icon_size = int(max(24, min(32, self.settings.iconSize)))
@@ -112,6 +115,7 @@ class MainWindow(QMainWindow):
         # save all values (even those blocked, in case .ini file didn't exist)
         self.settings.setAllowCookies(self.cookies, True)
         self.settings.setTheme(self.settings.theme, True)
+        self.settings.setForceDark(self.dark_mode, True)
         self.settings.setIncognitoTheme(self.settings.incognitoTheme, True)
         self.settings.setCustomTitleBar(self.settings.isCustomTitleBar, True)
         self.settings.setAutoHide(self.autoHide, True)
@@ -133,7 +137,6 @@ class MainWindow(QMainWindow):
 
         # apply style from qss folder
         if self.isIncognito:
-            print("INCOGNITO")
             self.setStyleSheet(Themes.styleSheet(self.settings.incognitoTheme, Themes.Section.mainWindow))
         else:
             self.setStyleSheet(Themes.styleSheet(self.settings.theme, Themes.Section.mainWindow))
@@ -257,6 +260,8 @@ class MainWindow(QMainWindow):
         self.ui.dl_off_btn.clicked.connect(self.manage_downloads)
         self.ui.hist_on_btn.clicked.connect(self.manage_history)
         self.ui.hist_off_btn.clicked.connect(self.manage_history)
+        self.ui.dark_on_btn.clicked.connect(self.manage_dark_mode)
+        self.ui.dark_off_btn.clicked.connect(self.manage_dark_mode)
         self.ui.cookie_btn.triggered.connect(lambda: self.manage_cookies(clicked=True))
         self.ui.clean_btn.triggered.connect(self.handleCleanAllRequest)
         self.ui.ninja_btn.clicked.connect(lambda: self.show_in_new_window(incognito=True))
@@ -398,7 +403,7 @@ class MainWindow(QMainWindow):
         browser.setPage(page)
 
         # most settings must be applied AFTER setting page and profile
-        browser.applySettings()
+        browser.applySettings(self.dark_mode)
 
         # setting url to browser. Using a timer (thread) it seems to load faster
         QTimer.singleShot(0, lambda u=qurl: browser.load(u))
@@ -1025,6 +1030,17 @@ class MainWindow(QMainWindow):
     def show_history_widget(self):
         self.history_widget.show()
         self.history_widget.setGeometry(self.get_history_widget_geom())
+
+    def manage_dark_mode(self):
+
+        self.dark_mode = not self.dark_mode
+
+        self.ui.dark_on_act.setVisible(not self.dark_mode)
+        self.ui.dark_off_act.setVisible(self.dark_mode)
+
+        for i in range(1, self.ui.tabs.count() - 2):
+            self.ui.tabs.widget(i).settings().setAttribute(QWebEngineSettings.WebAttribute.ForceDarkMode, self.dark_mode)
+            self.ui.tabs.widget(i).reload()
 
     # adding action to download files
     def download_file(self, item: QWebEngineDownloadRequest):
