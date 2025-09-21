@@ -1171,9 +1171,6 @@ class MainWindow(QMainWindow):
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
                 index = self.ui.tabs.currentIndex() + 1
                 self.manage_tabs(index)
-                if index >= self.ui.tabs.count() - 1:
-                    index = 1
-                self.ui.tabs.setCurrentIndex(index)
 
         elif Qt.Key.Key_1 <= a0.key() <= Qt.Key.Key_9:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
