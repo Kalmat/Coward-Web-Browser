@@ -12,6 +12,8 @@ class WebView(QWebEngineView):
     def __init__(self, parent=None):
         super(WebView, self).__init__(parent)
 
+        self.fatal_error_page = os.path.join(DefaultSettings.Browser.htmlPath, DefaultSettings.Browser.fatalErrorPage)
+
     def setUrl(self, url):
         self.load(url)
 
@@ -19,7 +21,7 @@ class WebView(QWebEngineView):
         try:
             super().load(*__args)
         except:
-            self.load(os.path.join(DefaultSettings.Browser.htmlPath, DefaultSettings.Browser.fatalErrorPage))
+            self.load(self.fatal_error_page)
 
     def applySettings(self, security_level, dark_mode):
 
