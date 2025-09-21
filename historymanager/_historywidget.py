@@ -224,6 +224,17 @@ class HistoryWidget(QWidget):
             w = self.content_layout.itemAt(i).widget()
             w.deleteLater()
 
+    def deleteHistoryEntry(self, checked, point):
+        w = self._getWidgetByPosition(point)
+        if w:
+            w.deleteLater()
+            self.update()
+            if self.isVisible():
+                self.hide()
+                self.show()
+            key = self._getDateByPosition(point)
+            self.history_manager.deleteHistoryEntry(key)
+
     def showContextMenu(self, point):
         self.delete_action.triggered.disconnect()
         self.delete_action.triggered.connect(lambda checked, p=point: self.deleteHistoryEntry(checked, p))
@@ -256,17 +267,6 @@ class HistoryWidget(QWidget):
         else:
             date = ""
         return date
-
-    def deleteHistoryEntry(self, checked, point):
-        w = self._getWidgetByPosition(point)
-        if w:
-            w.deleteLater()
-            self.update()
-            if self.isVisible():
-                self.hide()
-                self.show()
-            key = self._getDateByPosition(point)
-            self.history_manager.deleteHistoryEntry(key)
 
     def mousePressEvent(self, a0):
         if QApplication.mouseButtons() == Qt.MouseButton.LeftButton:
