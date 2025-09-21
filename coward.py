@@ -409,7 +409,6 @@ class MainWindow(QMainWindow):
         # setting url to browser. Using a timer (thread) it seems to load faster
         QTimer.singleShot(0, lambda u=qurl: browser.load(u))
 
-        # https://sample-files.com/downloads/documents/pdf/basic-text.pdf
         return browser
 
     def connectBrowserSlots(self, browser, tabIndex):
