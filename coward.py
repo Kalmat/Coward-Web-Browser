@@ -15,7 +15,9 @@ import appconfig
 from appconfig import Options
 from cachemanager import CacheManager
 from dialog import DialogsManager
+from downloadmanager import DownloadManager
 from mediaplayer import HttpManager
+from searchwidget import SearchWidget
 from settings import Settings, DefaultSettings
 from historymanager import History, HistoryWidget
 from themes import Themes
@@ -131,6 +133,7 @@ class MainWindow(QMainWindow):
 
         # apply style from qss folder
         if self.isIncognito:
+            print("INCOGNITO")
             self.setStyleSheet(Themes.styleSheet(self.settings.incognitoTheme, Themes.Section.mainWindow))
         else:
             self.setStyleSheet(Themes.styleSheet(self.settings.theme, Themes.Section.mainWindow))
@@ -145,6 +148,14 @@ class MainWindow(QMainWindow):
 
         # manage http server
         self.http_manager = None
+
+        # creating download manager before custom title bar to allow moving it too
+        self.dl_manager = DownloadManager(self)
+        self.dl_manager.hide()
+
+        # creating search widget before custom title bar to allow moving it too
+        self.search_widget = SearchWidget(self, self.searchPage)
+        self.search_widget.hide()
 
         # use a dialog manager to enqueue dialogs and avoid showing all at once
         self.dialog_manager = DialogsManager(self,
@@ -169,6 +180,8 @@ class MainWindow(QMainWindow):
         if self.isIncognito:
             self.history_widget.toggle_chk.hide()
             self.history_widget.eraseHistory_btn.hide()
+        if not self.settings.enableHistory:
+            self.history_widget.content_widget.hide()
 
         # keep track of open popups and assure their persistence (anyway, we are not allowing popups by now)
         self.popups = []
@@ -221,8 +234,8 @@ class MainWindow(QMainWindow):
         self.ui.tabs.setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)
 
         # apply styles to independent widgets
-        self.ui.dl_manager.setStyleSheet(Themes.styleSheet(theme, Themes.Section.downloadManager))
-        self.ui.search_widget.setStyleSheet(Themes.styleSheet(theme, Themes.Section.searchWidget))
+        self.dl_manager.setStyleSheet(Themes.styleSheet(theme, Themes.Section.downloadManager))
+        self.search_widget.setStyleSheet(Themes.styleSheet(theme, Themes.Section.searchWidget))
         self.history_widget.setStyleSheet(Themes.styleSheet(self.settings.theme, Themes.Section.historyWidget))
 
         # context menu styles
@@ -384,12 +397,13 @@ class MainWindow(QMainWindow):
         page = self.getPage(self._profile, browser, zoom)
         browser.setPage(page)
 
-        # prepare to accept fullscreen requests. Must be set AFTER applying profile and setting page
-        browser.settings().setAttribute(QWebEngineSettings.WebAttribute.FullScreenSupportEnabled, True)
+        # most settings must be applied AFTER setting page and profile
+        browser.applySettings()
 
         # setting url to browser. Using a timer (thread) it seems to load faster
         QTimer.singleShot(0, lambda u=qurl: browser.load(u))
 
+        # https://sample-files.com/downloads/documents/pdf/basic-text.pdf
         return browser
 
     def connectBrowserSlots(self, browser, tabIndex):
@@ -629,9 +643,9 @@ class MainWindow(QMainWindow):
                 self.ui.reload_btn.setText(self.ui.reload_char)
                 self.ui.reload_btn.setToolTip("Reload page")
 
-        if self.ui.search_widget.isVisible():
+        if self.search_widget.isVisible():
             self.ui.tabs.currentWidget().findText("")
-            self.ui.search_widget.hide()
+            self.search_widget.hide()
 
     def tab_clicked(self, i):
         if QApplication.mouseButtons() == Qt.MouseButton.LeftButton:
@@ -763,7 +777,7 @@ class MainWindow(QMainWindow):
     def inspect_page(self, p):
 
         self.inspector.page().setInspectedPage(p)
-        self.inspector.setWindowTitle("Web Inspector - " + p.title())
+        self.inspector.setWindowTitle("DevTools - " + p.title())
         self.inspector.show()
 
     def toggle_tabbar(self, clicked=True):
@@ -798,9 +812,10 @@ class MainWindow(QMainWindow):
         self.ui.tabs.tabBar().setTabButton(0, QTabBar.ButtonPosition.RightSide, None)
         self.ui.tabs.tabBar().setTabButton(self.ui.tabs.count() - 1, QTabBar.ButtonPosition.RightSide, None)
         self.ui.tabs.tabBar().setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)
-        self.ui.navtab.setStyleSheet(self.h_navtab_style if self.h_tabbar else self.v_navtab_style)
         self.ui.tabs.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu if self.h_tabbar else Qt.ContextMenuPolicy.CustomContextMenu)
         self.ui.tabs.setTabToolTip(0, "Set %s tabs" % ("vertical" if self.h_tabbar else "horizontal"))
+
+        self.ui.navtab.setStyleSheet(self.h_navtab_style if self.h_tabbar else self.v_navtab_style)
 
         if self.autoHide:
             if self.h_tabbar:
@@ -836,26 +851,26 @@ class MainWindow(QMainWindow):
         # calculate position
         actRect = refWidget.geometry()
         actPos = self.mapToGlobal(actRect.topLeft())
-        x = actPos.x() + actRect.width() - self.ui.search_widget.width()
+        x = actPos.x() + actRect.width() - self.search_widget.width()
         y = self.y() + self.ui.navtab.height() + gap
         return QPoint(x, y)
 
     def manage_search(self):
 
-        if self.ui.search_widget.isVisible():
+        if self.search_widget.isVisible():
             self.ui.tabs.currentWidget().findText("")
-            self.ui.search_widget.hide()
+            self.search_widget.hide()
             self.ui.search_off_act.setVisible(False)
             self.ui.search_on_act.setVisible(True)
 
         else:
-            self.ui.search_widget.show()
-            self.ui.search_widget.move(self.get_search_widget_pos())
+            self.search_widget.show()
+            self.search_widget.move(self.get_search_widget_pos())
             self.ui.search_off_act.setVisible(True)
             self.ui.search_on_act.setVisible(False)
 
     def searchPage(self, checked, forward):
-        textToFind = self.ui.search_widget.getText()
+        textToFind = self.search_widget.getText()
         if textToFind:
             if forward:
                 self.ui.tabs.currentWidget().findText(textToFind)
@@ -956,10 +971,10 @@ class MainWindow(QMainWindow):
 
     def manage_downloads(self):
 
-        if self.ui.dl_manager.isVisible():
+        if self.dl_manager.isVisible():
             self.ui.dl_on_act.setVisible(True)
             self.ui.dl_off_act.setVisible(False)
-            self.ui.dl_manager.hide()
+            self.dl_manager.hide()
 
         else:
             self.ui.dl_on_act.setVisible(False)
@@ -972,7 +987,7 @@ class MainWindow(QMainWindow):
         gap = self.mapToGlobal(self.ui.navtab.pos()).y() - self.y()
 
         # calculate position
-        x = self.x() + self.width() - self.ui.dl_manager.width()
+        x = self.x() + self.width() - self.dl_manager.width()
         y = self.y() + self.ui.navtab.height() + gap
         return QPoint(x, y)
 
@@ -980,8 +995,8 @@ class MainWindow(QMainWindow):
 
         self.ui.dl_on_act.setVisible(False)
         self.ui.dl_off_act.setVisible(True)
-        self.ui.dl_manager.show()
-        self.ui.dl_manager.move(self.get_dl_manager_pos())
+        self.dl_manager.show()
+        self.dl_manager.move(self.get_dl_manager_pos())
 
     def manage_history(self):
 
@@ -1013,7 +1028,7 @@ class MainWindow(QMainWindow):
 
     # adding action to download files
     def download_file(self, item: QWebEngineDownloadRequest):
-        if self.ui.dl_manager.addDownload(item):
+        if self.dl_manager.addDownload(item):
             self.show_dl_manager()
 
     def manage_cookies(self, clicked):
@@ -1089,7 +1104,7 @@ class MainWindow(QMainWindow):
                 self.ui.urlbar.setText(self.ui.tabs.currentWidget().url().toString())
                 self.ui.urlbar.setCursorPosition(len(text))
 
-            elif self.ui.search_widget.hasFocus():
+            elif self.search_widget.hasFocus():
                 self.manage_search()
 
             elif self.isFullScreen():
@@ -1206,9 +1221,9 @@ class MainWindow(QMainWindow):
     def closeEvent(self, a0):
 
         # close all other widgets and processes
-        self.ui.dl_manager.cancelAllDownloads()
-        self.ui.dl_manager.close()
-        self.ui.search_widget.close()
+        self.dl_manager.cancelAllDownloads()
+        self.dl_manager.close()
+        self.search_widget.close()
         self.history_widget.close()
         self.ui.hoverHWidget.close()
         self.ui.hoverVWidget.close()

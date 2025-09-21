@@ -22,14 +22,6 @@ class Ui_MainWindow:
         if settings.isCustomTitleBar:
             self.appGrips = AppSideGrips(parent, DefaultSettings.Grips.gripSize)
 
-        # creating download manager before custom title bar to allow moving it too
-        self.dl_manager = DownloadManager(parent)
-        self.dl_manager.hide()
-
-        # creating search widget before custom title bar to allow moving it too
-        self.search_widget = SearchWidget(parent, parent.searchPage)
-        self.search_widget.hide()
-
         # creating a toolbar for navigation
         self.navtab = TitleBar(parent, settings.isCustomTitleBar, None, parent.leaveNavBarSig)
         self.navtab.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)

@@ -1,13 +1,11 @@
 import os
 import shutil
 import subprocess
-import sys
 import time
 
 import ffmpeg
 import streamlink.exceptions
 from PyQt6.QtCore import QThread, QUrl
-from PyQt6.QtWidgets import QMainWindow, QWidget, QApplication
 from streamlink import Streamlink
 
 from settings import DefaultSettings
@@ -325,38 +323,13 @@ class Streamer(QThread):
                 # try to delete the temp folder
                 shutil.rmtree(temp_folder)
             except:
-                # if it fails (very likely), try to at least free the unnecessary space
-                for file in os.listdir(temp_folder):
-                    with open(file, "w") as f:
-                        pass
-                pass
+                try:
+                    # if it fails (very likely), try to at least free the unnecessary space
+                    for file in os.listdir(temp_folder):
+                        with open(file, "w") as f:
+                            pass
+                except:
+                    pass
 
         self.closedSig.emit(True, self.url)
         self.quit()
-
-
-# this is for testing only
-class Window(QMainWindow):
-
-    def __init__(self, url):
-        super().__init__()
-
-        self.widget = QWidget()
-
-        self.stream_thread = Streamer(url=url,
-                                      title="lvpes - Twitch",
-                                      player_type=DefaultSettings.Player.PlayerTypes.qt
-                                      )
-        self.stream_thread.start()
-
-    def closeEvent(self, a0):
-        self.stream_thread.stop()
-        self.stream_thread.wait()
-        QApplication.quit()
-
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv + ['-platform', 'windows:darkmode=1'])
-    window = Window("https://www.twitch.tv/eslcs")
-    window.show()
-    app.exec()

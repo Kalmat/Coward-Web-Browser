@@ -3,10 +3,8 @@ import shutil
 import subprocess
 
 from PyQt6.QtCore import Qt, QDir
-from PyQt6.QtGui import QPalette
 from PyQt6.QtWebEngineCore import QWebEngineDownloadRequest
-from PyQt6.QtWidgets import QPushButton, QProgressBar, QLabel, QGridLayout, QWidget, QFileDialog, QVBoxLayout, \
-    QApplication, QGraphicsDropShadowEffect
+from PyQt6.QtWidgets import QPushButton, QProgressBar, QLabel, QGridLayout, QWidget, QFileDialog, QVBoxLayout
 
 import utils
 from settings import DefaultSettings
@@ -43,8 +41,8 @@ class DownloadManager(QWidget):
 
         self.downloads = {}
 
-        self.pause_char = "||"
-        self.cancel_char = "ℵ"
+        self.pause_char = "⫿⫿"
+        self.cancel_char = "🗙"
         self.resume_char = "⟳"
         self.folder_char = "🗀"
 
@@ -92,7 +90,7 @@ class DownloadManager(QWidget):
             item.cancel()
             del item
 
-        return accept
+        return added
 
     def _add(self, item, title, location, tempfile):
 

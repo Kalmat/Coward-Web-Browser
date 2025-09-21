@@ -7,13 +7,15 @@ class WebView(QWebEngineView):
     def __init__(self, parent=None):
         super(WebView, self).__init__(parent)
 
+    def applySettings(self):
+
         # Enabling fullscreen
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.FullScreenSupportEnabled, True)
 
         # Enabling some extra features (only those allegedly required for a "normal" / "safe" use only)
-        # page.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanAccessClipboard, True)
-        # self.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
         # self.settings().setAttribute(QWebEngineSettings.WebAttribute.AllowRunningInsecureContent, True)
+        # page.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanAccessClipboard, True)
+        self.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanOpenWindows, True)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.PluginsEnabled, True)

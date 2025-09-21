@@ -40,20 +40,19 @@ class History:
 
     def filterHistory(self):
         keys = list(self._historyValues.keys())
-        if keys:
-            keys.sort(reverse=True)
-            sorted = {}
-            for i, key in enumerate(keys):
-                if i <= DefaultSettings.History.historySize:
-                    sorted[key] = self._historyValues[key]
-                else:
-                    icon_file = self._historyValues[key]["icon"]
-                    if os.path.exists(icon_file):
-                        try:
-                            os.remove(icon_file)
-                        except:
-                            pass
-            self._historyValues = sorted
+        keys.sort(reverse=True)
+        historySorted = {}
+        for i, key in enumerate(keys):
+            if i <= DefaultSettings.History.historySize:
+                historySorted[key] = self._historyValues[key]
+            else:
+                icon_file = self._historyValues[key]["icon"]
+                if os.path.exists(icon_file):
+                    try:
+                        os.remove(icon_file)
+                    except:
+                        pass
+        self._historyValues = historySorted
 
     @property
     def history(self):

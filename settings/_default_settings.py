@@ -124,7 +124,6 @@ class DefaultSettings:
                                      "%s\n\n" \
                                      "Do you want to ignore these errors and continue loading the page?"
 
-
     FeatureMessages = {
         QWebEnginePage.Feature.Notifications: "show Notifications",
         QWebEnginePage.Feature.Geolocation: "get your Geolocation",

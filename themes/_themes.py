@@ -36,8 +36,8 @@ class Themes:
         },
         "Incognito": {
             "mainWindow": 'main.qss',
-            "horizontalTitleBar": 'h_titlebar.qss',
-            "verticalTitleBar": 'v_titlebar.qss',
+            "horizontalTitleBar": 'h_titlebar_incognito.qss',
+            "verticalTitleBar": 'v_titlebar_incognito.qss',
             "horizontalTabs": 'h_tabs.qss',
             "verticalTabs": 'v_tabs.qss',
             "searchWidget": 'search_widget.qss',

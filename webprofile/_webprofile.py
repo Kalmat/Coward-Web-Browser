@@ -1,8 +1,10 @@
 import os
 import time
 import requests
+from PyQt6.QtCore import Qt
 
-from PyQt6.QtWebEngineCore import QWebEngineProfile, QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo
+from PyQt6.QtWebEngineCore import QWebEngineProfile, QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo, \
+    QWebEngineSettings
 from adblockparser import AdblockRules
 
 from settings import DefaultSettings
