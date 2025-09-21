@@ -59,6 +59,15 @@ class DefaultSettings:
         persistentPolicy = QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies
         incognitoPersistentPolicy = QWebEngineProfile.PersistentCookiesPolicy.AllowPersistentCookies
 
+    class Security:
+        class SecurityLevels:
+            mad = 0
+            relaxed = 1
+            safe = 2
+            paranoid = 3
+
+        securityLevel = SecurityLevels.safe
+
     class AdBlocker:
         enableAdBlocker = False   # way too slow (perhaps pyre2 may improve performance, but fails to install)
         urlBlackList = ["aswpsdkeu"]  # , "ads"]  # this is totally empyrical

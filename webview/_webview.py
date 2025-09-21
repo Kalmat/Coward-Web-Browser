@@ -1,27 +1,49 @@
 from PyQt6.QtWebEngineCore import QWebEngineSettings
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
+from settings import DefaultSettings
+
 
 class WebView(QWebEngineView):
 
     def __init__(self, parent=None):
         super(WebView, self).__init__(parent)
 
-    def applySettings(self, dark_mode=False):
+    def applySettings(self, security_level, dark_mode):
 
-        # Enabling fullscreen
+        # Apply security level settings
+        # These values are enabled / disabled by default, but better set them in case it changes in the future
+
+        # values for "mad" security level
+        allow = security_level == DefaultSettings.Security.SecurityLevels.mad
+        self.settings().setAttribute(QWebEngineSettings.WebAttribute.AllowRunningInsecureContent, allow)
+        self.settings().setAttribute(QWebEngineSettings.WebAttribute.AllowGeolocationOnInsecureOrigins, allow)
+
+        # values for "relaxed" security level
+        allow = security_level <= DefaultSettings.Security.SecurityLevels.relaxed
+        self.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanAccessClipboard, allow)
+        self.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanPaste, allow)
+        self.settings().setAttribute(QWebEngineSettings.WebAttribute.AllowWindowActivationFromJavaScript, allow)
+        self.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanOpenWindows, allow)
+        self.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, allow)
+
+        # values for "safe" security level
+        allow = security_level <= DefaultSettings.Security.SecurityLevels.safe
+        self.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, allow)
+        self.settings().setAttribute(QWebEngineSettings.WebAttribute.PluginsEnabled, allow)
+        self.settings().setAttribute(QWebEngineSettings.WebAttribute.PdfViewerEnabled, allow)
+        self.settings().setAttribute(QWebEngineSettings.WebAttribute.ScreenCaptureEnabled, allow)
+
+        # "paranoid" level will disable everything
+
+        # common values, not related to security level
+        self.settings().setAttribute(QWebEngineSettings.WebAttribute.ReadingFromCanvasEnabled, False)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.FullScreenSupportEnabled, True)
-
-        # Enabling some extra features (only those allegedly required for a "normal" / "safe" use only)
-        # self.settings().setAttribute(QWebEngineSettings.WebAttribute.AllowRunningInsecureContent, True)
-        # page.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanAccessClipboard, True)
-        # self.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
-        self.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
-        self.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanOpenWindows, True)
-        self.settings().setAttribute(QWebEngineSettings.WebAttribute.PluginsEnabled, True)
-        self.settings().setAttribute(QWebEngineSettings.WebAttribute.PdfViewerEnabled, True)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.FocusOnNavigationEnabled, True)
-
+        self.settings().setAttribute(QWebEngineSettings.WebAttribute.LinksIncludedInFocusChain, True)
+        self.settings().setAttribute(QWebEngineSettings.WebAttribute.HyperlinkAuditingEnabled, True)
+        self.settings().setAttribute(QWebEngineSettings.WebAttribute.SpatialNavigationEnabled, True)
+        self.settings().setAttribute(QWebEngineSettings.WebAttribute.NavigateOnDropEnabled, True)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.ForceDarkMode, dark_mode)
 
         """ https://doc.qt.io/qt-6/qwebenginesettings.html

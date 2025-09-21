@@ -403,7 +403,7 @@ class MainWindow(QMainWindow):
         browser.setPage(page)
 
         # most settings must be applied AFTER setting page and profile
-        browser.applySettings(self.dark_mode)
+        browser.applySettings(DefaultSettings.Security.securityLevel, self.dark_mode)
 
         # setting url to browser. Using a timer (thread) it seems to load faster
         QTimer.singleShot(0, lambda u=qurl: browser.load(u))
