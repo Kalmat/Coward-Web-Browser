@@ -67,3 +67,8 @@ class SearchWidget(QWidget):
 
     def getText(self):
         return self.search_box.text()
+
+    def keyReleaseEvent(self, a0):
+        if a0.key() == Qt.Key.Key_F:
+            if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                self.parent().keyReleaseEvent(a0)

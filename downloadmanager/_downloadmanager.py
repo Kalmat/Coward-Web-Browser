@@ -260,3 +260,6 @@ class DownloadManager(QWidget):
             shutil.rmtree(self.tempFolder)
         except:
             pass
+
+    def keyReleaseEvent(self, a0):
+        self.parent().mouseReleaseEvent(a0)

@@ -272,9 +272,7 @@ class HistoryWidget(QWidget):
         if QApplication.mouseButtons() == Qt.MouseButton.LeftButton:
             url = self._getUrlByPosition(a0.pos())
             if url:
-                self.loadHistoryEntry(url)
+                self.history_manager.loadHistoryEntry(url)
 
     def keyReleaseEvent(self, a0):
-        if a0.key() == Qt.Key.Key_H:
-            if self.isVisible():
-                self.hide()
+        self.parent().keyReleaseEvent(a0)

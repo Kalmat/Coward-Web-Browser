@@ -150,9 +150,6 @@ class MainWindow(QMainWindow):
         # webpage common profile to keep session logins, cookies, etc.
         self._profile = None
 
-        # manage http server
-        self.http_manager = None
-
         # creating download manager before custom title bar to allow moving it too
         self.dl_manager = DownloadManager(self)
         self.dl_manager.hide()
@@ -186,6 +183,11 @@ class MainWindow(QMainWindow):
             self.history_widget.eraseHistory_btn.hide()
         if not self.settings.enableHistory:
             self.history_widget.content_widget.hide()
+
+        # create http server
+        self.http_manager = None
+        if DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.http:
+            self.http_manager = HttpManager()
 
         # keep track of open popups and assure their persistence (anyway, we are not allowing popups by now)
         self.popups = []
@@ -404,7 +406,7 @@ class MainWindow(QMainWindow):
         browser.setPage(page)
 
         # most settings must be applied AFTER setting page and profile
-        browser.applySettings(DefaultSettings.Security.securityLevel, self.dark_mode)
+        # browser.applySettings(DefaultSettings.Security.securityLevel, self.dark_mode)
 
         # setting url to browser. Using a timer (thread) it seems to load faster
         QTimer.singleShot(0, lambda u=qurl: browser.load(u))
@@ -453,11 +455,6 @@ class MainWindow(QMainWindow):
         return self._profile
 
     def getPage(self, profile, browser, zoom):
-
-        if (DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.http
-                and self.http_manager is None):
-            self.http_manager = HttpManager()
-            self.http_manager.start()
 
         # this will create the page and apply all selected settings
         page = WebPage(profile, browser, self.dialog_manager, self.http_manager)
@@ -861,6 +858,7 @@ class MainWindow(QMainWindow):
         return QPoint(x, y)
 
     def manage_search(self):
+        print("IN", self.search_widget.isVisible())
 
         if self.search_widget.isVisible():
             self.ui.tabs.currentWidget().findText("")
@@ -1155,17 +1153,28 @@ class MainWindow(QMainWindow):
         elif a0.key() == Qt.Key.Key_H and self.settings.enableHistory:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
                 if self.history_widget.isVisible():
-                    # this must be handled within HistoryWidget class too
                     self.history_widget.hide()
                 else:
                     self.show_history_widget()
 
-        # moving between tabs using Ctl-Tab or Ctl-Shift-Tab keys is handled in TabWidget class
-        # elif a0.key() == Qt.Key.Key_Tab:
+        elif a0.key() == Qt.Key.Key_Backtab:
+            if a0.modifiers() == Qt.KeyboardModifier.ShiftModifier | Qt.KeyboardModifier.ControlModifier:
+                index = self.ui.tabs.currentIndex() - 1
+                if index <= 0:
+                    index = self.ui.tabs.count() - 2
+                self.ui.tabs.setCurrentIndex(index)
+
+        elif a0.key() == Qt.Key.Key_Tab:
+            if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                index = self.ui.tabs.currentIndex() + 1
+                if index >= self.ui.tabs.count() - 1:
+                    index = 1
+                self.ui.tabs.setCurrentIndex(index)
 
         elif Qt.Key.Key_1 <= a0.key() <= Qt.Key.Key_9:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
                 self.ui.tabs.setCurrentIndex(int(chr(a0.key())))
+
 
     def targetDlgPos(self):
         return QPoint(self.x() + 100,
