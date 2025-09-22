@@ -241,7 +241,7 @@ class HistoryWidget(QWidget):
         self.entryContextMenu.exec(self.mapToGlobal(point))
 
     def _getIndexByPosition(self, point):
-        index = int((point.y() - self.y() - self.init_widget.height()) / (32 + 3))
+        index = int((point.y() - self.init_widget.height()) / (32 + 3))
         return index
 
     def _getWidgetByPosition(self, point):

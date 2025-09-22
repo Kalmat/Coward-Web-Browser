@@ -588,11 +588,12 @@ class MainWindow(QMainWindow):
         qurl = qurl or QUrl(DefaultSettings.Browser.defaultPage)
         if setFocus:
             i = self.add_tab(qurl)
-            self.ui.tabs.setCurrentIndex(i)
         else:
-            self.add_tab(qurl, tabIndex=self.ui.tabs.currentIndex() + 1)
+            i = self.add_tab(qurl, tabIndex=self.ui.tabs.currentIndex() + 1)
         self.update_urlbar(self.ui.tabs.currentWidget().url(), self.ui.tabs.currentWidget())
         self.add_tab_action()
+        if setFocus:
+            self.ui.tabs.setCurrentIndex(i)
 
     # method to update the url when tab is changed
     def navigate_to_url(self):
