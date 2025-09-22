@@ -1156,7 +1156,7 @@ class MainWindow(QMainWindow):
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
                 self.manage_autohide(enabled=False)
 
-        elif a0.key() == Qt.Key.Key_H and self.settings.enableHistory:
+        elif a0.key() == Qt.Key.Key_H:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
                 self.manage_history()
 
