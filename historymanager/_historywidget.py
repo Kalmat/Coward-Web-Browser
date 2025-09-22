@@ -241,7 +241,7 @@ class HistoryWidget(QWidget):
         self.entryContextMenu.exec(self.mapToGlobal(point))
 
     def _getIndexByPosition(self, point):
-        index = int((point.y() - self.init_widget.height()) / (32 + 3))
+        index = int((point.y() - self.y() - self.init_widget.height()) / (32 + 3))
         return index
 
     def _getWidgetByPosition(self, point):
@@ -272,7 +272,7 @@ class HistoryWidget(QWidget):
         if QApplication.mouseButtons() == Qt.MouseButton.LeftButton:
             url = self._getUrlByPosition(a0.pos())
             if url:
-                self.history_manager.loadHistoryEntry(url)
+                self.load_url_sig.emit(QUrl(url))
 
     def keyReleaseEvent(self, a0):
         self.parent().keyReleaseEvent(a0)

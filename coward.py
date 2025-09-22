@@ -1177,8 +1177,7 @@ class MainWindow(QMainWindow):
 
     def targetDlgPos(self):
         return QPoint(self.x() + 100,
-                      self.y() + self.ui.navtab.height() + (
-                          self.ui.tabs.tabBar().height() if self.h_tabbar else 0))
+                      self.y() + self.ui.navtab.height() + (self.ui.tabs.tabBar().height() if self.h_tabbar else 0))
 
     # these widgets have a relative position. Must be moved AFTER showing main window
     def moveOtherWidgets(self):
