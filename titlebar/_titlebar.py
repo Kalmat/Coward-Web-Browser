@@ -62,6 +62,3 @@ class TitleBar(QToolBar):
     def leaveEvent(self, event):
         if self.leave_signal is not None:
             self.leave_signal.emit()
-
-    def keyReleaseEvent(self, a0):
-        self.parent().keyReleaseEvent(a0)

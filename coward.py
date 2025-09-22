@@ -858,8 +858,6 @@ class MainWindow(QMainWindow):
         return QPoint(x, y)
 
     def manage_search(self):
-        print("IN", self.search_widget.isVisible())
-
         if self.search_widget.isVisible():
             self.ui.tabs.currentWidget().findText("")
             self.search_widget.hide()
