@@ -197,15 +197,13 @@ class HistoryWidget(QWidget):
         if enabled:
             self.scroll.show()
             self.content_widget.show()
-        else:
-            self.scroll.hide()
-            self.content_widget.hide()
-        if enabled:
             if widgets_count > 1:
                 self.init_label.setText(self.historyText)
             else:
                 self.init_label.setText(self.historyEmpty)
         else:
+            self.scroll.hide()
+            self.content_widget.hide()
             self.init_label.setText(self.historyDisabled)
 
     def eraseHistoryRequest(self):
@@ -233,7 +231,8 @@ class HistoryWidget(QWidget):
                 self.hide()
                 self.show()
             key = self._getDateByPosition(point)
-            self.history_manager.deleteHistoryEntry(key)
+            if key:
+                self.history_manager.deleteHistoryEntry(key)
 
     def showContextMenu(self, point):
         self.delete_action.triggered.disconnect()
@@ -241,31 +240,40 @@ class HistoryWidget(QWidget):
         self.entryContextMenu.exec(self.mapToGlobal(point))
 
     def _getIndexByPosition(self, point):
-        index = int((point.y() - self.init_widget.height()) / (32 + 3))
+        index = None
+        if point.y() > self.init_widget.height():
+            index = int((point.y() - self.init_widget.height()) / (32 + 3))
+            if index >= self.content_layout.count():
+                index = None
         return index
 
     def _getWidgetByPosition(self, point):
         index = self._getIndexByPosition(point)
-        try:
-            w = self.content_layout.itemAt(index).widget()
-        except:
-            w = None
+        if index is not None:
+            try:
+                w = self.content_layout.itemAt(index).widget()
+            except:
+                w = None
         return w
 
     def _getUrlByPosition(self, point):
         w = self._getWidgetByPosition(point)
-        if w:
-            url = w.layout().itemAt(1).widget().toolTip()
-        else:
-            url = None
+        url = None
+        if w is not None:
+            if w:
+                url = w.layout().itemAt(1).widget().toolTip()
+            else:
+                url = None
         return url
 
     def _getDateByPosition(self, point):
         w = self._getWidgetByPosition(point)
-        if w:
-            date = w.layout().itemAt(1).widget().accessibleName()
-        else:
-            date = ""
+        date = None
+        if w is not None:
+            if w:
+                date = w.layout().itemAt(1).widget().accessibleName()
+            else:
+                date = ""
         return date
 
     def mousePressEvent(self, a0):

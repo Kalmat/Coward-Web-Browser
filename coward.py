@@ -602,7 +602,7 @@ class MainWindow(QMainWindow):
         qurl = QUrl(self.ui.urlbar.text())
 
         # if scheme is blank
-        if not qurl.isValid() or " " in qurl.url():
+        if not qurl.isValid() or ((" " in qurl.url() or "." not in qurl.url()) and qurl.scheme() not in ("chrome", "file")):
             # search in Google
             # qurl.setUrl("https://www.google.es/search?q=%s&safe=off" % self.urlbar.text())
             # search in DuckDuckGo (safer)
