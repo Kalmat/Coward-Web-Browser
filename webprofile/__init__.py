@@ -1,2 +1,2 @@
 from ._webprofile import WebProfile
-from ._interceptor import RequestInterceptor
+from ._requestinterceptor import RequestInterceptor

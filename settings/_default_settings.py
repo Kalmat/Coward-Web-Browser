@@ -12,8 +12,6 @@ class DefaultSettings:
         appName = "Coward"
         appIcon = utils.resource_path("res/coward.png")
         appIcon_32 = utils.resource_path("res/coward_32.png")
-        enableDebug = False
-        enableLogging = False
         tempFolder = os.path.join(os.getenv("SystemDrive"), "Windows", "Temp", "Coward")
 
     class History:
@@ -76,6 +74,7 @@ class DefaultSettings:
     class AdBlocker:
         enableAdBlocker = True
         urlBlackList = []  # "aswpsdkeu"]  # , "ads"]  # this is totally empyrical
+        filterlistsFolder = ".filterlists"
         easylistUrl = 'https://easylist.to/easylist/easylist.txt'
         easylistFile = "easylist.txt"
         easyprivacyUrl = 'https://easylist.to/easylist/easyprivacy.txt'
@@ -109,6 +108,19 @@ class DefaultSettings:
 
     class Downloads:
         downloadTempFolder = "downloads"
+
+    class Logger:
+
+        class LogLevels:
+            info = "[INFO]"
+            warning = "[WARN]"
+            error = "[ERROR]"
+            fatal = "[FATAL]"
+
+        debugEnabled = True      # print application messages and JavaScriptConsoleMessages
+        loggingEnabled = False   # log messages to file instead of printing them (reequires debug enabled)
+        loggerFolder = ".logs"
+        logDepth = 0  # max number of old log files to keep (-1 = infinite)
 
     class StreamErrorMessages:
         tryLater = "Try after some minutes. If the problem persists, most likely the page can't be streamed"
@@ -151,3 +163,12 @@ class DefaultSettings:
         QWebEnginePage.Feature.ClipboardReadWrite: "copy to the clipboard",
         QWebEnginePage.Feature.LocalFontsAccess: "access local fonts"
     }
+
+    def overrideDebugEnabledSetting(self, value):
+        self.Logger.debugEnabled = value
+
+    def overrideLoggingEnabledSetting(self, value):
+        self.Logger.loggingEnabled = value
+
+    def overrideAdBlockerEnabledSetting(self, value):
+        self.AdBlocker.enableAdBlocker = value

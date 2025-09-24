@@ -1,6 +1,7 @@
 from PyQt6.QtCore import pyqtSignal, pyqtSlot
 from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineCertificateError
 
+from logger import LOGGER
 from mediaplayer import QtMediaPlayer
 from settings import DefaultSettings
 from mediaplayer._streamer import Streamer
@@ -39,8 +40,14 @@ class WebPage(QWebEnginePage):
         # manage other signals
         self.certificateError.connect(self.handleCertificateError)
 
+        # translate JavaScriptConsole errors to Logger errors values:
+        self.errorLevel = {
+            QWebEnginePage.JavaScriptConsoleMessageLevel.InfoMessageLevel: DefaultSettings.Logger.LogLevels.info,
+            QWebEnginePage.JavaScriptConsoleMessageLevel.WarningMessageLevel: DefaultSettings.Logger.LogLevels.warning,
+            QWebEnginePage.JavaScriptConsoleMessageLevel.ErrorMessageLevel: DefaultSettings.Logger.LogLevels.error
+        }
+
     # def acceptNavigationRequest(self, url, type, isMainFrame: bool) -> bool:
-    #     print("hello", url)
     #     if type == QWebEnginePage.NavigationType.NavigationTypeLinkClicked: return False
     #     return super().acceptNavigationRequest(url, type, isMainFrame)
 
@@ -90,15 +97,7 @@ class WebPage(QWebEnginePage):
         # YOUTUBE:
         # --> No error
 
-        if self._debugInfoEnabled:
-            debugInfo = "Error Level: {} --- URL: {} --- Message: {} --- Line number: {}".format(level, sourceID, message, lineNumber)
-            if self._logToFile:
-                openMode = "a" if self._logFileOpen is None else "w"
-                with open(self._logFile, openMode) as f:
-                    self._logFileOpen = True
-                    f.write(debugInfo + "\n")
-            else:
-                print(debugInfo)
+        LOGGER.write(self.errorLevel.get(level, DefaultSettings.Logger.LogLevels.fatal), "JavaScriptConsole", message)
 
         # if level == WebEnginePage.JavaScriptConsoleMessageLevel.ErrorMessageLevel:
         #
@@ -115,14 +114,6 @@ class WebPage(QWebEnginePage):
         #         if sourceID == self.url().toString():
         #             # this works, but throws too many "false" alarms
         #             self.checkCanPlayMedia()
-
-    def enableDebugInfo(self, enable, logging=False):
-        # We could add the level of debugging (Info, Warning, Error...), but not for now
-        self._debugInfoEnabled = enable
-        self._logToFile = logging
-        if not logging:
-            # deactivating and activating logging again is equivalent to clear the log file
-            self._logFileOpen = False
 
     def checkCanPlayMedia(self):
         # this detects media failures, but sometimes it sends "false" alarms (e.g. in YT videos)

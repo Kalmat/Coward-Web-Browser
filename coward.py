@@ -16,6 +16,7 @@ from appconfig import Options
 from cachemanager import CacheManager
 from dialog import DialogsManager
 from downloadmanager import DownloadManager
+from logger import LOGGER
 from mediaplayer import HttpManager
 from searchwidget import SearchWidget
 from settings import Settings, DefaultSettings
@@ -50,18 +51,11 @@ class MainWindow(QMainWindow):
         # get Settings
         self.loadSettings(new_win, incognito)
 
-        # configure cache and check if relaunched to delete it when using "clean all" option
-        self.cache_manager = CacheManager(self.appStorageFolder)
-        self.deletePreviousCache()
-
-        # check if relaunched to delete previous stream temp files too (for internal Qt player only)
-        self.deletePreviousTemp()
+        # create and initialize independent widgets and variables
+        self.commonSetup()
 
         # apply main window settings
         self.configureMainWindow()
-
-        # create and initialize independent widgets and variables
-        self.preInit()
 
         # create UI
         self.setupUI()
@@ -71,6 +65,8 @@ class MainWindow(QMainWindow):
 
         # connect all signals
         self.connectSignalSlots()
+
+        LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Finished initialization")
 
     def loadSettings(self, new_win, incognito):
 
@@ -108,6 +104,8 @@ class MainWindow(QMainWindow):
         # set tabbar orientation
         self.h_tabbar = self.settings.isTabBarHorizontal
 
+        LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Settings loaded")
+
     def saveSettings(self, tabs, new_wins):
 
         # backup .ini file
@@ -128,6 +126,8 @@ class MainWindow(QMainWindow):
         self.settings.setPreviousTabs(tabs, True)
         self.settings.setNewWindows(new_wins, True)
 
+        LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Settings saved")
+
     def configureMainWindow(self):
 
         # prepare initial application attributes
@@ -145,13 +145,22 @@ class MainWindow(QMainWindow):
         # set initial position and size
         self.setGeometry(appconfig.appGeometry(self, self.settings.position, self.settings.size, self.settings.isCustomTitleBar, self.isNewWin))
 
-    def preInit(self):
+        LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Main Window configured")
+
+    def commonSetup(self):
+
+        # configure cache
+        self.cache_manager = CacheManager(self.appStorageFolder)
+
+        # check if relaunched to delete cache (when using "clean all" option) or temp files
+        self.deletePreviousCacheAndTemp()
 
         # webpage common profile to keep session logins, cookies, etc.
         self._profile = None
 
         # Request interceptor for blocking URLs and ad-blocking
-        self.requestInterceptor = RequestInterceptor(DefaultSettings.AdBlocker.urlBlackList, self.appStorageFolder)
+        self.requestInterceptor = RequestInterceptor(DefaultSettings.AdBlocker.urlBlackList,
+                                                     os.path.join(self.appStorageFolder, DefaultSettings.AdBlocker.filterlistsFolder))
 
         # creating download manager before custom title bar to allow moving it too
         self.dl_manager = DownloadManager(self)
@@ -204,6 +213,8 @@ class MainWindow(QMainWindow):
         self.web_ico = QIcon(DefaultSettings.Icons.loading)
         self.web_ico_rotated = QIcon(QPixmap(DefaultSettings.Icons.loading).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
 
+        LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Pre-initialization finished")
+
     def setupUI(self):
 
         # create UI
@@ -221,6 +232,8 @@ class MainWindow(QMainWindow):
 
         # connect all UI slots to handle requested actions
         self.connectUiSlots()
+
+        LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "UI configured")
 
     def applyStyles(self):
 
@@ -251,6 +264,8 @@ class MainWindow(QMainWindow):
         # context menu styles
         self.ui.tabsContextMenu.setStyleSheet(Themes.styleSheet(theme, Themes.Section.contextmenu))
         self.ui.newTabContextMenu.setStyleSheet(Themes.styleSheet(theme, Themes.Section.contextmenu))
+
+        LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Styles applied")
 
     def connectUiSlots(self):
 
@@ -288,6 +303,8 @@ class MainWindow(QMainWindow):
         self.ui.tabs.customContextMenuRequested.connect(self.showContextMenu)
         self.ui.newWindow_action.triggered.connect(self.show_in_new_window)
 
+        LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "UI signals connected")
+
     def connectSignalSlots(self):
 
         # define signals for auto-hide events
@@ -302,6 +319,8 @@ class MainWindow(QMainWindow):
 
         # signal to load page when clicked in history
         self.loadHistoryUrlSig.connect(self.add_new_tab)
+
+        LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Signals connected")
 
     def show(self):
         super().show()
@@ -329,6 +348,8 @@ class MainWindow(QMainWindow):
             painter.drawRoundedRect(rect, self.settings.radius, self.settings.radius, Qt.SizeMode.AbsoluteSize)
             painter.end()
             self.setMask(b)
+
+            LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Show")
 
     def createTabs(self, init_tabs):
 
@@ -370,6 +391,8 @@ class MainWindow(QMainWindow):
         self.instances = []
         for new_tabs in new_wins:
             self.show_in_new_window(new_tabs)
+
+        LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Tabs created")
 
     def add_tab(self, qurl, zoom=1.0, label="Loading...", tabIndex=None):
 
@@ -462,8 +485,6 @@ class MainWindow(QMainWindow):
 
         # this will create the page and apply all selected settings
         page = WebPage(profile, browser, self.dialog_manager, self.http_manager)
-        page.enableDebugInfo(DefaultSettings.App.enableDebug or Options.enableDebug in sys.argv,
-                             DefaultSettings.App.enableLogging or Options.enableLogging in sys.argv)
 
         # set page zoom factor
         page.setZoomFactor(zoom)
@@ -1224,20 +1245,22 @@ class MainWindow(QMainWindow):
         # also move other widgets with relative positions
         self.moveOtherWidgets()
 
-    def deletePreviousCache(self):
+    def deletePreviousCacheAndTemp(self):
+        exitApp = False
         last_cache = self.cache_manager.checkDeleteCache(sys.argv)
         if last_cache:
             self.cache_manager.deleteCache(last_cache)
-            QApplication.quit()
-            sys.exit(0)
-
-    def deletePreviousTemp(self):
+            LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Previous cache deleted")
+            exitApp = True
         if Options.DeletePlayerTemp in sys.argv:
             if os.path.exists(DefaultSettings.App.tempFolder):
                 try:
                     shutil.rmtree(DefaultSettings.App.tempFolder)
                 except:
                     pass
+            LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Previous temp files deleted")
+            exitApp = True
+        if exitApp:
             QApplication.quit()
             sys.exit(0)
 
@@ -1309,34 +1332,16 @@ class MainWindow(QMainWindow):
             args += [appconfig.Options.DeletePlayerTemp]
 
         if args:
+            LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Restart application to delete cache and/or temp files")
             status = QProcess.startDetached(sys.executable, sys.argv + args)
 
 
 def main():
 
-    # Qt6 is DPI-Aware, so all this is not likely required
-    # setDPIAwareness()
-    # setSystemDPISettings()
-    # setApplicationDPISettings()
-
-    # try to load widevine if available
-    utils.set_widevine_var(os.path.join("externalplayer", "widevine", "widevinecdm.dll"))
-    utils.set_multimedia_preferred_plugins()
-
-    # enable debug, including Chromium debug info
-    if DefaultSettings.App.enableDebug or Options.enableDebug in sys.argv:
-        utils.enableChromiumDebug()
+    appconfig.preInitializeApp(sys.argv)
 
     # creating a PyQt5 application and (windows only) force dark mode
     app = QApplication(sys.argv + ['-platform', 'windows:darkmode=1'])
-
-    if not utils.is_packaged():
-        # change application icon even when running as Python script
-        utils.force_icon('kalmat.coward.nav.01')
-
-    # This will allow to show some tracebacks (not all, anyway)
-    sys._excepthook = sys.excepthook
-    sys.excepthook = utils.exception_hook
 
     # creating and showing MainWindow object
     window = MainWindow()

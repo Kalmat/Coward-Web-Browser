@@ -10,7 +10,9 @@ try:
     # braveblock is only available in python 3.11 by now
     from braveblock import Adblocker
 except:
-    DefaultSettings.AdBlocker.enableAdBlocker = False
+    DefaultSettings.overrideAdBlockerEnabledSetting(False)
+
+from logger import LOGGER
 
 
 class RequestInterceptor(QWebEngineUrlRequestInterceptor):
@@ -49,6 +51,8 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
                 include_easyprivacy=False
             )
 
+            LOGGER.write(DefaultSettings.Logger.LogLevels.info, "RequestInterceptor",  "Finished initialization")
+
     def interceptRequest(self, info: QWebEngineUrlRequestInfo):
         url = info.requestUrl().url()
 
@@ -56,7 +60,7 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
         if not QUrl(url).isValid() or any(blocked in url for blocked in self.blocked_urls):
             # Block the request (redirect to about:blank? How to detect it is not the "main" url???)
             info.block(True)
-            # print(f"Black List Blocked: {url}")
+            LOGGER.write(DefaultSettings.Logger.LogLevels.info, "RequestInterceptor", f"Black List Blocked: {url}")
 
         # check ad-block rules
         if self.enableAdBlocker:
@@ -66,18 +70,18 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
                 request_type=self.resourceTypes.get(info.resourceType(), ""))
             if should_block:
                 info.block(True)
-                # print(f"AD Blocked: {url}")
+                LOGGER.write(DefaultSettings.Logger.LogLevels.info, "RequestInterceptor",  f"AD Blocked: {url}")
 
     def getRequestType(self):
         """
             document: Represents a request for a document (HTML page).
-            image: Represents a request for an image file (e.g., .jpg, .png).
-            script: Represents a request for a JavaScript file.
-            stylesheet: Represents a request for a CSS stylesheet.
-            xmlhttprequest: Represents requests made using the XMLHttpRequest object or fetch API.
             subdocument: Represents embedded pages, usually included via HTML inline frames (iframes).
+            stylesheet: Represents a request for a CSS stylesheet.
+            script: Represents a request for a JavaScript file.
+            image: Represents a request for an image file (e.g., .jpg, .png).
             ping: Represents requests initiated via the navigator.sendBeacon() method.
             websocket: Represents requests initiated via the WebSocket object.
+            xmlhttprequest: Represents requests made using the XMLHttpRequest object or fetch API.
         """
         resourceTypes = {
             QWebEngineUrlRequestInfo.ResourceType.ResourceTypeMainFrame: "document",
@@ -97,7 +101,14 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
         if response.status_code == 200:
             with open(easylistPath, "wb") as file:
                 file.write(response.content)
+            LOGGER.write(DefaultSettings.Logger.LogLevels.info, "RequestInterceptor", "easylist updated successfully!")
+        else:
+            LOGGER.wirte(DefaultSettings.Logger.LogLevels.error, "RequestInterceptor", "easylist failed to download")
+
         response = requests.get(DefaultSettings.AdBlocker.easyprivacyUrl)
         if response.status_code == 200:
             with open(easyPrivacyPath, "wb") as file:
                 file.write(response.content)
+            LOGGER.write(DefaultSettings.Logger.LogLevels.info, "RequestInterceptor", "easyprivacy updated successfully!")
+        else:
+            LOGGER.wirte(DefaultSettings.Logger.LogLevels.error, "RequestInterceptor", "easyprivacy failed to download")

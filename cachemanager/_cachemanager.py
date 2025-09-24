@@ -5,6 +5,8 @@ import sys
 from appconfig import Options
 from settings import DefaultSettings
 
+from logger import LOGGER
+
 
 class CacheManager:
 
@@ -16,6 +18,8 @@ class CacheManager:
 
         self.lastCache = ""
         self.deleteCacheRequested = False
+
+        LOGGER.write(DefaultSettings.Logger.LogLevels.info, "CacheManager", "Finished initialization")
 
     def checkDeleteCache(self, args=None):
         last_cache = ""
