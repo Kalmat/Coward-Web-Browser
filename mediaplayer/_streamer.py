@@ -138,8 +138,10 @@ class Streamer(QThread):
                         self.startEmitted = True
                         self.streamStartedSig.emit(self.url)
 
-        except:
-            self.handleError(True)
+        except Exception as e:
+            # avoid to throw an error when mpv is closed by user
+            if self.mpv_process is not None and self.mpv_process.poll() is None:
+                self.handleError(True)
 
         finally:
             self.stop()
