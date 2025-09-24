@@ -24,7 +24,7 @@ from themes import Themes
 from ui import Ui_MainWindow
 import utils
 from webpage import WebPage
-from webprofile import WebProfile
+from webprofile import WebProfile, RequestInterceptor
 from webview import WebView
 
 
@@ -149,6 +149,9 @@ class MainWindow(QMainWindow):
 
         # webpage common profile to keep session logins, cookies, etc.
         self._profile = None
+
+        # Request interceptor for blocking URLs and ad-blocking
+        self.interceptor = RequestInterceptor(DefaultSettings.AdBlocker.urlBlackList, self.appStorageFolder)
 
         # creating download manager before custom title bar to allow moving it too
         self.dl_manager = DownloadManager(self)
@@ -451,7 +454,7 @@ class MainWindow(QMainWindow):
                 cache_path = self.cache_manager.cachePath
 
             self._profile = WebProfile(cache_path, browser, self.cookie_filter,
-                                       DefaultSettings.AdBlocker.enableAdBlocker, self.appStorageFolder)
+                                       DefaultSettings.AdBlocker.enableAdBlocker, self.interceptor)
 
         return self._profile
 

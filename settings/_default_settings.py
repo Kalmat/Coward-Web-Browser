@@ -76,8 +76,10 @@ class DefaultSettings:
     class AdBlocker:
         enableAdBlocker = True
         urlBlackList = []  # "aswpsdkeu"]  # , "ads"]  # this is totally empyrical
-        rulesFileUrl = 'https://easylist.to/easylist/easylist.txt'
-        rulesFile = "easylist.txt"
+        easylistUrl = 'https://easylist.to/easylist/easylist.txt'
+        easylistFile = "easylist.txt"
+        easyprivacyUrl = 'https://easylist.to/easylist/easyprivacy.txt'
+        easyprivacytFile = "easyprivacy.txt"
 
     class Media:
         dialogInformationSound = utils.resource_path("res/dialog-information.wav")
