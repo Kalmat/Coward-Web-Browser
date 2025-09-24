@@ -74,7 +74,7 @@ class DefaultSettings:
         securityLevel = SecurityLevels.safe
 
     class AdBlocker:
-        enableAdBlocker = False   # way too slow (perhaps pyre2 may improve performance, but fails to install)
+        enableAdBlocker = True
         urlBlackList = []  # "aswpsdkeu"]  # , "ads"]  # this is totally empyrical
         rulesFileUrl = 'https://easylist.to/easylist/easylist.txt'
         rulesFile = "easylist.txt"

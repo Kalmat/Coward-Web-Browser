@@ -1,11 +1,12 @@
 import os
-import time
 import requests
 
 from PyQt6.QtWebEngineCore import QWebEngineProfile, QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo
-from adblockparser import AdblockRules
-
 from settings import DefaultSettings
+try:
+    from braveblock import Adblocker
+except:
+    DefaultSettings.AdBlocker.enableAdBlocker = False
 
 
 class WebProfile(QWebEngineProfile):
@@ -63,20 +64,19 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
         # enable / disable adblocker
         self.enableAdBlocker = enableAdBlocker
 
-        # this is extremely slow!!!!
-        # Installing pyre2 may improve performance, but fails to install (wheel build fails)
         if enableAdBlocker:
-            if not os.path.exists(self.rulesPath) or time.time() - os.path.getmtime(self.rulesPath) >= 7 * 86400:
-                self.updateRules(self.rulesPath)
-
+            # if not os.path.exists(self.rulesPath) or time.time() - os.path.getmtime(self.rulesPath) >= 7 * 86400:
+            #     self.updateRules(self.rulesPath)
+            #
             # Load EasyList rules (download easylist.txt beforehand)
-            with open(self.rulesPath, "r", encoding="utf-8") as f:
-                raw_rules = f.readlines()
+            # with open(self.rulesPath, "r", encoding="utf-8") as f:
+            #     raw_rules = f.readlines()
 
-            # Create AdblockRules instance
-            self.rules = AdblockRules(raw_rules,
-                                      # use_re2=True,  # enable this again when pyre2 is installed
-                                      skip_unsupported_rules=False)
+            # Create Adblocker instance
+            self.adblocker = Adblocker(
+                include_easylist=True,
+                include_easyprivacy=True
+            )
 
     def interceptRequest(self, info: QWebEngineUrlRequestInfo):
         url = info.requestUrl().url()
@@ -86,13 +86,51 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
         if any(blocked in url for blocked in self.blocked_urls):
             # Block the request (redirect to about:blank? How to detect it is not the "main" url???)
             info.block(True)
-            print(f"Black List Blocked: {url}")
+            # print(f"Black List Blocked: {url}")
 
         # check ad-block rules
         elif self.enableAdBlocker:
-            if self.rules.should_block(url):
+            if self.adblocker.check_network_urls(
+                    url=url,
+                    source_url=info.initiator().url(),
+                    request_type=self.getRequestType(info.resourceType())
+            ):
                 info.block(True)
-                print(f"AD Blocked: {url}")
+                # print(f"AD Blocked: {url}")
+
+    def getRequestType(self, resourceType):
+        """
+            document: Represents a request for a document (HTML page).
+            image: Represents a request for an image file (e.g., .jpg, .png).
+            script: Represents a request for a JavaScript file.
+            stylesheet: Represents a request for a CSS stylesheet.
+            xmlhttprequest: Represents requests made using the XMLHttpRequest object or fetch API.
+            subdocument: Represents embedded pages, usually included via HTML inline frames (iframes).
+            ping: Represents requests initiated via the navigator.sendBeacon() method.
+            websocket: Represents requests initiated via the WebSocket object.
+        """
+
+        if resourceType == QWebEngineUrlRequestInfo.ResourceType.ResourceTypeMainFrame:
+            requestType = "document"
+        elif resourceType == QWebEngineUrlRequestInfo.ResourceType.ResourceTypeSubFrame:
+            requestType = "subdocument"
+        elif resourceType == QWebEngineUrlRequestInfo.ResourceType.ResourceTypeStylesheet:
+            requestType = "stylesheet"
+        elif resourceType == QWebEngineUrlRequestInfo.ResourceType.ResourceTypeScript:
+            requestType = "script"
+        elif resourceType == QWebEngineUrlRequestInfo.ResourceType.ResourceTypeImage:
+            requestType = "image"
+        elif resourceType == QWebEngineUrlRequestInfo.ResourceType.ResourceTypePing:
+            requestType = "ping"
+        elif resourceType == QWebEngineUrlRequestInfo.ResourceType.ResourceTypeScript:
+            requestType = "script"
+        elif resourceType == QWebEngineUrlRequestInfo.ResourceType.ResourceTypeWebSocket:
+            requestType = "websocket"
+        # Add more cases as needed
+        else:
+            requestType = ""
+        return requestType
+
 
     def updateRules(self, rulesPath):
 
