@@ -53,4 +53,3 @@ QTabBar::tab:last:hover {
     background-color: #646464;
     border: none;
 }
-

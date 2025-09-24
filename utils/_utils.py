@@ -3,9 +3,12 @@ import re
 import sys
 import traceback
 
+import numpy as np
 import psutil
-from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QIcon, QPixmap, QPainter
+from PIL import Image
+from PIL.ImageQt import ImageQt
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QStyleFactory, QApplication
 
 
@@ -33,45 +36,29 @@ def set_multimedia_preferred_plugins():
     os.environ['QT_MULTIMEDIA_PREFERRED_PLUGINS'] = (flags + ' windowsmediafoundation')
 
 
-def fixDarkImage(image, width, height, index=None):
-    import imageio
-    import numpy as np
+def fixDarkImage(pixmap):
 
-    temp_file = "temp_%s.png" % str(index) if index is not None else "temp.png"
+    def pixmapToArray(pixmap):
+        try:
+            return np.array(Image.fromqpixmap(pixmap))
+        except:
+            return None
 
-    def is_dark(img, thrshld):
-        return np.mean(img) < thrshld
+    def is_dark(array, thrshld=96):
+        return np.mean(array) <= thrshld
 
-    def changePixmapBackground(pix, width, height):
-        new_pixmap = QPixmap(width, height)
-        new_pixmap.fill(Qt.GlobalColor.lightGray)
-        painter = QPainter(new_pixmap)
-        painter.drawPixmap(0, 0, width, height, pix)
-        painter.end()
-        return new_pixmap
+    def changeImageBackground(array):
+        array[array[:, :, 3] == 0] = [255, 255, 255, 255]
+        return array
 
-    if isinstance(image, QIcon):
-        isIcon = True
-        pixmap = image.pixmap(QSize(width, height))
-    else:
-        isIcon = False
-        pixmap = image
+    array = pixmapToArray(pixmap)
+    if array is not None and is_dark(array):
+        array = changeImageBackground(array)
+        pil_image = Image.fromarray(array)
+        qt_image = ImageQt(pil_image)
+        pixmap = QPixmap.fromImage(qt_image)
 
-    pixmap.save(temp_file, "PNG")
-    if os.path.exists(temp_file):
-        f = imageio.imread(temp_file, mode="F")
-
-        if is_dark(f, 127):
-            pixmap = changePixmapBackground(pixmap, width, height)
-
-        os.remove(temp_file)
-        if isIcon:
-            return QIcon(pixmap)
-        else:
-            return pixmap
-
-    else:
-        return image
+    return pixmap
 
 
 def kill_process(proc_pid):

@@ -113,7 +113,7 @@ class MainWindow(QMainWindow):
         # backup .ini file
         self.settings.backupSettings()
 
-        # save all values (even those blocked, in case .ini file didn't exist)
+        # save all values (even those which are internal by the moment, in case .ini file didn't exist)
         self.settings.setAllowCookies(self.cookies, True)
         self.settings.setTheme(self.settings.theme, True)
         self.settings.setForceDark(self.dark_mode, True)
@@ -199,6 +199,7 @@ class MainWindow(QMainWindow):
         self.appPix_32 = QPixmap(DefaultSettings.Icons.appIcon_32)
         self.web_pix = QPixmap(DefaultSettings.Icons.loading)
         self.web_ico = QIcon(DefaultSettings.Icons.loading)
+        self.web_ico_rotated = QIcon(QPixmap(DefaultSettings.Icons.loading).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
 
     def setupUI(self):
 
@@ -423,7 +424,7 @@ class MainWindow(QMainWindow):
         browser.loadFinished.connect(lambda a, b=browser, index=tabIndex: self.onLoadFinished(a, b, index))
 
     def onLoadStarted(self, browser, tabIndex):
-        self.ui.tabs.setTabIcon(tabIndex, self.web_ico)
+        self.ui.tabs.setTabIcon(tabIndex, self.web_ico if self.h_tabbar else self.web_ico_rotated)
         if browser == self.ui.tabs.currentWidget():
             self.ui.reload_btn.setText(self.ui.stop_char)
             self.ui.reload_btn.setToolTip("Stop loading page")
@@ -548,17 +549,12 @@ class MainWindow(QMainWindow):
 
     def icon_changed(self, icon, i):
 
-        # works fine but sometimes it takes too long (0,17sec.)...
-        # TODO: find another way (test with github site)
-        # icon = utils.fixDarkImage(icon, self.icon_size, self.icon_size, i)
+        pixmap = icon.pixmap(QSize(self.icon_size, self.icon_size))
+        pixmap = utils.fixDarkImage(pixmap)
 
-        pixmap: QPixmap = icon.pixmap(QSize(self.icon_size, self.icon_size))
-        if self.h_tabbar:
-            new_icon = icon
-        else:
-            # icon rotation is required if not using custom painter in TabBar class
-            new_icon = QIcon(pixmap.transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
-        self.ui.tabs.tabBar().setTabIcon(i, new_icon)
+        if not self.h_tabbar:
+            pixmap = pixmap.transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation)
+        self.ui.tabs.tabBar().setTabIcon(i, QIcon(pixmap))
 
         if self.settings.enableHistory:
             hash_object = hashlib.sha256(self.ui.tabs.widget(i).url().toString().encode())
@@ -795,7 +791,7 @@ class MainWindow(QMainWindow):
         for i in range(1, self.ui.tabs.count() - 1):
             icon = self.ui.tabs.widget(i).page().icon()
             if not icon.availableSizes():
-                icon = self.web_ico
+                icon = self.web_ico if self.h_tabbar else self.web_ico_rotated
             if self.h_tabbar:
                 new_icon = icon
                 self.title_changed(self.ui.tabs.widget(i).page().title(), i)
