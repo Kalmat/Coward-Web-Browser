@@ -26,6 +26,9 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
         self.enableAdBlocker = DefaultSettings.AdBlocker.enableAdBlocker
 
         if self.enableAdBlocker:
+
+            self.resourceTypes = self.getRequestType()
+
             currTime = time.time()
             if (not os.path.exists(self.easylistPath) or currTime - os.path.getmtime(self.easylistPath) >= 7 * 86400
                     or not os.path.exists(self.easyprivacyPath) or currTime - os.path.getmtime(self.easyprivacyPath) >= 7 * 86400):
@@ -55,12 +58,12 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
             should_block = self.adblocker.check_network_urls(
                 url=url,
                 source_url=info.initiator().url(),
-                request_type=self.getRequestType(info.resourceType()))
+                request_type=self.resourceTypes.get(info.resourceType(), ""))
             if should_block:
                 info.block(True)
                 # print(f"AD Blocked: {url}")
 
-    def getRequestType(self, resourceType):
+    def getRequestType(self):
         """
             document: Represents a request for a document (HTML page).
             image: Represents a request for an image file (e.g., .jpg, .png).
@@ -71,28 +74,17 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
             ping: Represents requests initiated via the navigator.sendBeacon() method.
             websocket: Represents requests initiated via the WebSocket object.
         """
-
-        if resourceType == QWebEngineUrlRequestInfo.ResourceType.ResourceTypeMainFrame:
-            requestType = "document"
-        elif resourceType == QWebEngineUrlRequestInfo.ResourceType.ResourceTypeSubFrame:
-            requestType = "subdocument"
-        elif resourceType == QWebEngineUrlRequestInfo.ResourceType.ResourceTypeStylesheet:
-            requestType = "stylesheet"
-        elif resourceType == QWebEngineUrlRequestInfo.ResourceType.ResourceTypeScript:
-            requestType = "script"
-        elif resourceType == QWebEngineUrlRequestInfo.ResourceType.ResourceTypeImage:
-            requestType = "image"
-        elif resourceType == QWebEngineUrlRequestInfo.ResourceType.ResourceTypePing:
-            requestType = "ping"
-        elif resourceType == QWebEngineUrlRequestInfo.ResourceType.ResourceTypeScript:
-            requestType = "script"
-        elif resourceType == QWebEngineUrlRequestInfo.ResourceType.ResourceTypeWebSocket:
-            requestType = "websocket"
-        # Add more cases as needed
-        else:
-            requestType = ""
-        return requestType
-
+        resourceTypes = {
+            QWebEngineUrlRequestInfo.ResourceType.ResourceTypeMainFrame: "document",
+            QWebEngineUrlRequestInfo.ResourceType.ResourceTypeSubFrame: "subdocument",
+            QWebEngineUrlRequestInfo.ResourceType.ResourceTypeStylesheet: "stylesheet",
+            QWebEngineUrlRequestInfo.ResourceType.ResourceTypeScript: "script",
+            QWebEngineUrlRequestInfo.ResourceType.ResourceTypeImage: "image",
+            QWebEngineUrlRequestInfo.ResourceType.ResourceTypePing: "ping",
+            QWebEngineUrlRequestInfo.ResourceType.ResourceTypeWebSocket: "websocket",
+            QWebEngineUrlRequestInfo.ResourceType.ResourceTypeXhr: "xmlhttprequest"
+        }
+        return resourceTypes
 
     def updateRules(self, easylistPath, easyPrivacyPath):
 
