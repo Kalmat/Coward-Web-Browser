@@ -41,7 +41,11 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
                 easyprivacy = f.readlines()
 
             # Create Adblocker instance
-            self.adblocker = Adblocker(rules=list(set(easylist + easyprivacy)))
+            self.adblocker = Adblocker(
+                rules=list(set(easylist + easyprivacy)),
+                include_easylist=False,
+                include_easyprivacy=False
+            )
 
     def interceptRequest(self, info: QWebEngineUrlRequestInfo):
         url = info.requestUrl().url()
