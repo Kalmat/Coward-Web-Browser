@@ -2,6 +2,7 @@ import os
 import time
 
 import requests
+from PyQt6.QtCore import QUrl
 from PyQt6.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo
 
 from settings import DefaultSettings
@@ -24,6 +25,7 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
 
         # enable / disable adblocker
         self.enableAdBlocker = DefaultSettings.AdBlocker.enableAdBlocker
+        self.resourceTypes = {}
 
         if self.enableAdBlocker:
 
@@ -40,7 +42,7 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
             with open(self.easyprivacyPath, "r", encoding="utf-8") as f:
                 easyprivacy = f.readlines()
 
-            # Create Adblocker instance
+            # Create Adblocker instance (using our own downloaded rules files)
             self.adblocker = Adblocker(
                 rules=list(set(easylist + easyprivacy)),
                 include_easylist=False,
@@ -49,23 +51,22 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
 
     def interceptRequest(self, info: QWebEngineUrlRequestInfo):
         url = info.requestUrl().url()
-        # print("INTERCEPTOR", info.firstPartyUrl(), info.navigationType(), info.initiator(), info.requestMethod(), url)
 
         # Check if the request URL is in the blocked list
-        if any(blocked in url for blocked in self.blocked_urls):
+        if not QUrl(url).isValid() or any(blocked in url for blocked in self.blocked_urls):
             # Block the request (redirect to about:blank? How to detect it is not the "main" url???)
             info.block(True)
             # print(f"Black List Blocked: {url}")
 
         # check ad-block rules
-        elif self.enableAdBlocker:
+        if self.enableAdBlocker:
             should_block = self.adblocker.check_network_urls(
                 url=url,
                 source_url=info.initiator().url(),
                 request_type=self.resourceTypes.get(info.resourceType(), ""))
             if should_block:
                 info.block(True)
-                # print(f"AD Blocked: {url}")
+                print(f"AD Blocked: {url}")
 
     def getRequestType(self):
         """
@@ -96,13 +97,7 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
         if response.status_code == 200:
             with open(easylistPath, "wb") as file:
                 file.write(response.content)
-            print("File downloaded successfully!")
-        else:
-            print("Failed to download the file.")
         response = requests.get(DefaultSettings.AdBlocker.easyprivacyUrl)
         if response.status_code == 200:
             with open(easyPrivacyPath, "wb") as file:
                 file.write(response.content)
-            print("File downloaded successfully!")
-        else:
-            print("Failed to download the file.")

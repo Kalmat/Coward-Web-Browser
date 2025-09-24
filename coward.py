@@ -151,7 +151,7 @@ class MainWindow(QMainWindow):
         self._profile = None
 
         # Request interceptor for blocking URLs and ad-blocking
-        self.interceptor = RequestInterceptor(DefaultSettings.AdBlocker.urlBlackList, self.appStorageFolder)
+        self.requestInterceptor = RequestInterceptor(DefaultSettings.AdBlocker.urlBlackList, self.appStorageFolder)
 
         # creating download manager before custom title bar to allow moving it too
         self.dl_manager = DownloadManager(self)
@@ -454,7 +454,7 @@ class MainWindow(QMainWindow):
                 cache_path = self.cache_manager.cachePath
 
             self._profile = WebProfile(cache_path, browser, self.cookie_filter,
-                                       DefaultSettings.AdBlocker.enableAdBlocker, self.interceptor)
+                                       DefaultSettings.AdBlocker.enableAdBlocker, self.requestInterceptor)
 
         return self._profile
 
