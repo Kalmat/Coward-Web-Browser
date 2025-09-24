@@ -44,7 +44,8 @@ def fixDarkImage(pixmap):
         except:
             return None
 
-    def is_dark(array, thrshld=96):
+    def is_dark(array, thrshld=64):
+        print(np.mean(array))
         return np.mean(array) <= thrshld
 
     def changeImageBackground(array):
