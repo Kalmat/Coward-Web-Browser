@@ -66,7 +66,7 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
                 request_type=self.resourceTypes.get(info.resourceType(), ""))
             if should_block:
                 info.block(True)
-                print(f"AD Blocked: {url}")
+                # print(f"AD Blocked: {url}")
 
     def getRequestType(self):
         """
