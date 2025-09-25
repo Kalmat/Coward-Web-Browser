@@ -407,18 +407,15 @@ class MainWindow(QMainWindow):
         else:
             # add tab in given position (e.g. when requested from page context menu)
             self.ui.tabs.insertTab(tabIndex, browser, label if self.h_tabbar else "")
-            # updating index-dependent signals since all following tabs are moved
-            for i in range(tabIndex + 1, self.ui.tabs.count() - 1):
-                self.update_index_dependent_signals(i)
 
         # connect browser and page signals (once we have the tab index)
-        self.connectBrowserSlots(browser, tabIndex)
-        self.connectPageSlots(browser.page(), tabIndex)
+        self.connectBrowserSlots(browser)
+        self.connectPageSlots(browser.page())
 
         # set close buttons according to tabs orientation
         if self.h_tabbar:
             self.ui.tabs.tabBar().tabButton(tabIndex, QTabBar.ButtonPosition.RightSide).clicked.disconnect()
-            self.ui.tabs.tabBar().tabButton(tabIndex, QTabBar.ButtonPosition.RightSide).clicked.connect(lambda checked, index=tabIndex: self.tab_closed(index))
+            self.ui.tabs.tabBar().tabButton(tabIndex, QTabBar.ButtonPosition.RightSide).clicked.connect(lambda checked, b=browser: self.tab_closed(b))
         else:
             self.ui.tabs.tabBar().setTabButton(tabIndex, QTabBar.ButtonPosition.RightSide, None)
 
@@ -440,22 +437,23 @@ class MainWindow(QMainWindow):
 
         return browser
 
-    def connectBrowserSlots(self, browser, tabIndex):
+    def connectBrowserSlots(self, browser):
 
         # adding action to the browser when url changes
         browser.urlChanged.connect(lambda u, b=browser: self.update_urlbar(u, b))
 
         # check start/finish loading (e.g. for loading animations)
-        browser.loadStarted.connect(lambda b=browser, index=tabIndex: self.onLoadStarted(b, index))
-        browser.loadFinished.connect(lambda a, b=browser, index=tabIndex: self.onLoadFinished(a, b, index))
+        browser.loadStarted.connect(lambda b=browser: self.onLoadStarted(b))
+        browser.loadFinished.connect(lambda a, b=browser: self.onLoadFinished(a, b))
 
-    def onLoadStarted(self, browser, tabIndex):
+    def onLoadStarted(self, browser):
+        tabIndex = self.ui.tabs.indexOf(browser)
         self.ui.tabs.setTabIcon(tabIndex, self.web_ico if self.h_tabbar else self.web_ico_rotated)
         if browser == self.ui.tabs.currentWidget():
             self.ui.reload_btn.setText(self.ui.stop_char)
             self.ui.reload_btn.setToolTip("Stop loading page")
 
-    def onLoadFinished(self, loadedOk, browser, tabIndex):
+    def onLoadFinished(self, loadedOk, browser):
         if browser == self.ui.tabs.currentWidget():
             self.ui.reload_btn.setText(self.ui.reload_char)
             self.ui.reload_btn.setToolTip("Reload page")
@@ -508,7 +506,7 @@ class MainWindow(QMainWindow):
         inspect_act.disconnect()
         inspect_act.triggered.connect(lambda checked, p=page: self.inspect_page(p))
 
-    def connectPageSlots(self, page, tabIndex):
+    def connectPageSlots(self, page):
 
         # manage fullscreen requests (enabled at browser level)
         page.fullScreenRequested.connect(self.page_fullscr)
@@ -521,8 +519,8 @@ class MainWindow(QMainWindow):
         page.desktopMediaRequested.connect(lambda request, p=page: print("MEDIA REQUESTED", request))
 
         # adding action to the browser when title or icon change
-        page.titleChanged.connect(lambda title, index=tabIndex: self.title_changed(title, index))
-        page.iconChanged.connect(lambda icon, index=tabIndex: self.icon_changed(icon, index))
+        page.titleChanged.connect(lambda title, b=page.parent(): self.title_changed(title, b))
+        page.iconChanged.connect(lambda icon, b=page.parent(): self.icon_changed(icon, b))
 
         # manage file downloads (including pages and files)
         page.profile().downloadRequested.connect(self.download_file)
@@ -556,32 +554,37 @@ class MainWindow(QMainWindow):
                 self.showNormal()
                 self.moveOtherWidgets()
 
-    def title_changed(self, title, i):
-        self.ui.tabs.tabBar().setTabText(i, (title + " " * 30)[:29] if self.h_tabbar else "")
-        self.ui.tabs.setTabToolTip(i, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
+    def title_changed(self, title, browser):
+
+        tabIndex = self.ui.tabs.indexOf(browser)
+
+        self.ui.tabs.tabBar().setTabText(tabIndex, (title + " " * 30)[:29] if self.h_tabbar else "")
+        self.ui.tabs.setTabToolTip(tabIndex, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
 
         if self.settings.enableHistory and self.history_manager is not None:
-            hash_object = hashlib.sha256(self.ui.tabs.widget(i).url().toString().encode())
+            hash_object = hashlib.sha256(self.ui.tabs.widget(tabIndex).url().toString().encode())
             filename = str(hash_object.hexdigest())
             full_filename = os.path.join(self.history_manager.historyFolder, filename)
-            item = [str(time.time()), title, self.ui.tabs.widget(i).url().toString(), full_filename]
+            item = [str(time.time()), title, self.ui.tabs.widget(tabIndex).url().toString(), full_filename]
             added = self.history_manager.addHistoryEntry(item)
             if added:
                 self.history_widget.addHistoryEntry(item)
             else:
                 self.history_widget.updateHistoryEntry(item)
 
-    def icon_changed(self, icon, i):
+    def icon_changed(self, icon, browser):
+
+        tabIndex = self.ui.tabs.indexOf(browser)
 
         pixmap = icon.pixmap(QSize(self.icon_size, self.icon_size))
         pixmap = utils.fixDarkImage(pixmap)
 
         if not self.h_tabbar:
             pixmap = pixmap.transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation)
-        self.ui.tabs.tabBar().setTabIcon(i, QIcon(pixmap))
+        self.ui.tabs.tabBar().setTabIcon(tabIndex, QIcon(pixmap))
 
         if self.settings.enableHistory:
-            hash_object = hashlib.sha256(self.ui.tabs.widget(i).url().toString().encode())
+            hash_object = hashlib.sha256(self.ui.tabs.widget(tabIndex).url().toString().encode())
             filename = str(hash_object.hexdigest())
             full_filename = os.path.join(self.history_manager.historyFolder, filename)
             if not os.path.exists(full_filename):
@@ -682,10 +685,6 @@ class MainWindow(QMainWindow):
 
     def tab_moved(self, to_index, from_index):
 
-        # updating index-dependent signals when tab is moved
-        # destination tab
-        self.update_index_dependent_signals(to_index)
-
         if to_index == self.ui.tabs.count() - 1:
             # Avoid moving last tab (add new tab) if dragging another tab onto it
             self.ui.tabs.removeTab(from_index)
@@ -696,11 +695,9 @@ class MainWindow(QMainWindow):
             self.ui.tabs.removeTab(from_index)
             self.add_toggletab_action()
 
-        else:
-            # origin tab
-            self.update_index_dependent_signals(from_index)
+    def tab_closed(self, browser):
 
-    def tab_closed(self, tabIndex):
+        tabIndex = self.ui.tabs.indexOf(browser)
 
         # if there is only one tab
         if self.ui.tabs.count() == 3:
@@ -727,30 +724,8 @@ class MainWindow(QMainWindow):
                 targetIndex = 1
             self.ui.tabs.setCurrentIndex(targetIndex)
 
-        # updating index-dependent signals when tab is moved
-        for i in range(tabIndex, self.ui.tabs.count() - 1):
-            self.update_index_dependent_signals(i)
-
         # delete tab widget safely
         self.widgetToDelete.deleteLater()
-
-    # method for navigate to url
-    def update_index_dependent_signals(self, tabIndex):
-        browser = self.ui.tabs.widget(tabIndex)
-        browser.loadStarted.disconnect()
-        browser.loadStarted.connect(lambda b=browser, index=tabIndex: self.onLoadStarted(b, index))
-        browser.loadFinished.disconnect()
-        browser.loadFinished.connect(lambda a, b=browser, index=tabIndex: self.onLoadFinished(a, b, index))
-
-        page = browser.page()
-        page.titleChanged.disconnect()
-        page.titleChanged.connect(lambda title, index=tabIndex: self.title_changed(title, index))
-        page.iconChanged.disconnect()
-        page.iconChanged.connect(lambda icon, index=tabIndex: self.icon_changed(icon, index))
-
-        if self.h_tabbar:
-            self.ui.tabs.tabBar().tabButton(tabIndex, QTabBar.ButtonPosition.RightSide).clicked.disconnect()
-            self.ui.tabs.tabBar().tabButton(tabIndex, QTabBar.ButtonPosition.RightSide).clicked.connect(lambda checked, index=tabIndex: self.tab_closed(index))
 
     def showContextMenu(self, point):
 
@@ -759,7 +734,7 @@ class MainWindow(QMainWindow):
         if 1 <= tabIndex < self.ui.tabs.count() - 1:
             # set buttons before running context menu (it blocks)
             self.ui.close_action.triggered.disconnect()
-            self.ui.close_action.triggered.connect(lambda checked, index=tabIndex: self.tab_closed(index))
+            self.ui.close_action.triggered.connect(lambda checked: self.tab_closed(self.ui.tabs.widget(tabIndex)))
             # create and run context menu
             self.ui.createCloseTabContextMenu(tabIndex)
 

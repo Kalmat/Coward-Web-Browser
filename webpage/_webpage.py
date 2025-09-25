@@ -241,8 +241,7 @@ class WebPage(QWebEnginePage):
     def bufferingStarted(self, qurl):
         dialog = self.showDialog(
             message=DefaultSettings.DialogMessages.bufferingStarted,
-            buttonOkOnly=True,
-            canBeDeleted=True)
+            buttonOkOnly=True)
         self.dialogsToDelete[qurl] = dialog
 
     @pyqtSlot(str)
