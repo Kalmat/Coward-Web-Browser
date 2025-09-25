@@ -1142,7 +1142,7 @@ class MainWindow(QMainWindow):
 
         elif a0.key() == Qt.Key.Key_W:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
-                self.tab_closed(self.ui.tabs.currentIndex())
+                self.tab_closed(self.ui.tabs.currentWidget())
 
         elif a0.key() == Qt.Key.Key_F11:
             if not self.isPageFullscreen:

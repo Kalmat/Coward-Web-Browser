@@ -13,5 +13,8 @@ class TabWidget(QTabWidget):
             index = 1
         super().setCurrentIndex(index)
 
+    def keyPressEvent(self, a0):
+        pass
+
     def keyReleaseEvent(self, a0):
         self.parent().keyReleaseEvent(a0)
