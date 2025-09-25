@@ -80,7 +80,7 @@ class MainWindow(QMainWindow):
         self.isNewWin = new_win
 
         # Enable/Disable cookies and prepare incognito environment
-        if new_win and incognito is not None:
+        if (new_win and incognito is not None) or OPTIONS.incognitoMode:
             self.cookies = True
             self.isIncognito = OPTIONS.incognitoMode if OPTIONS.incognitoMode is not None else incognito
         else:
