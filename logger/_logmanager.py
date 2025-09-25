@@ -51,12 +51,13 @@ class LoggerManager:
 
     def checkFiles(self, logFolder, logDepth):
 
-        logFiles = list(os.listdir(logFolder))
-        logFiles.sort(reverse=True)
+        if os.path.isdir(logFolder):
+            logFiles = list(os.listdir(logFolder))
+            logFiles.sort(reverse=True)
 
-        if len(logFiles) > logDepth >= 0:
-            for i in range(logDepth, len(logFiles)):
-                try:
-                    os.remove(os.path.join(logFolder, logFiles[i]))
-                except:
-                    pass
+            if len(logFiles) > logDepth >= 0:
+                for i in range(logDepth, len(logFiles)):
+                    try:
+                        os.remove(os.path.join(logFolder, logFiles[i]))
+                    except:
+                        pass
