@@ -66,6 +66,7 @@ class WebPage(QWebEnginePage):
             tabsWidget.setCurrentWidget(browser)
 
             # show dialog to ask user
+            # this dialog has to be synchronous and executed in main thread, or it will crash when accessing error
             if error.isMainFrame():
                 message = (DefaultSettings.DialogMessages.certificateErrorFirstParty
                            % (self.title(), error.url().toString(), error.description()))
