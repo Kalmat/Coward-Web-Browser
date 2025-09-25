@@ -21,6 +21,7 @@ class Themes:
         searchWidget = "searchWidget"
         downloadManager = "downloadManager"
         dialog = "dialog"
+        messagebox = "messagebox"
         contextmenu = "contextmenu"
         mediaplayer = "mediaplayer"
         historyWidget = "historyWidget"
@@ -35,6 +36,7 @@ class Themes:
             "searchWidget": 'search_widget.qss',
             "downloadManager": 'download_manager.qss',
             "dialog": 'dialog.qss',
+            "messagebox": 'messagebox.qss',
             "contextmenu": "contextmenu.qss",
             "mediaplayer": "mediaplayer.qss",
             "historyWidget": "history_widget.qss"
@@ -48,10 +50,11 @@ class Themes:
             "searchWidget": 'search_widget.qss',
             "downloadManager": 'download_manager.qss',
             "dialog": 'dialog.qss',
+            "messagebox": 'messagebox.qss',
             "contextmenu": "contextmenu.qss",
             "mediaplayer": "mediaplayer.qss",
             "historyWidget": "history_widget.qss"
-    }
+        }
     }
 
     @staticmethod

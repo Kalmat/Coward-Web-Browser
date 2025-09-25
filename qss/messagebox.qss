@@ -1,0 +1,30 @@
+QMessageBox {
+    font-family: "MS Shell Dlg 2";
+    font-size: 10pt;
+    background: #323232;
+    color: white;
+    border: none;
+}
+
+QWidget {
+    background: #32322;
+    color: lightgrey;
+}
+
+QPushButton {
+    font-family: "MS Shell Dlg 2";
+    font-size: 10pt;
+    background: #323232;
+    color: white;
+    border-top: 1px solid #969696;
+    border-left: 1px solid #969696;
+    border-bottom: 1px solid black;
+    border-right: 1px solid black;
+    min-width: 64px;
+    min-height: 24px;
+    border-radius: 4px;
+}
+
+QPushButton:hover {
+    background: #646464;
+}

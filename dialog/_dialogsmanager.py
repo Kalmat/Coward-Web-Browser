@@ -3,6 +3,7 @@ from queue import Queue
 from PyQt6 import sip
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer, pyqtSlot, QSize
 from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtWebEngineCore import QWebEngineCertificateError
 from PyQt6.QtWidgets import QDialogButtonBox
 
 import utils
@@ -69,9 +70,15 @@ class DialogsManager(QObject):
                 closeSig=self._closeSig)
         dialog.setStyleSheet(Themes.styleSheet(theme, Themes.Section.dialog))
         if acceptedSlot is not None:
-            dialog.accepted.connect(acceptedSlot)
+            if isinstance(acceptedSlot, pyqtSignal):
+                dialog.accepted.connect(acceptedSlot.emit)
+            else:
+                dialog.accepted.connect(acceptedSlot)
         if rejectedSlot is not None:
-            dialog.rejected.connect(rejectedSlot)
+            if isinstance(rejectedSlot, pyqtSignal):
+                dialog.rejected.connect(rejectedSlot.emit)
+            else:
+                dialog.rejected.connect(rejectedSlot)
         self._queueDialogs(dialog)
         return dialog
 

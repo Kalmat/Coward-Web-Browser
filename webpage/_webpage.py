@@ -1,9 +1,12 @@
 from PyQt6.QtCore import pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineCertificateError
+from PyQt6.QtWidgets import QMessageBox
 
 from logger import LOGGER, LoggerSettings
 from mediaplayer import QtMediaPlayer, Streamer
 from settings import DefaultSettings
+from themes import Themes
 
 
 class WebPage(QWebEnginePage):
@@ -50,17 +53,41 @@ class WebPage(QWebEnginePage):
     #     if type == QWebEnginePage.NavigationType.NavigationTypeLinkClicked: return False
     #     return super().acceptNavigationRequest(url, type, isMainFrame)
 
+    @pyqtSlot(QWebEngineCertificateError)
     def handleCertificateError(self, error: QWebEngineCertificateError):
-        if error.url().toString().startswith(self.url().toString()):
-            message = (DefaultSettings.DialogMessages.certificateErrorFirstParty
-                       % (self.title(), self.url().toString(), error.description()))
+
+        if error.isOverridable():
+            error.defer()
+            self.parent().parent().parent().setCurrentWidget(self.parent())
+            if error.isMainFrame():
+                message = (DefaultSettings.DialogMessages.certificateErrorFirstParty
+                           % (self.title(), error.url().toString(), error.description()))
+            else:
+                message = (DefaultSettings.DialogMessages.certificateErrorThirdParty
+                           % (error.url().toString(), self.title(), self.url().toString(), error.description()))
+
+            # Create a synchronous message box to ask user
+            msg_box = QMessageBox()
+            msg_box.setStyleSheet(Themes.styleSheet(DefaultSettings.Theme.defaultTheme, Themes.Section.messagebox))
+            msg_box.setWindowTitle("Security Certificate Error")
+            msg_box.setWindowIcon(QIcon(DefaultSettings.Icons.appIcon_32))
+            msg_box.setText(f"A certificate error occurred:")
+            msg_box.setInformativeText(message)
+            msg_box.setStandardButtons(QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
+            msg_box.setDefaultButton(QMessageBox.StandardButton.Cancel)
+            msg_box.setIcon(QMessageBox.Icon.Warning)
+
+            response = msg_box.exec()
+
+            if response == QMessageBox.StandardButton.Ok:
+                error.acceptCertificate()
+            else:
+                error.rejectCertificate()
         else:
-            message = (DefaultSettings.DialogMessages.certificateErrorThirdParty
-                       % (error.url().toString(), self.title(), self.url().toString(), error.description()))
-        self.showDialog(
-            message=message,
-            acceptSlot=error.acceptCertificate,
-            rejectSlot=error.rejectCertificate)
+            if DefaultSettings.Security.securityLevel == DefaultSettings.Security.SecurityLevels.mad:
+                error.acceptCertificate()
+            else:
+                error.rejectCertificate()
 
     def handleFeatureRequested(self, origin, feature):
         message = DefaultSettings.DialogMessages.featureRequest % DefaultSettings.FeatureMessages[feature]
@@ -247,7 +274,7 @@ class WebPage(QWebEnginePage):
             if qurl in self.players.keys():
                 del self.players[qurl]
 
-    def showDialog(self, message, buttonOkOnly=False, acceptSlot=None, rejectSlot=None, canBeDeleted=False):
+    def showDialog(self, message, buttonOkOnly=False, acceptSlot=None, rejectSlot=None):
         dialog = self.dialog_manager.createDialog(
             icon=self.icon(),
             title=self.title() or self.url().toString(),
