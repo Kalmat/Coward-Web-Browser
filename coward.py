@@ -734,7 +734,7 @@ class MainWindow(QMainWindow):
         if 1 <= tabIndex < self.ui.tabs.count() - 1:
             # set buttons before running context menu (it blocks)
             self.ui.close_action.triggered.disconnect()
-            self.ui.close_action.triggered.connect(lambda checked: self.tab_closed(self.ui.tabs.widget(tabIndex)))
+            self.ui.close_action.triggered.connect(lambda checked, b=self.ui.tabs.widget(tabIndex): self.tab_closed(b))
             # create and run context menu
             self.ui.createCloseTabContextMenu(tabIndex)
 
