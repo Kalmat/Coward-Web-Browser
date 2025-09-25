@@ -554,14 +554,14 @@ class MainWindow(QMainWindow):
                 self.showNormal()
                 self.moveOtherWidgets()
 
-    def title_changed(self, title, browser):
+    def title_changed(self, title, browser, internalCall=False):
 
         tabIndex = self.ui.tabs.indexOf(browser)
 
         self.ui.tabs.tabBar().setTabText(tabIndex, (title + " " * 30)[:29] if self.h_tabbar else "")
         self.ui.tabs.setTabToolTip(tabIndex, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
 
-        if self.settings.enableHistory and self.history_manager is not None:
+        if not internalCall and self.settings.enableHistory and self.history_manager is not None:
             hash_object = hashlib.sha256(self.ui.tabs.widget(tabIndex).url().toString().encode())
             filename = str(hash_object.hexdigest())
             full_filename = os.path.join(self.history_manager.historyFolder, filename)
@@ -793,7 +793,7 @@ class MainWindow(QMainWindow):
                 icon = self.web_ico if self.h_tabbar else self.web_ico_rotated
             if self.h_tabbar:
                 new_icon = icon
-                self.title_changed(self.ui.tabs.widget(i).page().title(), self.ui.tabs.widget(i))
+                self.title_changed(self.ui.tabs.widget(i).page().title(), self.ui.tabs.widget(i), True)
                 self.ui.tabs.tabBar().tabButton(i, QTabBar.ButtonPosition.RightSide).clicked.connect(lambda checked, index=i: self.tab_closed(index))
             else:
                 new_icon = QIcon(icon.pixmap(QSize(self.icon_size, self.icon_size)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
