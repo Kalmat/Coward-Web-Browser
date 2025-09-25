@@ -57,8 +57,15 @@ class WebPage(QWebEnginePage):
     def handleCertificateError(self, error: QWebEngineCertificateError):
 
         if error.isOverridable():
+            # defer error to ask for user input
             error.defer()
-            self.parent().parent().parent().setCurrentWidget(self.parent())
+
+            # select affected tab
+            browser = self.parent()
+            tabsWidget = browser.parent().parent()
+            tabsWidget.setCurrentWidget(browser)
+
+            # show dialog to ask user
             if error.isMainFrame():
                 message = (DefaultSettings.DialogMessages.certificateErrorFirstParty
                            % (self.title(), error.url().toString(), error.description()))
@@ -66,28 +73,32 @@ class WebPage(QWebEnginePage):
                 message = (DefaultSettings.DialogMessages.certificateErrorThirdParty
                            % (error.url().toString(), self.title(), self.url().toString(), error.description()))
 
-            # Create a synchronous message box to ask user
-            msg_box = QMessageBox()
-            msg_box.setStyleSheet(Themes.styleSheet(DefaultSettings.Theme.defaultTheme, Themes.Section.messagebox))
-            msg_box.setWindowTitle("Security Certificate Error")
-            msg_box.setWindowIcon(QIcon(DefaultSettings.Icons.appIcon_32))
-            msg_box.setText(f"A certificate error occurred:")
-            msg_box.setInformativeText(message)
-            msg_box.setStandardButtons(QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
-            msg_box.setDefaultButton(QMessageBox.StandardButton.Cancel)
-            msg_box.setIcon(QMessageBox.Icon.Warning)
+            response = self.createCertificateErrorDialog(message)
 
-            response = msg_box.exec()
-
+            # apply user action
             if response == QMessageBox.StandardButton.Ok:
                 error.acceptCertificate()
             else:
                 error.rejectCertificate()
         else:
+            # if error can not be overridden, accept or reject according to security level
             if DefaultSettings.Security.securityLevel == DefaultSettings.Security.SecurityLevels.mad:
                 error.acceptCertificate()
             else:
                 error.rejectCertificate()
+
+    def createCertificateErrorDialog(self, message):
+        # Create a synchronous message box to ask user
+        msg_box = QMessageBox()
+        msg_box.setStyleSheet(Themes.styleSheet(DefaultSettings.Theme.defaultTheme, Themes.Section.messagebox))
+        msg_box.setWindowTitle("Security Certificate Error")
+        msg_box.setWindowIcon(QIcon(DefaultSettings.Icons.appIcon_32))
+        msg_box.setIcon(QMessageBox.Icon.Warning)
+        msg_box.setText(f"A certificate error occurred:")
+        msg_box.setInformativeText(message)
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
+        msg_box.setDefaultButton(QMessageBox.StandardButton.Cancel)
+        return msg_box.exec()
 
     def handleFeatureRequested(self, origin, feature):
         message = DefaultSettings.DialogMessages.featureRequest % DefaultSettings.FeatureMessages[feature]
