@@ -2,7 +2,7 @@ import os
 import sys
 
 import utils
-from logger import LoggerSettings
+from logger import LoggerSettings, LOGGER
 from settings import DefaultSettings
 from ._common import (setDPIAwareness, setSystemDPISettings, setApplicationDPISettings, force_icon,
                       exception_hook, set_widevine_var, set_multimedia_preferred_plugins)
@@ -15,13 +15,13 @@ def preInitializeApp(options):
 
         # enable / disable debug, including Chromium debug info
         if options.enableDebug is not None:
-            LoggerSettings.debugEnabled = options.enableDebug
+            LOGGER.enableDebug(options.enableDebug)
             # is this necessary or are these messages also caught by JavaScriptConsoleMessages()?
             # utils.enableChromiumDebug()
 
         # enable / disable logging to file
         if options.enableLogging is not None:
-            LoggerSettings.loggingEnabled = options.enableLogging
+            LOGGER.enableLogging(options.enableLogging)
 
         # enable / disable ad blocker
         if options.enableAdblocker is not None:
