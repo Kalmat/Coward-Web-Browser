@@ -43,6 +43,8 @@ class OptionsParser:
         try:
             index = args.index(option)
             value = args[index + 1]
+            if not value:
+                value = None
         except:
             value = None
         return value

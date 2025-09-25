@@ -238,7 +238,9 @@ class Ui_MainWindow:
             self.min_btn.setFont(font)
             self.navtab.addAction(self.min_btn)
 
-            self.max_btn = QAction(" ⃞ ", self.navtab)
+            self.max_chr = " ⃞ "
+            self.rest_chr = "⧉"
+            self.max_btn = QAction(self.max_chr, self.navtab)
             self.max_btn.setToolTip("Maximize")
             font = self.max_btn.font()
             font.setPointSize(font.pointSize() + 4)

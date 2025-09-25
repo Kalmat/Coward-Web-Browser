@@ -793,7 +793,7 @@ class MainWindow(QMainWindow):
                 icon = self.web_ico if self.h_tabbar else self.web_ico_rotated
             if self.h_tabbar:
                 new_icon = icon
-                self.title_changed(self.ui.tabs.widget(i).page().title(), i)
+                self.title_changed(self.ui.tabs.widget(i).page().title(), self.ui.tabs.widget(i))
                 self.ui.tabs.tabBar().tabButton(i, QTabBar.ButtonPosition.RightSide).clicked.connect(lambda checked, index=i: self.tab_closed(index))
             else:
                 new_icon = QIcon(icon.pixmap(QSize(self.icon_size, self.icon_size)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
@@ -1103,12 +1103,12 @@ class MainWindow(QMainWindow):
 
         if self.isMaximized():
             self.showNormal()
-            self.ui.max_btn.setText(" ⃞ ")
+            self.ui.max_btn.setText(self.ui.max_chr)
             self.ui.max_btn.setToolTip("Maximize")
 
         else:
             self.showMaximized()
-            self.ui.max_btn.setText("⧉")
+            self.ui.max_btn.setText(self.ui.rest_chr)
             self.ui.max_btn.setToolTip("Restore")
 
     def keyReleaseEvent(self, a0):
