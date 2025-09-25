@@ -528,7 +528,6 @@ class MainWindow(QMainWindow):
     def page_fullscr(self, request):
         self.manage_fullscr(request.toggleOn(), page_fullscr=True)
         request.accept()
-        request.accept()
 
     def manage_fullscr(self, on, page_fullscr=False):
 
