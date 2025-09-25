@@ -794,7 +794,7 @@ class MainWindow(QMainWindow):
             if self.h_tabbar:
                 new_icon = icon
                 self.title_changed(self.ui.tabs.widget(i).page().title(), self.ui.tabs.widget(i), True)
-                self.ui.tabs.tabBar().tabButton(i, QTabBar.ButtonPosition.RightSide).clicked.connect(lambda checked, index=i: self.tab_closed(index))
+                self.ui.tabs.tabBar().tabButton(i, QTabBar.ButtonPosition.RightSide).clicked.connect(lambda checked, b=self.ui.tabs.widget(i): self.tab_closed(b))
             else:
                 new_icon = QIcon(icon.pixmap(QSize(self.icon_size, self.icon_size)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
                 self.ui.tabs.tabBar().setTabText(i, "")
