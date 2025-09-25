@@ -2,7 +2,7 @@ import os
 import sys
 
 import utils
-from logger import LoggerSettings, LOGGER
+from logger import LOGGER
 from settings import DefaultSettings
 from ._common import (setDPIAwareness, setSystemDPISettings, setApplicationDPISettings, force_icon,
                       exception_hook, set_widevine_var, set_multimedia_preferred_plugins)

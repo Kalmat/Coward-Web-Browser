@@ -2,8 +2,7 @@ from PyQt6.QtCore import pyqtSignal, pyqtSlot
 from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineCertificateError
 
 from logger import LOGGER, LoggerSettings
-from mediaplayer import QtMediaPlayer
-from mediaplayer._streamer import Streamer
+from mediaplayer import QtMediaPlayer, Streamer
 from settings import DefaultSettings
 
 
