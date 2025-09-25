@@ -13,7 +13,7 @@ class LoggerManager:
         self.logDepth = LoggerSettings.logDepth
         self.logFolder = LoggerSettings.loggerFolder
 
-        if not os.path.exists(self.logFolder):
+        if self.loggingEnabled and not os.path.exists(self.logFolder):
             os.makedirs(self.logFolder)
 
         self.checkFiles(self.logFolder, self.logDepth)
@@ -27,6 +27,9 @@ class LoggerManager:
         self.loggingEnabled = enable
 
         if self.loggingEnabled:
+
+            if not os.path.exists(self.logFolder):
+                os.makedirs(self.logFolder)
 
             date = time.strftime("%Y%m%d-%H%M%S")
             self.logFile = os.path.join(self.logFolder, f"log-{date}")
