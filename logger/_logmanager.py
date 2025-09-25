@@ -1,18 +1,16 @@
 import os
 import time
 
-from settings import DefaultSettings
+from ._logger_settings import LoggerSettings
 
-
-class Logger:
+class LoggerManager:
 
     def __init__(self):
 
-        self.debugEnabled = DefaultSettings.Logger.debugEnabled
-        self.loggingEnabled = DefaultSettings.Logger.loggingEnabled
-        self.logDepth = DefaultSettings.Logger.logDepth
-
-        self.logFolder = DefaultSettings.Logger.loggerFolder
+        self.debugEnabled = LoggerSettings.debugEnabled
+        self.loggingEnabled = LoggerSettings.loggingEnabled
+        self.logDepth = LoggerSettings.logDepth
+        self.logFolder = LoggerSettings.loggerFolder
 
         if not os.path.exists(self.logFolder):
             os.makedirs(self.logFolder)

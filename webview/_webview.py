@@ -3,6 +3,7 @@ import os
 from PyQt6.QtWebEngineCore import QWebEngineSettings
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
+from logger import LOGGER, LoggerSettings
 from settings import DefaultSettings
 
 
@@ -22,6 +23,7 @@ class WebView(QWebEngineView):
             super().load(*__args)
         except:
             # showing error page to allow to manually detect and filter problematic pages
+            LOGGER.write(LoggerSettings.LogLevels.fatal, "WebView", f"Fatal error in page. Debug the linked URLs and add the problemmatic ones to DefaultSettings.AdBlocker.urlBlackList")
             self.load(self.fatal_error_page)
 
     def applySettings(self, security_level, dark_mode):

@@ -9,6 +9,7 @@ from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PyQt6.QtCore import Qt, QUrl, QTimer, pyqtSignal, QByteArray, QThread, QBuffer, QIODevice, pyqtSlot
 from PyQt6.QtMultimediaWidgets import QGraphicsVideoItem
 
+from logger import LOGGER, LoggerSettings
 from settings import DefaultSettings
 from themes import Themes
 
@@ -303,10 +304,8 @@ class UdpReceiver(QThread):
 
                 while self.socket.hasPendingDatagrams():
 
-                    print("READING UDP")
                     datagram, sender, port = self.socket.readDatagram(self.socket.pendingDatagramSize())
                     if not datagram:
-                        print("NO DATA")
                         break
 
                     self.byte_array.append(datagram)  # Store the received data in QByteArray
@@ -319,7 +318,8 @@ class UdpReceiver(QThread):
                     # self.buffer.write(self.byte_array)
                     # self.buffer.seek(0)  # Reset the buffer position to the beginning
 
-            except:
+            except Exception as e:
+                LOGGER.write(LoggerSettings.LogLevels.error, "UdpReceiver", f"Error while streaming from UDP in Qt Player: {e}")
                 self.stop()
 
             finally:
@@ -346,17 +346,16 @@ class StdoutReceiver(QThread):
         try:
 
             while not self.stopReading:
-                print("READING STDOUT")
                 # Read data from FFmpeg's stdout
                 data = self.stream_process.stdout.read(8192)
                 if not data:
-                    print("NO DATA")
                     break  # Exit if no more data
 
                 # Append data to QByteArray
                 self.byte_array.append(data)
 
-        except:
+        except Exception as e:
+            LOGGER.write(LoggerSettings.LogLevels.error, "StdoutReceiver", f"Error while streaming from stdout in Qt Player: {e}")
             self.stop()
 
         finally:

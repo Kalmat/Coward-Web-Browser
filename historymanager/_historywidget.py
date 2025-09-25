@@ -6,6 +6,7 @@ from PyQt6.QtGui import QPixmap, QAction
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QGridLayout, QPushButton, QCheckBox, QScrollArea, QMenu, \
     QStyle, QApplication
 
+from logger import LOGGER, LoggerSettings
 from settings import DefaultSettings, Settings
 from themes import Themes
 
@@ -216,8 +217,9 @@ class HistoryWidget(QWidget):
     def eraseHistory(self):
         try:
             shutil.rmtree(self.history_manager.historyFolder)
+            LOGGER.write(LoggerSettings.LogLevels.info, "HistoryManager", "History deleted")
         except:
-            pass
+            LOGGER.write(LoggerSettings.LogLevels.warning, "HistoryManager", "History folder not found when trying to delete it")
         for i in range(0, self.content_layout.count()):
             w = self.content_layout.itemAt(i).widget()
             w.deleteLater()

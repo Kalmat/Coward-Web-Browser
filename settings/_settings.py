@@ -3,18 +3,19 @@ import shutil
 
 from PyQt6.QtCore import QSettings, QPoint, QSize
 
+from logger import LOGGER, LoggerSettings
 import utils
 from ._default_settings import DefaultSettings
 
 
 class Settings:
 
-    def __init__(self, parent, settings_folder, settings_file):
+    def __init__(self, parent):
 
         self._settings = QSettings(QSettings.Format.IniFormat,
                                    QSettings.Scope.UserScope,
-                                   settings_folder,
-                                   settings_file
+                                   DefaultSettings.Storage.App.storageFolder,
+                                   DefaultSettings.Storage.Settings.settingsFile
                                    )
 
         self._allowCookies = self._getBool("Security/cookies", True)
@@ -36,8 +37,8 @@ class Settings:
         value = defaultValue
         try:
             value = self._settings.value(key)
-        except:
-            pass
+        except Exception as e:
+            LOGGER.write(LoggerSettings.LogLevels.info, "Settings", f"Invalid settings key: {key}")
         return value
 
     def _getStr(self, key, defaultValue):
@@ -45,7 +46,7 @@ class Settings:
         try:
             value = self._settings.value(key)
         except:
-            pass
+            LOGGER.write(LoggerSettings.LogLevels.info, "Settings", f"Invalid settings key: {key}")
         return str(value or defaultValue)
 
     def _getInt(self, key, defaultValue):
@@ -53,7 +54,7 @@ class Settings:
         try:
             value = self._settings.value(key)
         except:
-            pass
+            LOGGER.write(LoggerSettings.LogLevels.info, "Settings", f"Invalid settings key: {key}")
         return int(value or defaultValue)
 
     def _getBool(self, key, defaultValue):
@@ -61,7 +62,7 @@ class Settings:
         try:
             value = self._settings.value(key)
         except:
-            pass
+            LOGGER.write(LoggerSettings.LogLevels.info, "Settings", f"Invalid settings key: {key}")
         return bool((value or defaultValue) in (True, "true"))
 
     def _getList(self, key, defaultValue):
@@ -69,7 +70,7 @@ class Settings:
         try:
             value = self._settings.value(key)
         except:
-            pass
+            LOGGER.write(LoggerSettings.LogLevels.info, "Settings", f"Invalid settings key: {key}")
         return value or defaultValue
 
     @property
@@ -88,7 +89,7 @@ class Settings:
         try:
             shutil.copyfile(self.settingsPath, self.settingsPath + ".bak")
         except:
-            pass
+            LOGGER.write(LoggerSettings.LogLevels.error, "Settings", f"Backup settings failed")
 
     @property
     def theme(self):

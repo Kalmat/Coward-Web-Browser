@@ -5,14 +5,14 @@ import requests
 from PyQt6.QtCore import QUrl
 from PyQt6.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo
 
+from logger import LOGGER, LoggerSettings
 from settings import DefaultSettings
 try:
     # braveblock is only available in python 3.11 by now
     from braveblock import Adblocker
 except:
-    DefaultSettings.overrideAdBlockerEnabledSetting(False)
-
-from logger import LOGGER
+    DefaultSettings.AdBlocker.enableAdBlocker = False
+    LOGGER.write(LoggerSettings.LogLevels.info, "RequestInterceptor", f"Failed to load braveblock module. Python 3.11 is required to enable this feature")
 
 
 class RequestInterceptor(QWebEngineUrlRequestInterceptor):
@@ -51,7 +51,7 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
                 include_easyprivacy=False
             )
 
-            LOGGER.write(DefaultSettings.Logger.LogLevels.info, "RequestInterceptor",  "Finished initialization")
+            LOGGER.write(LoggerSettings.LogLevels.info, "RequestInterceptor",  "Finished initialization")
 
     def interceptRequest(self, info: QWebEngineUrlRequestInfo):
         url = info.requestUrl().url()
@@ -60,7 +60,7 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
         if not QUrl(url).isValid() or any(blocked in url for blocked in self.blocked_urls):
             # Block the request (redirect to about:blank? How to detect it is not the "main" url???)
             info.block(True)
-            LOGGER.write(DefaultSettings.Logger.LogLevels.info, "RequestInterceptor", f"Black List Blocked: {url}")
+            LOGGER.write(LoggerSettings.LogLevels.info, "RequestInterceptor", f"Black List Blocked: {url}")
 
         # check ad-block rules
         if self.enableAdBlocker:
@@ -70,7 +70,7 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
                 request_type=self.resourceTypes.get(info.resourceType(), ""))
             if should_block:
                 info.block(True)
-                LOGGER.write(DefaultSettings.Logger.LogLevels.info, "RequestInterceptor",  f"AD Blocked: {url}")
+                LOGGER.write(LoggerSettings.LogLevels.info, "RequestInterceptor",  f"AD Blocked: {url}")
 
     def getRequestType(self):
         """
@@ -101,14 +101,14 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
         if response.status_code == 200:
             with open(easylistPath, "wb") as file:
                 file.write(response.content)
-            LOGGER.write(DefaultSettings.Logger.LogLevels.info, "RequestInterceptor", "easylist updated successfully!")
+            LOGGER.write(LoggerSettings.LogLevels.info, "RequestInterceptor", "easylist updated successfully!")
         else:
-            LOGGER.wirte(DefaultSettings.Logger.LogLevels.error, "RequestInterceptor", "easylist failed to download")
+            LOGGER.wirte(LoggerSettings.LogLevels.error, "RequestInterceptor", "easylist failed to download")
 
         response = requests.get(DefaultSettings.AdBlocker.easyprivacyUrl)
         if response.status_code == 200:
             with open(easyPrivacyPath, "wb") as file:
                 file.write(response.content)
-            LOGGER.write(DefaultSettings.Logger.LogLevels.info, "RequestInterceptor", "easyprivacy updated successfully!")
+            LOGGER.write(LoggerSettings.LogLevels.info, "RequestInterceptor", "easyprivacy updated successfully!")
         else:
-            LOGGER.wirte(DefaultSettings.Logger.LogLevels.error, "RequestInterceptor", "easyprivacy failed to download")
+            LOGGER.wirte(LoggerSettings.LogLevels.error, "RequestInterceptor", "easyprivacy failed to download")

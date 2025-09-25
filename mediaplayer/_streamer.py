@@ -8,6 +8,7 @@ import streamlink.exceptions
 from PyQt6.QtCore import QThread, QUrl
 from streamlink import Streamlink
 
+from logger import LOGGER, LoggerSettings
 from settings import DefaultSettings
 
 
@@ -74,18 +75,23 @@ class Streamer(QThread):
             if not stream:
                 errorRaised = True
 
-        except streamlink.NoPluginError:
+        except streamlink.NoPluginError as e:
             errorRaised = True
-        except streamlink.PluginError:
-            errorRaised = True
-            tryLater = True
-        except streamlink.StreamError:
-            errorRaised = True
-        except streamlink.NoStreamsError:
-            errorRaised = True
-        except:
+            LOGGER.write(LoggerSettings.LogLevels.error, "Streamer", f"Error while fetching streaming with streamlink: {e}")
+        except streamlink.PluginError as e:
             errorRaised = True
             tryLater = True
+            LOGGER.write(LoggerSettings.LogLevels.error, "Streamer", f"Error while fetching streaming with streamlink: {e}")
+        except streamlink.StreamError as e:
+            errorRaised = True
+            LOGGER.write(LoggerSettings.LogLevels.error, "Streamer", f"Error while fetching streaming with streamlink: {e}")
+        except streamlink.NoStreamsError as e:
+            errorRaised = True
+            LOGGER.write(LoggerSettings.LogLevels.error, "Streamer", f"Error while fetching streaming with streamlink: {e}")
+        except Exception as e:
+            errorRaised = True
+            tryLater = True
+            LOGGER.write(LoggerSettings.LogLevels.error, "Streamer", f"Error while fetching streaming with streamlink: {e}")
 
         if errorRaised:
             self.handleError(tryLater)
@@ -139,6 +145,7 @@ class Streamer(QThread):
                         self.streamStartedSig.emit(self.url)
 
         except Exception as e:
+            LOGGER.write(LoggerSettings.LogLevels.error, "Streamer", f"Error while streaming to MPV stdin: {e}")
             # avoid to throw an error when mpv is closed by user
             if self.mpv_process is not None and self.mpv_process.poll() is None:
                 self.handleError(True)
@@ -152,33 +159,38 @@ class Streamer(QThread):
         #           2. Avoid files to be overwritten before qmediaplayer reads them
 
         # write to temporary stream file (will be read by QMediaPlayer)
-        with stream.open() as stream_fd:
-            tries_count = 0
-            while not self.stopStreaming:
-                self.temp_file = self.stream_files[self.stream_file_index]
-                with open(self.temp_file, "wb") as f:
-                    while not self.stopStreaming:
-                        data = stream_fd.read(DefaultSettings.Player.chunkSize)
-                        if data:
-                            f.write(data)
-                            f.flush()
-                            tries_count = 0
-                            if os.path.getsize(self.temp_file) >= DefaultSettings.Player.streamTempFileSize:
-                                self.stream_file_index = (self.stream_file_index + 1) % len(self.stream_files)
-                                # optimize disk space wiping the content of non-used file
-                                del_file = self.stream_files[(self.stream_file_index + 1) % len(self.stream_files)]
-                                if os.path.exists(del_file):
-                                    with open(del_file, "wb") as file:
-                                        pass
-                                break
-                        else:
-                            # give some time to retrieve more data before giving up
-                            tries_count += 1
-                            if tries_count > 3:
-                                self.stopStreaming = True
-                                break
+        try:
+            with stream.open() as stream_fd:
+                tries_count = 0
+                while not self.stopStreaming:
+                    self.temp_file = self.stream_files[self.stream_file_index]
+                    with open(self.temp_file, "wb") as f:
+                        while not self.stopStreaming:
+                            data = stream_fd.read(DefaultSettings.Player.chunkSize)
+                            if data:
+                                f.write(data)
+                                f.flush()
+                                tries_count = 0
+                                if os.path.getsize(self.temp_file) >= DefaultSettings.Player.streamTempFileSize:
+                                    self.stream_file_index = (self.stream_file_index + 1) % len(self.stream_files)
+                                    # optimize disk space wiping the content of non-used file
+                                    del_file = self.stream_files[(self.stream_file_index + 1) % len(self.stream_files)]
+                                    if os.path.exists(del_file):
+                                        with open(del_file, "wb") as file:
+                                            pass
+                                    break
                             else:
-                                time.sleep(1)
+                                # give some time to retrieve more data before giving up
+                                tries_count += 1
+                                if tries_count > 3:
+                                    self.stopStreaming = True
+                                    break
+                                else:
+                                    time.sleep(1)
+
+        except Exception as e:
+            LOGGER.write(LoggerSettings.LogLevels.error, "Streamer", f"Error while streaming to Qt player using temp files: {e}")
+            self.handleError(True)
 
     def runQtPlayerFFmpegUdp(self, stream):
 
@@ -214,6 +226,7 @@ class Streamer(QThread):
             )
 
         except Exception as e:
+            LOGGER.write(LoggerSettings.LogLevels.error, "Streamer", f"Error while streaming with ffmpeg to UDP: {e}")
             self.handleError(True)
 
         self.ffmpegStartedSig.emit(self.ffmpeg_process, QUrl(DefaultSettings.Player.ffmpegStreamUrl))
@@ -249,6 +262,7 @@ class Streamer(QThread):
             )
 
         except Exception as e:
+            LOGGER.write(LoggerSettings.LogLevels.error, "Streamer", f"Error while streaming with ffmpeg to Qt stdin: {e}")
             self.handleError(True)
 
         self.ffmpegStartedSig.emit(self.ffmpeg_process, QUrl())
@@ -285,6 +299,7 @@ class Streamer(QThread):
             # self.openPlayerInNewWindowSig.emit()
 
         except Exception as e:
+            LOGGER.write(LoggerSettings.LogLevels.error, "Streamer", f"Error while streaming with ffmpeg to http Server: {e}")
             self.handleError(True)
 
     def _fetchStream(self, streams, qualities):
@@ -297,7 +312,7 @@ class Streamer(QThread):
                 stream = streams[quality]
                 break
         if not stream:
-            print(f"Quality list not available. Available: {list(available_qualities)}")
+            LOGGER.write(LoggerSettings.LogLevels.error, "Streamer", f"Quality list not available. Available: {list(available_qualities)}")
         return stream
 
     def handleError(self, tryLater):

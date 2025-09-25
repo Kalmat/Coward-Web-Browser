@@ -5,7 +5,7 @@ import sys
 from appconfig import Options
 from settings import DefaultSettings
 
-from logger import LOGGER
+from logger import LOGGER, LoggerSettings
 
 
 class CacheManager:
@@ -19,13 +19,17 @@ class CacheManager:
         self.lastCache = ""
         self.deleteCacheRequested = False
 
-        LOGGER.write(DefaultSettings.Logger.LogLevels.info, "CacheManager", "Finished initialization")
+        LOGGER.write(LoggerSettings.LogLevels.info, "CacheManager", "Finished initialization")
 
     def deleteCache(self, last_cache):
         # wipe all cache folders except the last one if requested by user (in a new process or it will be locked)
         lastCacheName = os.path.basename(last_cache)
         cacheFolder = os.path.dirname(last_cache)
         tempCache = os.path.join(os.path.dirname(cacheFolder), lastCacheName)
-        shutil.move(last_cache, tempCache)
-        shutil.rmtree(cacheFolder)
-        shutil.move(tempCache, cacheFolder)
+        try:
+            shutil.move(last_cache, tempCache)
+            shutil.rmtree(cacheFolder)
+            shutil.move(tempCache, cacheFolder)
+        except:
+            LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Cache files not found")
+

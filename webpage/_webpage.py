@@ -1,7 +1,7 @@
 from PyQt6.QtCore import pyqtSignal, pyqtSlot
 from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineCertificateError
 
-from logger import LOGGER
+from logger import LOGGER, LoggerSettings
 from mediaplayer import QtMediaPlayer
 from settings import DefaultSettings
 from mediaplayer._streamer import Streamer
@@ -42,9 +42,9 @@ class WebPage(QWebEnginePage):
 
         # translate JavaScriptConsole errors to Logger errors values:
         self.errorLevel = {
-            QWebEnginePage.JavaScriptConsoleMessageLevel.InfoMessageLevel: DefaultSettings.Logger.LogLevels.info,
-            QWebEnginePage.JavaScriptConsoleMessageLevel.WarningMessageLevel: DefaultSettings.Logger.LogLevels.warning,
-            QWebEnginePage.JavaScriptConsoleMessageLevel.ErrorMessageLevel: DefaultSettings.Logger.LogLevels.error
+            QWebEnginePage.JavaScriptConsoleMessageLevel.InfoMessageLevel: LoggerSettings.LogLevels.info,
+            QWebEnginePage.JavaScriptConsoleMessageLevel.WarningMessageLevel: LoggerSettings.LogLevels.warning,
+            QWebEnginePage.JavaScriptConsoleMessageLevel.ErrorMessageLevel: LoggerSettings.LogLevels.error
         }
 
     # def acceptNavigationRequest(self, url, type, isMainFrame: bool) -> bool:
@@ -97,7 +97,7 @@ class WebPage(QWebEnginePage):
         # YOUTUBE:
         # --> No error
 
-        LOGGER.write(self.errorLevel.get(level, DefaultSettings.Logger.LogLevels.fatal), "JavaScriptConsole", message)
+        LOGGER.write(self.errorLevel.get(level, LoggerSettings.LogLevels.fatal), "JavaScriptConsole", message)
 
         # if level == WebEnginePage.JavaScriptConsoleMessageLevel.ErrorMessageLevel:
         #

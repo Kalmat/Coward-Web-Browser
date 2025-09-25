@@ -7,6 +7,7 @@ from PyQt6.QtWebEngineCore import QWebEngineDownloadRequest
 from PyQt6.QtWidgets import QPushButton, QProgressBar, QLabel, QGridLayout, QWidget, QFileDialog, QVBoxLayout
 
 import utils
+from logger import LOGGER, LoggerSettings
 from settings import DefaultSettings
 
 
@@ -51,7 +52,7 @@ class DownloadManager(QWidget):
         try:
             shutil.rmtree(self.tempFolder)
         except:
-            pass
+            LOGGER.write(LoggerSettings.LogLevels.info, "DownloadManager", "Download temp folder not found")
 
     def addDownload(self, item):
 
@@ -167,7 +168,7 @@ class DownloadManager(QWidget):
                     if item.isSavePageDownload():
                         shutil.move(tempfile.rsplit(".", 1)[0] + "_files", os.path.dirname(location))
                 except:
-                    pass
+                    LOGGER.write(LoggerSettings.LogLevels.error, "DownloadManager", "Temp file not found. Download failed")
 
     def onStateChanged(self, state, dl_id):
 

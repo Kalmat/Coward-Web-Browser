@@ -2,6 +2,7 @@ import os
 
 from PyQt6.QtCore import QSettings
 
+from logger import LOGGER, LoggerSettings
 from settings import DefaultSettings
 
 
@@ -23,7 +24,7 @@ class History:
         try:
             value = self._historyObj.value(key)
         except:
-            pass
+            LOGGER.write(LoggerSettings.LogLevels.warning, "History", f"Wrong value in History: {key}")
         return value or defaultValue
 
     @property
@@ -76,7 +77,9 @@ class History:
 
     def deleteHistoryEntry(self, key):
         try:
+            url = self._historyValues[key]["url"]
             del self._historyValues[key]
+            LOGGER.write(LoggerSettings.LogLevels.info, "History", f"History entry deleted: {url}")
         except:
             pass
 

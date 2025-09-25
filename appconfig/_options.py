@@ -1,6 +1,6 @@
 import sys
 
-from logger import LOGGER
+from logger import LOGGER, LoggerSettings
 from settings import DefaultSettings
 from themes import Themes
 
@@ -53,7 +53,7 @@ class OptionsParser:
             if value:
                 return value
             else:
-                LOGGER.write(DefaultSettings.Logger.LogLevels.info, "OptionsParser", f"Value is not valid for {option} option")
+                LOGGER.write(LoggerSettings.LogLevels.info, "OptionsParser", f"Value is not valid for {option} option")
         return None
 
     def _getBool(self, args, option):
@@ -63,7 +63,7 @@ class OptionsParser:
                 return value
             else:
                 valid_values = "True/true/1 or False/false/0"
-                LOGGER.write(DefaultSettings.Logger.LogLevels.info, "OptionsParser", f"Value for {option} must be in {valid_values}")
+                LOGGER.write(LoggerSettings.LogLevels.info, "OptionsParser", f"Value for {option} must be in {valid_values}")
         return None
 
     def _getSecurityLevel(self, args, option):
@@ -72,8 +72,8 @@ class OptionsParser:
             if value in DefaultSettings.Security.SecurityLevels:
                 return value
             else:
-                valid_values = [(item.value + " / ") for i, item in enumerate(DefaultSettings.Logger.LogLevels) if i < len(DefaultSettings.Logger.LogLevels) - 1]
-                LOGGER.write(DefaultSettings.Logger.LogLevels.info, "OptionsParser", f"Value for {option} must be one of: {valid_values}")
+                valid_values = [(item.value + " / ") for i, item in enumerate(LoggerSettings.LogLevels) if i < len(LoggerSettings.LogLevels) - 1]
+                LOGGER.write(LoggerSettings.LogLevels.info, "OptionsParser", f"Value for {option} must be one of: {valid_values}")
         return None
 
     def _getTheme(self, args, option):
@@ -83,7 +83,7 @@ class OptionsParser:
                 return value
             else:
                 valid_values = [(item.value + " / ") for i, item in enumerate(Themes.Theme) if i < len(Themes.Theme) - 1]
-                LOGGER.write(DefaultSettings.Logger.LogLevels.info, "OptionsParser", f"Value for {option} must be one of: {valid_values}")
+                LOGGER.write(LoggerSettings.LogLevels.info, "OptionsParser", f"Value for {option} must be one of: {valid_values}")
         return None
 
     def _getPlayerType(self, args, option):
@@ -93,7 +93,7 @@ class OptionsParser:
                 return value
             else:
                 valid_values = [(item.value + " / ") for i, item in enumerate(DefaultSettings.Player.PlayerTypes) if i < len(DefaultSettings.Player.PlayerTypes) - 1]
-                LOGGER.write(DefaultSettings.Logger.LogLevels.info, "OptionsParser", f"Value for {option} must be one of: {valid_values}")
+                LOGGER.write(LoggerSettings.LogLevels.info, "OptionsParser", f"Value for {option} must be one of: {valid_values}")
         return None
 
 

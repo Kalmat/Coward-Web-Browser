@@ -16,7 +16,7 @@ from appconfig import Options, OPTIONS
 from cachemanager import CacheManager
 from dialog import DialogsManager
 from downloadmanager import DownloadManager
-from logger import LOGGER
+from logger import LOGGER, LoggerSettings
 from mediaplayer import HttpManager
 from searchwidget import SearchWidget
 from settings import Settings, DefaultSettings
@@ -66,12 +66,12 @@ class MainWindow(QMainWindow):
         # connect all signals
         self.connectSignalSlots()
 
-        LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Finished initialization")
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Finished initialization")
 
     def loadSettings(self, new_win, incognito):
 
         # get settings
-        self.settings = Settings(self, DefaultSettings.Storage.App.storageFolder, DefaultSettings.Storage.Settings.settingsFile)
+        self.settings = Settings(self)
 
         # custom storage for browser profile aimed to persist cookies, cache, etc.
         self.appStorageFolder = self.settings.settingsFolder
@@ -104,7 +104,7 @@ class MainWindow(QMainWindow):
         # set tabbar orientation
         self.h_tabbar = self.settings.isTabBarHorizontal
 
-        LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Settings loaded")
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Settings loaded")
 
     def saveSettings(self, tabs, new_wins):
 
@@ -126,7 +126,7 @@ class MainWindow(QMainWindow):
         self.settings.setPreviousTabs(tabs, True)
         self.settings.setNewWindows(new_wins, True)
 
-        LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Settings saved")
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Settings saved")
 
     def configureMainWindow(self):
 
@@ -145,7 +145,7 @@ class MainWindow(QMainWindow):
         # set initial position and size
         self.setGeometry(appconfig.appGeometry(self, self.settings.position, self.settings.size, self.settings.isCustomTitleBar, self.isNewWin))
 
-        LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Main Window configured")
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Main Window configured")
 
     def commonSetup(self):
 
@@ -213,7 +213,7 @@ class MainWindow(QMainWindow):
         self.web_ico = QIcon(DefaultSettings.Icons.loading)
         self.web_ico_rotated = QIcon(QPixmap(DefaultSettings.Icons.loading).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
 
-        LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Pre-initialization finished")
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Pre-initialization finished")
 
     def setupUI(self):
 
@@ -233,7 +233,7 @@ class MainWindow(QMainWindow):
         # connect all UI slots to handle requested actions
         self.connectUiSlots()
 
-        LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "UI configured")
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", "UI configured")
 
     def applyStyles(self):
 
@@ -265,7 +265,7 @@ class MainWindow(QMainWindow):
         self.ui.tabsContextMenu.setStyleSheet(Themes.styleSheet(theme, Themes.Section.contextmenu))
         self.ui.newTabContextMenu.setStyleSheet(Themes.styleSheet(theme, Themes.Section.contextmenu))
 
-        LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Styles applied")
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Styles applied")
 
     def connectUiSlots(self):
 
@@ -303,7 +303,7 @@ class MainWindow(QMainWindow):
         self.ui.tabs.customContextMenuRequested.connect(self.showContextMenu)
         self.ui.newWindow_action.triggered.connect(self.show_in_new_window)
 
-        LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "UI signals connected")
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", "UI signals connected")
 
     def connectSignalSlots(self):
 
@@ -320,7 +320,7 @@ class MainWindow(QMainWindow):
         # signal to load page when clicked in history
         self.loadHistoryUrlSig.connect(self.add_new_tab)
 
-        LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Signals connected")
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Signals connected")
 
     def show(self):
         super().show()
@@ -349,7 +349,7 @@ class MainWindow(QMainWindow):
             painter.end()
             self.setMask(b)
 
-            LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Show")
+            LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Show")
 
     def createTabs(self, init_tabs):
 
@@ -392,7 +392,7 @@ class MainWindow(QMainWindow):
         for new_tabs in new_wins:
             self.show_in_new_window(new_tabs)
 
-        LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Tabs created")
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Tabs created")
 
     def add_tab(self, qurl, zoom=1.0, label="Loading...", tabIndex=None):
 
@@ -1249,15 +1249,16 @@ class MainWindow(QMainWindow):
         exitApp = False
         if OPTIONS.deleteCache:
             self.cache_manager.deleteCache(OPTIONS.lastCache)
-            LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Previous cache deleted")
+            LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Previous cache deleted")
             exitApp = True
         if OPTIONS.deletePlayerTemp:
             if os.path.exists(DefaultSettings.App.tempFolder):
                 try:
                     shutil.rmtree(DefaultSettings.App.tempFolder)
                 except:
+                    LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Temp folder not found")
                     pass
-            LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Previous temp files deleted")
+            LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Previous temp files deleted")
             exitApp = True
         if exitApp:
             QApplication.quit()
@@ -1331,7 +1332,7 @@ class MainWindow(QMainWindow):
             args += [appconfig.Options.deletePlayerTemp]
 
         if args:
-            LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Restart application to delete cache and/or temp files")
+            LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Restart application to delete cache and/or temp files")
             status = QProcess.startDetached(sys.executable, sys.argv + args)
 
 
