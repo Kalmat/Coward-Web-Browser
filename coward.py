@@ -787,7 +787,7 @@ class MainWindow(QMainWindow):
         self.ui.tabs.setTabsClosable(self.h_tabbar)
 
         # reorganize tabs
-        for i in range(1, self.ui.tabs.count() - 1):
+        for i in range(1, self.ui.tabs.count() - 2):
             icon = self.ui.tabs.widget(i).page().icon()
             if not icon.availableSizes():
                 icon = self.web_ico if self.h_tabbar else self.web_ico_rotated
@@ -1262,7 +1262,7 @@ class MainWindow(QMainWindow):
 
         # save open tabs and close external players
         tabs = []
-        for i in range(1, self.ui.tabs.count() - 1):
+        for i in range(1, self.ui.tabs.count() - 2):
             browser = self.ui.tabs.widget(i)
             page = browser.page()
             page.closeExternalPlayer(False, page.url().toString())
@@ -1278,7 +1278,7 @@ class MainWindow(QMainWindow):
 
                 # saving open tabs for each instance and closing external players
                 new_tabs = []
-                for i in range(1, w.ui.tabs.count() - 1):
+                for i in range(1, w.ui.tabs.count() - 2):
                     browser = w.ui.tabs.widget(i)
                     page = browser.page()
                     page.closeExternalPlayer(False)
