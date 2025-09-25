@@ -62,5 +62,3 @@ def preInitializeApp(options):
 
     overrideDefaultSettings(options)
 
-
-

@@ -39,7 +39,7 @@ class Logger:
         self.checkFiles(self.logFolder, self.logDepth)
 
     def write(self, error_level, origin, message, force=False):
-        msg = str(error_level) + time.strftime(" %Y%m%d-%H%M%S ") + origin + " --- " + message
+        msg = error_level.value + time.strftime(" %Y%m%d-%H%M%S ") + origin + " --- " + message
         if self.debugEnabled or force:
             if self.loggingEnabled:
                 with open(self.logFile, 'a') as file:
