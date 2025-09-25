@@ -1,10 +1,15 @@
+from enum import Enum
+
 import utils
 
+
 class Themes:
-    
-    # themes
-    dark = "Dark"
-    incognito = "Incognito"
+
+    class Theme(Enum):
+
+        # themes
+        dark = "Dark"
+        incognito = "Incognito"
 
     # styles within themes
     class Section:
@@ -51,6 +56,7 @@ class Themes:
 
     @staticmethod
     def styleSheet(theme, section):
+        theme: Themes.Theme = theme
         styleSheet = Themes._themes[theme][section]
         with open(utils.resource_path("qss/" + styleSheet)) as f:
             style = f.read()

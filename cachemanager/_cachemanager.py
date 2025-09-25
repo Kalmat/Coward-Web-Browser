@@ -21,14 +21,6 @@ class CacheManager:
 
         LOGGER.write(DefaultSettings.Logger.LogLevels.info, "CacheManager", "Finished initialization")
 
-    def checkDeleteCache(self, args=None):
-        last_cache = ""
-        for i, item in enumerate(args or sys.argv[1:]):
-            if item == Options.DeleteCache:
-                last_cache = sys.argv[i + 1]
-                break
-        return last_cache
-
     def deleteCache(self, last_cache):
         # wipe all cache folders except the last one if requested by user (in a new process or it will be locked)
         lastCacheName = os.path.basename(last_cache)

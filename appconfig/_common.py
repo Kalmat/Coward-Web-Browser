@@ -50,17 +50,6 @@ def exception_hook(exctype, value, tb):
     sys.exit(1)
 
 
-def setupDebug(args):
-
-    # enable debug, including Chromium debug info
-    if Options.enableDebug in args:
-        DefaultSettings.overrideDebugEnabledSetting(True)
-        # is this necessary or are these messages also caught by JavaScriptConsoleMessages()?
-        # utils.enableChromiumDebug()
-    if Options.enableLogging in args:
-        DefaultSettings.overrideLoggingEnabledSetting(True)
-
-
 def enableChromiumDebug():
     # this must be set before creating QWebEngineView objects
     flags = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "")

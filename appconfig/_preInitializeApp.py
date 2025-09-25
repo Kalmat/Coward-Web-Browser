@@ -3,19 +3,44 @@ import sys
 
 import utils
 from settings import DefaultSettings
-from ._common import (setDPIAwareness, setSystemDPISettings, setApplicationDPISettings, setupDebug, force_icon,
+from ._common import (setDPIAwareness, setSystemDPISettings, setApplicationDPISettings, force_icon,
                       exception_hook, set_widevine_var, set_multimedia_preferred_plugins)
+from ._options import OptionsParser
 
 
-def preInitializeApp(args):
+def preInitializeApp(options):
 
-    # setup debug and logging according to args passed
-    setupDebug(args)
+    def overrideDefaultSettings(options: OptionsParser):
+
+        # enable / disable debug, including Chromium debug info
+        if options.enableDebug is not None:
+            DefaultSettings.Logger.debugEnabled = options.enableDebug
+            # is this necessary or are these messages also caught by JavaScriptConsoleMessages()?
+            # utils.enableChromiumDebug()
+
+        # enable / disable logging to file
+        if options.enableLogging is not None:
+            DefaultSettings.Logger.loggingEnabled = options.enableLogging
+
+        # enable / disable ad blocker
+        if options.enableAdblocker is not None:
+            DefaultSettings.AdBlocker.enableAdBlocker = options.enableAdblocker
+
+        # select security level
+        if options.securityLevel is not None:
+            DefaultSettings.Security.securityLevel = options.securityLevel
+
+        if options.theme is not None:
+            DefaultSettings.Theme.defaultTheme = options.theme
+
+        if options.externalPlayerType is not None:
+            DefaultSettings.Player.externalPlayerType = options.externalPlayerType
 
     # Qt6 is DPI-Aware, so all this is not likely required
-    # setDPIAwareness()
-    # setSystemDPISettings()
-    # setApplicationDPISettings()
+    if options.enableDPI:
+        setDPIAwareness()
+        setSystemDPISettings()
+        setApplicationDPISettings()
 
     # try to load widevine if available
     set_widevine_var(os.path.join("externalplayer", "widevine", "widevinecdm.dll"))
@@ -34,3 +59,8 @@ def preInitializeApp(args):
         # This will allow to show some tracebacks (not all, anyway)
         sys._excepthook = sys.excepthook
         sys.excepthook = exception_hook
+
+    overrideDefaultSettings(options)
+
+
+

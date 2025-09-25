@@ -32,6 +32,14 @@ class Settings:
         self._previousTabs = self._getList("Session/tabs", DefaultSettings.Browser.defaultTabs)
         self._newwindows = self._getList("Session/new_wins", [])
 
+    def _getValue(self, key, defaultValue):
+        value = defaultValue
+        try:
+            value = self._settings.value(key)
+        except:
+            pass
+        return value
+
     def _getStr(self, key, defaultValue):
         value = defaultValue
         try:

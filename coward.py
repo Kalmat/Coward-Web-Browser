@@ -12,7 +12,7 @@ from PyQt6.QtWebEngineWidgets import *
 from PyQt6.QtWidgets import *
 
 import appconfig
-from appconfig import Options
+from appconfig import Options, OPTIONS
 from cachemanager import CacheManager
 from dialog import DialogsManager
 from downloadmanager import DownloadManager
@@ -82,7 +82,7 @@ class MainWindow(QMainWindow):
         # Enable/Disable cookies and prepare incognito environment
         if new_win and incognito is not None:
             self.cookies = True
-            self.isIncognito = incognito
+            self.isIncognito = OPTIONS.incognitoMode if OPTIONS.incognitoMode is not None else incognito
         else:
             self.cookies = self.settings.allowCookies
             self.isIncognito = False
@@ -433,7 +433,7 @@ class MainWindow(QMainWindow):
         browser.setPage(page)
 
         # most settings must be applied AFTER setting page and profile
-        # browser.applySettings(DefaultSettings.Security.securityLevel, self.dark_mode)
+        browser.applySettings(DefaultSettings.Security.securityLevel, self.dark_mode)
 
         # setting url to browser. Using a timer (thread) it seems to load faster
         QTimer.singleShot(0, lambda u=qurl: browser.load(u))
@@ -1247,12 +1247,11 @@ class MainWindow(QMainWindow):
 
     def deletePreviousCacheAndTemp(self):
         exitApp = False
-        last_cache = self.cache_manager.checkDeleteCache(sys.argv)
-        if last_cache:
-            self.cache_manager.deleteCache(last_cache)
+        if OPTIONS.deleteCache:
+            self.cache_manager.deleteCache(OPTIONS.lastCache)
             LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Previous cache deleted")
             exitApp = True
-        if Options.DeletePlayerTemp in sys.argv:
+        if OPTIONS.deletePlayerTemp:
             if os.path.exists(DefaultSettings.App.tempFolder):
                 try:
                     shutil.rmtree(DefaultSettings.App.tempFolder)
@@ -1326,10 +1325,10 @@ class MainWindow(QMainWindow):
         args = []
         if self.cache_manager.deleteCacheRequested and not self.isNewWin and not self.isIncognito:
             # restart app to wipe all cache folders but the last one (not possible while running since it's locked)
-            args += [appconfig.Options.DeleteCache] + [self.cache_manager.lastCache]
+            args += [appconfig.Options.deleteCache] + [self.cache_manager.lastCache]
 
         if os.path.exists(DefaultSettings.App.tempFolder):
-            args += [appconfig.Options.DeletePlayerTemp]
+            args += [appconfig.Options.deletePlayerTemp]
 
         if args:
             LOGGER.write(DefaultSettings.Logger.LogLevels.info, "Main", "Restart application to delete cache and/or temp files")
@@ -1338,7 +1337,7 @@ class MainWindow(QMainWindow):
 
 def main():
 
-    appconfig.preInitializeApp(sys.argv)
+    appconfig.preInitializeApp(OPTIONS)
 
     # creating a PyQt5 application and (windows only) force dark mode
     app = QApplication(sys.argv + ['-platform', 'windows:darkmode=1'])

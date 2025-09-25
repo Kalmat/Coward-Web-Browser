@@ -1,3 +1,4 @@
+from enum import Enum
 import os
 
 from PyQt6.QtWebEngineCore import qWebEngineChromiumVersion, QWebEngineProfile, QWebEnginePage
@@ -21,8 +22,8 @@ class DefaultSettings:
         gripSize = 8
 
     class Theme:
-        defaultTheme = Themes.dark
-        deafultIncognitoTheme = Themes.incognito
+        defaultTheme = Themes.Theme.dark.value
+        deafultIncognitoTheme = Themes.Theme.incognito.value
 
     class Icons:
         appIcon = utils.resource_path("res/coward.png")
@@ -61,7 +62,7 @@ class DefaultSettings:
 
     class Security:
 
-        class SecurityLevels:
+        class SecurityLevels(Enum):
             mad = 0
             relaxed = 1
             safe = 2
@@ -86,7 +87,7 @@ class DefaultSettings:
 
     class Player:
 
-        class PlayerTypes:
+        class PlayerTypes(Enum):
             mpv = "mpv"          # strongly recommended, but requires mpv.exe in ./externalplayer/mpv/ folder
             http = "http"        # Not working with QWebEngine. Requires ffmpeg in ./externalplayer/ffmpeg/ folder
             qt = "qt"            # experimental. Buffering is not very well resolved
@@ -111,7 +112,7 @@ class DefaultSettings:
 
     class Logger:
 
-        class LogLevels:
+        class LogLevels(Enum):
             info = "[INFO]"
             warning = "[WARN]"
             error = "[ERROR]"
@@ -164,11 +165,11 @@ class DefaultSettings:
         QWebEnginePage.Feature.LocalFontsAccess: "access local fonts"
     }
 
-    def overrideDebugEnabledSetting(self, value):
-        self.Logger.debugEnabled = value
 
-    def overrideLoggingEnabledSetting(self, value):
-        self.Logger.loggingEnabled = value
 
-    def overrideAdBlockerEnabledSetting(self, value):
-        self.AdBlocker.enableAdBlocker = value
+
+
+
+
+
+

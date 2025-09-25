@@ -30,12 +30,12 @@ class WebView(QWebEngineView):
         # These values are enabled / disabled by default, but better set them in case it changes in the future
 
         # values for "mad" security level
-        allow = security_level == DefaultSettings.Security.SecurityLevels.mad
+        allow = security_level.value == DefaultSettings.Security.SecurityLevels.mad.value
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.AllowRunningInsecureContent, allow)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.AllowGeolocationOnInsecureOrigins, allow)
 
         # values for "relaxed" security level
-        allow = security_level <= DefaultSettings.Security.SecurityLevels.relaxed
+        allow = security_level.value <= DefaultSettings.Security.SecurityLevels.relaxed.value
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanAccessClipboard, allow)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptCanPaste, allow)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.AllowWindowActivationFromJavaScript, allow)
@@ -43,7 +43,7 @@ class WebView(QWebEngineView):
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, allow)
 
         # values for "safe" security level
-        allow = security_level <= DefaultSettings.Security.SecurityLevels.safe
+        allow = security_level.value <= DefaultSettings.Security.SecurityLevels.safe.value
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, allow)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.PluginsEnabled, allow)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.PdfViewerEnabled, allow)
