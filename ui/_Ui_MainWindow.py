@@ -1,10 +1,10 @@
 from PyQt6.QtCore import Qt, QCoreApplication, QSize, QPoint
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QToolButton, QLabel, QSizePolicy, QMenu, QStyle, QTabWidget
+from tabwidget import TabWidget
 
-from TabWidget import TabWidget
-from lineedit import LineEdit
 from hoverwidget import HoverWidget
+from lineedit import LineEdit
 from settings import DefaultSettings
 from sidegrips import AppSideGrips
 from tabbar import TabBar

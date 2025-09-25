@@ -3,7 +3,6 @@ from queue import Queue
 from PyQt6 import sip
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer, pyqtSlot, QSize
 from PyQt6.QtGui import QIcon, QPixmap
-from PyQt6.QtWebEngineCore import QWebEnginePage
 from PyQt6.QtWidgets import QDialogButtonBox
 
 import utils

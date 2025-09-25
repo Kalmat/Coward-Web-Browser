@@ -2,12 +2,12 @@ import os
 import subprocess
 import time
 
-from PyQt6.QtNetwork import QUdpSocket, QHostAddress
-from PyQt6.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QSlider, QGraphicsScene, QGraphicsView
+from PyQt6.QtCore import Qt, QUrl, QTimer, pyqtSignal, QByteArray, QThread, QBuffer, QIODevice, pyqtSlot
 from PyQt6.QtGui import QIcon
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
-from PyQt6.QtCore import Qt, QUrl, QTimer, pyqtSignal, QByteArray, QThread, QBuffer, QIODevice, pyqtSlot
 from PyQt6.QtMultimediaWidgets import QGraphicsVideoItem
+from PyQt6.QtNetwork import QUdpSocket, QHostAddress
+from PyQt6.QtWidgets import QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QSlider, QGraphicsScene, QGraphicsView
 
 from logger import LOGGER, LoggerSettings
 from settings import DefaultSettings

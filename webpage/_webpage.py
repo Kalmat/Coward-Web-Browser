@@ -3,8 +3,8 @@ from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineCertificateError
 
 from logger import LOGGER, LoggerSettings
 from mediaplayer import QtMediaPlayer
-from settings import DefaultSettings
 from mediaplayer._streamer import Streamer
+from settings import DefaultSettings
 
 
 class WebPage(QWebEnginePage):

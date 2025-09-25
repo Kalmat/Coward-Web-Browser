@@ -12,18 +12,18 @@ from PyQt6.QtWebEngineWidgets import *
 from PyQt6.QtWidgets import *
 
 import appconfig
-from appconfig import Options, OPTIONS
+import utils
+from appconfig import OPTIONS
 from cachemanager import CacheManager
 from dialog import DialogsManager
 from downloadmanager import DownloadManager
+from historymanager import History, HistoryWidget
 from logger import LOGGER, LoggerSettings
 from mediaplayer import HttpManager
 from searchwidget import SearchWidget
 from settings import Settings, DefaultSettings
-from historymanager import History, HistoryWidget
 from themes import Themes
 from ui import Ui_MainWindow
-import utils
 from webpage import WebPage
 from webprofile import WebProfile, RequestInterceptor
 from webview import WebView

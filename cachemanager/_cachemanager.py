@@ -1,11 +1,8 @@
 import os
 import shutil
-import sys
-
-from appconfig import Options
-from settings import DefaultSettings
 
 from logger import LOGGER, LoggerSettings
+from settings import DefaultSettings
 
 
 class CacheManager:

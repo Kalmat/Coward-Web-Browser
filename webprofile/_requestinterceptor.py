@@ -7,6 +7,7 @@ from PyQt6.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineUrl
 
 from logger import LOGGER, LoggerSettings
 from settings import DefaultSettings
+
 try:
     # braveblock is only available in python 3.11 by now
     from braveblock import Adblocker

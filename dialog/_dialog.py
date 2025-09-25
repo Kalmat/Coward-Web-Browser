@@ -1,7 +1,7 @@
 from PyQt6.QtCore import QPoint, Qt, QUrl
 from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtMultimedia import QSoundEffect
-from PyQt6.QtWidgets import QDialog, QWidget, QLabel, QDialogButtonBox, QVBoxLayout, QHBoxLayout, QGridLayout
+from PyQt6.QtWidgets import QDialog, QWidget, QLabel, QDialogButtonBox, QHBoxLayout, QGridLayout
 
 import utils
 from settings import DefaultSettings

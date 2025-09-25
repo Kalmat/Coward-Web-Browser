@@ -3,6 +3,7 @@ import time
 
 from ._logger_settings import LoggerSettings
 
+
 class LoggerManager:
 
     def __init__(self):

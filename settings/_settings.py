@@ -3,8 +3,8 @@ import shutil
 
 from PyQt6.QtCore import QSettings, QPoint, QSize
 
-from logger import LOGGER, LoggerSettings
 import utils
+from logger import LOGGER, LoggerSettings
 from ._default_settings import DefaultSettings
 
 

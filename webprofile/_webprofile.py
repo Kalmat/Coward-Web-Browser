@@ -1,6 +1,7 @@
 import os
 
 from PyQt6.QtWebEngineCore import QWebEngineProfile
+
 from settings import DefaultSettings
 
 

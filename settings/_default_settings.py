@@ -1,5 +1,5 @@
-from enum import Enum
 import os
+from enum import Enum
 
 from PyQt6.QtWebEngineCore import qWebEngineChromiumVersion, QWebEngineProfile, QWebEnginePage
 

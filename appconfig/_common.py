@@ -5,9 +5,7 @@ import traceback
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QStyleFactory, QApplication
 
-from appconfig import Options
 import utils
-from settings import DefaultSettings
 
 
 def setDPIAwareness():
