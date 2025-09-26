@@ -1221,21 +1221,18 @@ class MainWindow(QMainWindow):
         self.moveOtherWidgets()
 
     def deletePreviousCacheAndTemp(self):
-        exitApp = False
         if OPTIONS.deleteCache:
             self.cache_manager.deleteCache(OPTIONS.lastCache)
             LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Previous cache deleted")
-            exitApp = True
         if OPTIONS.deletePlayerTemp:
             if os.path.exists(DefaultSettings.App.tempFolder):
                 try:
                     shutil.rmtree(DefaultSettings.App.tempFolder)
                 except:
                     LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Temp folder not found")
-                    pass
             LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Previous temp files deleted")
-            exitApp = True
-        if exitApp:
+        if OPTIONS.deleteCache or OPTIONS.deletePlayerTemp:
+            # relaunched only to delete cache and / or temp files. Exiting...
             QApplication.quit()
             sys.exit(0)
 

@@ -22,10 +22,14 @@ def fixDarkImage(pixmap):
             return None
 
     def is_dark(array, thrshld=64):
-        # Create a boolean mask for pixels where the alpha channel is 255 (fully transparent)
-        transparent_mask = array[:, :, 3] == 255
-        # Use the mask to select only the non-transparent pixels
-        non_transparent_pixels = array[transparent_mask][:, :3]
+        try:
+            # Create a boolean mask for pixels where the alpha channel is 255 (fully transparent)
+            transparent_mask = array[:, :, 3] == 255
+            # Use the mask to select only the non-transparent pixels
+            non_transparent_pixels = array[transparent_mask][:, :3]
+        except:
+            # some icons will not have any alpha channel, then take the original image
+            non_transparent_pixels = array
         return np.mean(non_transparent_pixels) <= thrshld
 
     def changeImageBackground(array):
