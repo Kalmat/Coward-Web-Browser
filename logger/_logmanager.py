@@ -33,7 +33,7 @@ class LoggerManager:
 
             date = time.strftime("%Y%m%d-%H%M%S")
             self.logFile = os.path.join(self.logFolder, f"log-{date}")
-            with open(self.logFile, "w"):
+            with open(self.logFile, "w", encoding="utf-8"):
                 pass
 
     def setLogDepth(self, logDepth):
@@ -44,7 +44,7 @@ class LoggerManager:
         msg = error_level.value + time.strftime(" %Y%m%d-%H%M%S ") + origin + " --- " + message
         if self.debugEnabled or force:
             if self.loggingEnabled:
-                with open(self.logFile, 'a') as file:
+                with open(self.logFile, 'a', encoding="utf-8") as file:
                     file.write(msg + "\n")
             else:
                 print(msg)
@@ -56,8 +56,8 @@ class LoggerManager:
             logFiles.sort(reverse=True)
 
             if len(logFiles) > logDepth >= 0:
-                for i in range(logDepth, len(logFiles)):
+                for file in logFiles[logDepth:]:
                     try:
-                        os.remove(os.path.join(logFolder, logFiles[i]))
+                        os.remove(os.path.join(logFolder, file))
                     except:
                         pass
