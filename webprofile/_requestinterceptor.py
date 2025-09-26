@@ -40,19 +40,25 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
                 self.updateRules(self.easylistPath, self.easyprivacyPath)
 
             # Load EasyList rules (download easylist.txt beforehand)
-            with open(self.easylistPath, "r", encoding="utf-8") as f:
-                easylist = f.readlines()
-            with open(self.easyprivacyPath, "r", encoding="utf-8") as f:
-                easyprivacy = f.readlines()
+            easylistrules = []
+            easyprivacyrules = []
+            easylistUpdated = easyprivacyUpdated = False
+            if os.path.exists(self.easylistPath):
+                with open(self.easylistPath, "r", encoding="utf-8") as f:
+                    easylistrules = f.readlines()
+                    easylistUpdated = True
+            if os.path.exists(self.easyprivacyPath):
+                with open(self.easyprivacyPath, "r", encoding="utf-8") as f:
+                    easyprivacyrules = f.readlines()
+                    easyprivacyUpdated = True
 
-            # Create Adblocker instance (using our own downloaded rules files)
+            # Create Adblocker instance (prioritizing our own downloaded, and updated, rules files)
             self.adblocker = Adblocker(
-                rules=list(set(easylist + easyprivacy)),
-                include_easylist=False,
-                include_easyprivacy=False
+                rules=list(set(easylistrules + easyprivacyrules)),
+                include_easylist=not easylistUpdated,
+                include_easyprivacy=not easyprivacyUpdated
             )
-
-            LOGGER.write(LoggerSettings.LogLevels.info, "RequestInterceptor",  "Finished initialization")
+            LOGGER.write(LoggerSettings.LogLevels.info, "RequestInterceptor",  "Finished initialization " + ("with obsolete rules" if not easylistUpdated and not easyprivacyUpdated else ""))
 
     def interceptRequest(self, info: QWebEngineUrlRequestInfo):
         url = info.requestUrl().url()
@@ -98,18 +104,24 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
 
     def updateRules(self, easylistPath, easyPrivacyPath):
 
-        response = requests.get(DefaultSettings.AdBlocker.easylistUrl)
-        if response.status_code == 200:
-            with open(easylistPath, "wb") as file:
-                file.write(response.content)
-            LOGGER.write(LoggerSettings.LogLevels.info, "RequestInterceptor", "easylist updated successfully!")
-        else:
-            LOGGER.wirte(LoggerSettings.LogLevels.error, "RequestInterceptor", "easylist failed to download")
+        try:
+            response = requests.get(DefaultSettings.AdBlocker.easylistUrl)
+            if response.status_code == 200:
+                with open(easylistPath, "wb") as file:
+                    file.write(response.content)
+                LOGGER.write(LoggerSettings.LogLevels.info, "RequestInterceptor", "easylist updated successfully!")
+            else:
+                LOGGER.write(LoggerSettings.LogLevels.error, "RequestInterceptor", "easylist failed to download")
+        except:
+            LOGGER.write(LoggerSettings.LogLevels.error, "RequestInterceptor", "easylist failed to download")
 
-        response = requests.get(DefaultSettings.AdBlocker.easyprivacyUrl)
-        if response.status_code == 200:
-            with open(easyPrivacyPath, "wb") as file:
-                file.write(response.content)
-            LOGGER.write(LoggerSettings.LogLevels.info, "RequestInterceptor", "easyprivacy updated successfully!")
-        else:
-            LOGGER.wirte(LoggerSettings.LogLevels.error, "RequestInterceptor", "easyprivacy failed to download")
+        try:
+            response = requests.get(DefaultSettings.AdBlocker.easyprivacyUrl)
+            if response.status_code == 200:
+                with open(easyPrivacyPath, "wb") as file:
+                    file.write(response.content)
+                LOGGER.write(LoggerSettings.LogLevels.info, "RequestInterceptor", "easyprivacy updated successfully!")
+            else:
+                LOGGER.write(LoggerSettings.LogLevels.error, "RequestInterceptor", "easyprivacy failed to download")
+        except:
+            LOGGER.write(LoggerSettings.LogLevels.error, "RequestInterceptor", "easyprivacy failed to download")

@@ -94,6 +94,7 @@ class MainWindow(QMainWindow):
         # since most "icons" are actually characters, we should also adjust fonts or stick to values between 24 and 32
         self.icon_size = int(max(24, min(32, self.settings.iconSize)))
         self.action_size = self.settings.iconSize + max(16, self.settings.iconSize // 2)
+        self.h_tab_size = self.icon_size + 8
         self.small_action_size = self.action_size - 16
 
         # set auto-hide
@@ -250,7 +251,7 @@ class MainWindow(QMainWindow):
         # tab bar styles
         self.h_tab_style = Themes.styleSheet(theme, Themes.Section.horizontalTabs)
         # inject variable parameters: tab separator image (to make it shorter), min-width and height
-        self.h_tab_style = self.h_tab_style % (DefaultSettings.Icons.tabSeparator, self.action_size, self.action_size)
+        self.h_tab_style = self.h_tab_style % (DefaultSettings.Icons.tabSeparator, self.h_tab_size, self.h_tab_size)
         self.v_tab_style = Themes.styleSheet(theme, Themes.Section.verticalTabs)
         # inject variable parameters: fixed width and height
         self.v_tab_style = self.v_tab_style % (self.action_size, self.action_size)
