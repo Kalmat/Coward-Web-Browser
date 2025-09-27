@@ -520,7 +520,7 @@ class MainWindow(QMainWindow):
         page.desktopMediaRequested.connect(lambda request, p=page: print("MEDIA REQUESTED", request))
 
         # adding action to the browser when title or icon change
-        page.titleChanged.connect(lambda title, b=page.parent(): self.title_changed(title, b, False))
+        page.titleChanged.connect(lambda title, b=page.parent(): self.title_changed(title, b))
         page.iconChanged.connect(lambda icon, b=page.parent(): self.icon_changed(icon, b))
 
         # manage file downloads (including pages and files)
@@ -554,21 +554,12 @@ class MainWindow(QMainWindow):
                 self.showNormal()
                 self.moveOtherWidgets()
 
-    def title_changed(self, title, browser, internalCall=False):
+    def title_changed(self, title, browser):
 
         tabIndex = self.ui.tabs.indexOf(browser)
 
         self.ui.tabs.tabBar().setTabText(tabIndex, (title + " " * 30)[:29] if self.h_tabbar else "")
         self.ui.tabs.setTabToolTip(tabIndex, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
-
-        if not internalCall and self.settings.enableHistory and self.history_manager is not None:
-            full_filename = self._getIconFileName(browser.url().toString())
-            item = [str(time.time()), title, self.ui.tabs.widget(tabIndex).url().toString(), full_filename]
-            added = self.history_manager.addHistoryEntry(item)
-            if added:
-                self.history_widget.addHistoryEntry(item, browser.__str__())
-            else:
-                self.history_widget.updateHistoryEntry(item)
 
     def icon_changed(self, icon, browser):
 
@@ -585,10 +576,15 @@ class MainWindow(QMainWindow):
 
         if self.settings.enableHistory:
             full_filename = self._getIconFileName(browser.url().toString())
-            if not os.path.exists(full_filename):
-                (pixmap.scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-                       .save(full_filename, "PNG"))
-            self.history_widget.updateEntryIcon(full_filename, browser.__str__())
+            item = [str(time.time()), browser.page().title(), self.ui.tabs.widget(tabIndex).url().toString(), full_filename]
+            added = self.history_manager.addHistoryEntry(item)
+            if added:
+                if not os.path.exists(full_filename):
+                    (pixmap.scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                           .save(full_filename, "PNG"))
+                self.history_widget.addHistoryEntry(item, browser.__str__())
+            else:
+                self.history_widget.updateHistoryEntry(item)
 
     def _getIconFileName(self, url):
         hash_object = hashlib.sha256(url.encode())
@@ -797,7 +793,7 @@ class MainWindow(QMainWindow):
                 icon = self.web_ico if self.h_tabbar else self.web_ico_rotated
             if self.h_tabbar:
                 new_icon = icon
-                self.title_changed(self.ui.tabs.widget(i).page().title(), self.ui.tabs.widget(i), True)
+                self.title_changed(self.ui.tabs.widget(i).page().title(), self.ui.tabs.widget(i))
                 self.ui.tabs.tabBar().tabButton(i, QTabBar.ButtonPosition.RightSide).clicked.connect(lambda checked, b=self.ui.tabs.widget(i): self.tab_closed(b))
             else:
                 new_icon = QIcon(icon.pixmap(QSize(self.icon_size, self.icon_size)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
