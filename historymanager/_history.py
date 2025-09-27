@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from PyQt6.QtCore import QSettings
 
@@ -84,6 +85,14 @@ class History:
             LOGGER.write(LoggerSettings.LogLevels.info, "History", f"History entry deleted: {url}")
         except:
             pass
+
+    def deleteAllHistory(self):
+        try:
+            shutil.rmtree(self.historyFolder)
+            self._historyValues = {}
+            LOGGER.write(LoggerSettings.LogLevels.info, "HistoryManager", "History deleted")
+        except:
+            LOGGER.write(LoggerSettings.LogLevels.warning, "HistoryManager", "History folder not found when trying to delete it")
 
     def saveHistory(self):
         self._historyObj.setValue("History/history", self._historyValues)

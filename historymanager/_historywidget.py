@@ -178,7 +178,6 @@ class HistoryWidget(QWidget):
 
     def updateEntryIcon(self, icon):
         entryIcon = self.pendingIcons.get(icon, None)
-        print("UPDATE", entryIcon, icon)
         if entryIcon is not None:
             entryIcon.setPixmap(QPixmap(icon))
             entryIcon.update()
@@ -214,13 +213,9 @@ class HistoryWidget(QWidget):
             acceptedSlot=self.eraseHistorySig
         )
 
-    @pyqtSlot()
     def eraseHistory(self):
-        try:
-            shutil.rmtree(self.history_manager.historyFolder)
-            LOGGER.write(LoggerSettings.LogLevels.info, "HistoryManager", "History deleted")
-        except:
-            LOGGER.write(LoggerSettings.LogLevels.warning, "HistoryManager", "History folder not found when trying to delete it")
+        self.history_manager.deleteAllHistory()
+        self.pendingIcons = {}
         for i in range(0, self.content_layout.count()):
             w = self.content_layout.itemAt(i).widget()
             w.deleteLater()
