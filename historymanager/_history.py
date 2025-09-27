@@ -18,6 +18,8 @@ class History:
 
         self._historyValues = self._getDict("History/history", {})
         self.filterHistory()
+        if not os.path.exists(self.historyFolder):
+            os.makedirs(self.historyFolder)
 
     def _getDict(self, key, defaultValue):
         value = defaultValue

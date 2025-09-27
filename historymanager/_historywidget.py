@@ -178,6 +178,7 @@ class HistoryWidget(QWidget):
 
     def updateEntryIcon(self, icon):
         entryIcon = self.pendingIcons.get(icon, None)
+        print("UPDATE", entryIcon, icon)
         if entryIcon is not None:
             entryIcon.setPixmap(QPixmap(icon))
             entryIcon.update()

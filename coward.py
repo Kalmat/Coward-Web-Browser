@@ -592,6 +592,7 @@ class MainWindow(QMainWindow):
             if not os.path.exists(full_filename):
                 (pixmap.scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
                        .save(full_filename, "PNG"))
+                print("SAVED", full_filename)
             self.history_widget.updateEntryIcon(full_filename)
 
     def add_toggletab_action(self):
