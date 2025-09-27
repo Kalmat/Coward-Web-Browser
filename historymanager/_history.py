@@ -11,6 +11,9 @@ class History:
 
     def __init__(self, history_folder, history_file):
 
+        if not os.path.exists(self.historyFolder):
+            os.makedirs(self.historyFolder)
+
         self._historyObj = QSettings(QSettings.Format.IniFormat,
                                      QSettings.Scope.UserScope,
                                      history_folder,
@@ -19,8 +22,6 @@ class History:
 
         self._historyValues = self._getDict("History/history", {})
         self.filterHistory()
-        if not os.path.exists(self.historyFolder):
-            os.makedirs(self.historyFolder)
 
     def _getDict(self, key, defaultValue):
         value = defaultValue
