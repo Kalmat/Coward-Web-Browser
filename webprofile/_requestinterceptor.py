@@ -77,7 +77,7 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
                 request_type=self.resourceTypes.get(info.resourceType(), ""))
             if should_block:
                 info.block(True)
-                # LOGGER.write(LoggerSettings.LogLevels.info, "RequestInterceptor",  f"AD Blocked: {url}")
+                LOGGER.write(LoggerSettings.LogLevels.info, "RequestInterceptor",  f"AD Blocked: {url}")
 
     def getRequestType(self):
         """
