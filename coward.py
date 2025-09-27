@@ -580,8 +580,10 @@ class MainWindow(QMainWindow):
         pixmap = utils.fixDarkImage(pixmap)
 
         if not self.h_tabbar:
-            pixmap = pixmap.transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation)
-        self.ui.tabs.tabBar().setTabIcon(tabIndex, QIcon(pixmap))
+            pixmapRotated = pixmap.transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation)
+        else:
+            pixmapRotated = pixmap
+        self.ui.tabs.tabBar().setTabIcon(tabIndex, QIcon(pixmapRotated))
 
         if self.settings.enableHistory:
             hash_object = hashlib.sha256(self.ui.tabs.widget(tabIndex).url().toString().encode())
