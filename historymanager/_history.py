@@ -11,16 +11,17 @@ class History:
 
     def __init__(self, history_folder, history_file):
 
-        if not os.path.exists(self.historyFolder):
-            os.makedirs(self.historyFolder)
-
         self._historyObj = QSettings(QSettings.Format.IniFormat,
                                      QSettings.Scope.UserScope,
                                      history_folder,
                                      history_file
                                      )
 
+        if not os.path.exists(self.historyFolder):
+            os.makedirs(self.historyFolder)
+
         self._historyValues = self._getDict("History/history", {})
+        self._historyValuesByUrl = {}
         self.filterHistory()
 
     def _getDict(self, key, defaultValue):
@@ -49,7 +50,9 @@ class History:
         historySorted = {}
         for i, key in enumerate(keys):
             if i <= DefaultSettings.History.historySize:
-                historySorted[key] = self._historyValues[key]
+                item = self._historyValues[key]
+                historySorted[key] = item
+                self._historyValuesByUrl[item["url"]] = key
             else:
                 icon_file = self._historyValues[key]["icon"]
                 if os.path.exists(icon_file):
@@ -66,31 +69,33 @@ class History:
     def addHistoryEntry(self, value):
         added = True
         date, title, url, icon = value
-        for key in self._historyValues.keys():
-            item_url = self._historyValues[key]["url"]
-            if url == item_url:
-                added = False
-                del self._historyValues[key]
-                break
+        old_date = self._historyValuesByUrl.get(url, None)
+        if old_date is not None and old_date != date:
+            added = False
+            del self._historyValues[old_date]
         self._historyValues[date] = {
             "title": title,
             "url": url,
             "icon": icon
         }
+        self._historyValuesByUrl[url] = date
         return added
 
     def deleteHistoryEntry(self, key):
         try:
             url = self._historyValues[key]["url"]
             del self._historyValues[key]
+            del self._historyValuesByUrl[url]
             LOGGER.write(LoggerSettings.LogLevels.info, "History", f"History entry deleted: {url}")
         except:
-            pass
+            LOGGER.write(LoggerSettings.LogLevels.warning, "HistoryManager", f"History entry couldn't be deleted: {key}")
 
     def deleteAllHistory(self):
         try:
             shutil.rmtree(self.historyFolder)
             self._historyValues = {}
+            self._historyValuesByUrl = {}
+            self.saveHistory()
             LOGGER.write(LoggerSettings.LogLevels.info, "HistoryManager", "History deleted")
         except:
             LOGGER.write(LoggerSettings.LogLevels.warning, "HistoryManager", "History folder not found when trying to delete it")

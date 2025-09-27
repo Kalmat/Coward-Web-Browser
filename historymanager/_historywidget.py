@@ -109,6 +109,7 @@ class HistoryWidget(QWidget):
         self.pendingIcons = {}
         self.loading_ico = QPixmap(DefaultSettings.Icons.loading).scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
 
+        self._historyWidgets = {}
         for key in self.history_manager.history.keys():
             date = key
             title = self.history_manager.history[key]["title"]
@@ -165,16 +166,18 @@ class HistoryWidget(QWidget):
             self.hide()
             self.show()
 
+        self._historyWidgets[url] = widget
+
     def updateHistoryEntry(self, entry):
-
         date, title, url, icon = entry
-
-        for i in range(self.content_layout.count()):
-            w = self.content_layout.itemAt(i).widget().layout().itemAt(1).widget()
-            item_url = w.toolTip()
-            if url == item_url:
-                w.setAccessibleName(date)
-                break
+        w = self._historyWidgets.get(url, None)
+        if w is not None:
+            w.layout().itemAt(1).widget().setText(title)
+            w.setAccessibleName(date)
+            self.update()
+            if self.isVisible():
+                self.hide()
+                self.show()
 
     def updateEntryIcon(self, icon):
         entryIcon = self.pendingIcons.get(icon, None)
@@ -216,6 +219,7 @@ class HistoryWidget(QWidget):
     def eraseHistory(self):
         self.history_manager.deleteAllHistory()
         self.pendingIcons = {}
+        self._historyWidgets = {}
         for i in range(0, self.content_layout.count()):
             w = self.content_layout.itemAt(i).widget()
             w.deleteLater()
@@ -223,12 +227,14 @@ class HistoryWidget(QWidget):
     def deleteHistoryEntry(self, checked, point):
         w = self._getWidgetByPosition(point)
         if w:
+            url = w.layout().itemAt(1).widget().toolTip()
+            del self._historyWidgets[url]
             w.deleteLater()
             self.update()
             if self.isVisible():
                 self.hide()
                 self.show()
-            key = self._getDateByPosition(point)
+            key = w.accessibleName()
             if key:
                 self.history_manager.deleteHistoryEntry(key)
 
