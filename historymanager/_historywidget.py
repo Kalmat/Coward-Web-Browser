@@ -243,6 +243,7 @@ class HistoryWidget(QWidget):
 
     def _getIndexByPosition(self, point):
         index = None
+        index = None
         if point.y() > self.init_widget.height():
             index = int((point.y() - self.init_widget.height()) / (32 + 3))
             if index >= self.content_layout.count():
@@ -250,6 +251,7 @@ class HistoryWidget(QWidget):
         return index
 
     def _getWidgetByPosition(self, point):
+        w = None
         index = self._getIndexByPosition(point)
         if index is not None:
             try:
@@ -259,8 +261,8 @@ class HistoryWidget(QWidget):
         return w
 
     def _getUrlByPosition(self, point):
-        w = self._getWidgetByPosition(point)
         url = None
+        w = self._getWidgetByPosition(point)
         if w is not None:
             if w:
                 url = w.layout().itemAt(1).widget().toolTip()
@@ -269,8 +271,8 @@ class HistoryWidget(QWidget):
         return url
 
     def _getDateByPosition(self, point):
-        w = self._getWidgetByPosition(point)
         date = None
+        w = self._getWidgetByPosition(point)
         if w is not None:
             if w:
                 date = w.layout().itemAt(1).widget().accessibleName()

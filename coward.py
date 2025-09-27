@@ -520,7 +520,7 @@ class MainWindow(QMainWindow):
         page.desktopMediaRequested.connect(lambda request, p=page: print("MEDIA REQUESTED", request))
 
         # adding action to the browser when title or icon change
-        page.titleChanged.connect(lambda title, b=page.parent(): self.title_changed(title, b))
+        page.titleChanged.connect(lambda title, b=page.parent(): self.title_changed(title, b, False))
         page.iconChanged.connect(lambda icon, b=page.parent(): self.icon_changed(icon, b))
 
         # manage file downloads (including pages and files)
@@ -579,10 +579,10 @@ class MainWindow(QMainWindow):
         pixmap = icon.pixmap(QSize(self.icon_size, self.icon_size))
         pixmap = utils.fixDarkImage(pixmap)
 
-        if not self.h_tabbar:
-            pixmapRotated = pixmap.transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation)
-        else:
+        if self.h_tabbar:
             pixmapRotated = pixmap
+        else:
+            pixmapRotated = pixmap.transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation)
         self.ui.tabs.tabBar().setTabIcon(tabIndex, QIcon(pixmapRotated))
 
         if self.settings.enableHistory:
@@ -592,7 +592,7 @@ class MainWindow(QMainWindow):
             if not os.path.exists(full_filename):
                 (pixmap.scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
                        .save(full_filename, "PNG"))
-                self.history_widget.updateEntryIcon(full_filename)
+            self.history_widget.updateEntryIcon(full_filename)
 
     def add_toggletab_action(self):
         self.toggletab_btn = QLabel()
