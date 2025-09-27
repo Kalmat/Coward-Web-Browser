@@ -70,7 +70,8 @@ class History:
         added = True
         date, title, url, icon = value
         old_date = self._historyValuesByUrl.get(url, None)
-        if old_date is not None and old_date != date:
+        self._historyValuesByUrl[url] = date
+        if old_date is not None:
             added = False
             del self._historyValues[old_date]
         self._historyValues[date] = {
@@ -78,7 +79,6 @@ class History:
             "url": url,
             "icon": icon
         }
-        self._historyValuesByUrl[url] = date
         return added
 
     def deleteHistoryEntry(self, key):

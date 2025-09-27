@@ -103,7 +103,6 @@ class HistoryWidget(QWidget):
         self.entryContextMenu.addAction(self.delete_action)
 
         self.customContextMenuRequested.connect(self.showContextMenu)
-
         self.eraseHistorySig.connect(self.eraseHistory)
 
         self.pendingIcons = {}
@@ -117,7 +116,7 @@ class HistoryWidget(QWidget):
             icon = self.history_manager.history[key]["icon"]
             self.addHistoryEntry([date, title, url, icon])
 
-    def addHistoryEntry(self, entry):
+    def addHistoryEntry(self, entry, key=None):
 
         self.init_label.setText(self.historyText if self._settings.enableHistory else self.historyDisabled)
 
@@ -125,6 +124,7 @@ class HistoryWidget(QWidget):
 
         widget = QWidget()
         widget.setObjectName("item")
+        widget.setAccessibleName(str(date))
         widget.setContentsMargins(5, 0, 0, 0)
         widget.setFixedSize(460, 32)
         layout = QGridLayout()
@@ -137,14 +137,13 @@ class HistoryWidget(QWidget):
         # entryIcon.setDisabled(True)
         entryIcon.setFixedSize(24, 24)
         if not os.path.exists(icon):
-            self.pendingIcons[icon] = entryIcon
+            self.pendingIcons[key] = entryIcon
             icon = self.loading_ico
         entryIcon.setPixmap(QPixmap(icon))
         layout.addWidget(entryIcon, 0, 0)
 
         entryText = QLabel()
         entryText.setObjectName("entryText")
-        entryText.setAccessibleName(str(date))
         entryText.setContentsMargins(5, 0, 0, 0)
         entryText.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         entryText.setFixedSize(400, 32)
@@ -174,20 +173,20 @@ class HistoryWidget(QWidget):
         if w is not None:
             w.layout().itemAt(1).widget().setText(title)
             w.setAccessibleName(date)
-            self.update()
+            w.update()
             if self.isVisible():
                 self.hide()
                 self.show()
 
-    def updateEntryIcon(self, icon):
-        entryIcon = self.pendingIcons.get(icon, None)
+    def updateEntryIcon(self, icon, key):
+        entryIcon = self.pendingIcons.get(key, None)
         if entryIcon is not None:
             entryIcon.setPixmap(QPixmap(icon))
             entryIcon.update()
             if self.isVisible():
                 self.hide()
                 self.show()
-            del self.pendingIcons[icon]
+            del self.pendingIcons[key]
 
     def loadHistoryEntry(self, url):
         self.load_url_sig.emit(QUrl(url))
@@ -227,16 +226,16 @@ class HistoryWidget(QWidget):
     def deleteHistoryEntry(self, checked, point):
         w = self._getWidgetByPosition(point)
         if w:
-            url = w.layout().itemAt(1).widget().toolTip()
-            del self._historyWidgets[url]
-            w.deleteLater()
+            key = w.accessibleName()
+            if key:
+                self.history_manager.deleteHistoryEntry(key)
             self.update()
             if self.isVisible():
                 self.hide()
                 self.show()
-            key = w.accessibleName()
-            if key:
-                self.history_manager.deleteHistoryEntry(key)
+            url = w.layout().itemAt(1).widget().toolTip()
+            del self._historyWidgets[url]
+            w.deleteLater()
 
     def showContextMenu(self, point):
         self.delete_action.triggered.disconnect()

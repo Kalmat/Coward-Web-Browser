@@ -562,13 +562,11 @@ class MainWindow(QMainWindow):
         self.ui.tabs.setTabToolTip(tabIndex, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
 
         if not internalCall and self.settings.enableHistory and self.history_manager is not None:
-            hash_object = hashlib.sha256(self.ui.tabs.widget(tabIndex).url().toString().encode())
-            filename = str(hash_object.hexdigest())
-            full_filename = os.path.join(self.history_manager.historyFolder, filename)
+            full_filename = self._getIconFileName(browser.url().toString())
             item = [str(time.time()), title, self.ui.tabs.widget(tabIndex).url().toString(), full_filename]
             added = self.history_manager.addHistoryEntry(item)
             if added:
-                self.history_widget.addHistoryEntry(item)
+                self.history_widget.addHistoryEntry(item, browser.__str__())
             else:
                 self.history_widget.updateHistoryEntry(item)
 
@@ -586,13 +584,17 @@ class MainWindow(QMainWindow):
         self.ui.tabs.tabBar().setTabIcon(tabIndex, QIcon(pixmapRotated))
 
         if self.settings.enableHistory:
-            hash_object = hashlib.sha256(self.ui.tabs.widget(tabIndex).url().toString().encode())
-            filename = str(hash_object.hexdigest())
-            full_filename = os.path.join(self.history_manager.historyFolder, filename)
+            full_filename = self._getIconFileName(browser.url().toString())
             if not os.path.exists(full_filename):
                 (pixmap.scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
                        .save(full_filename, "PNG"))
-            self.history_widget.updateEntryIcon(full_filename)
+            self.history_widget.updateEntryIcon(full_filename, browser.__str__())
+
+    def _getIconFileName(self, url):
+        hash_object = hashlib.sha256(url.encode())
+        filename = str(hash_object.hexdigest())
+        full_filename = os.path.join(self.history_manager.historyFolder, filename)
+        return full_filename
 
     def add_toggletab_action(self):
         self.toggletab_btn = QLabel()
