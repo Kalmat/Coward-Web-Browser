@@ -570,6 +570,7 @@ class MainWindow(QMainWindow):
         #     self.checkedURL.append(url)
         #     browser.page().checkCanPlayMedia()
 
+        # this has to be done here since loadfinished() is not triggered, titleChanged() is triggered twice, etc...
         if self.settings.enableHistory:
             full_filename = self._getIconFileName(qurl)
             item = [str(time.time()), browser.title(), qurl.toString(), full_filename]
@@ -584,6 +585,7 @@ class MainWindow(QMainWindow):
         self.ui.tabs.setTabToolTip(tabIndex, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
 
         if self.settings.enableHistory:
+            # update title since it is asynchronous once the url changes
             self.history_widget.updateEntryTitle(title, browser.url().toString())
 
     def icon_changed(self, icon, browser):
@@ -600,6 +602,7 @@ class MainWindow(QMainWindow):
         self.ui.tabs.tabBar().setTabIcon(tabIndex, QIcon(pixmapRotated))
 
         if self.settings.enableHistory:
+            # update icon since it is asynchronous once the url changes (the icon file name was set when entry added)
             full_filename = self._getIconFileName(browser.url())
             self.history_widget.updateEntryIcon(icon, full_filename)
 
