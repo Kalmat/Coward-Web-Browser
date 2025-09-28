@@ -202,6 +202,9 @@ class MainWindow(QMainWindow):
         if DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.http:
             self.http_manager = HttpManager()
 
+        # trying to control which URLs have being already checked for non-compatible media
+        self.checkedURL = []
+
         # keep track of open popups and assure their persistence (anyway, we are not allowing popups by now)
         self.popups = []
 
@@ -271,12 +274,12 @@ class MainWindow(QMainWindow):
     def connectUiSlots(self):
 
         # navigation bar buttons
+        self.ui.auto_btn.clicked.connect(self.manage_autohide)
         self.ui.back_btn.triggered.connect(self.goBack)
         self.ui.next_btn.triggered.connect(self.goForward)
-        self.ui.urlbar.returnPressed.connect(self.navigate_to_url)
         self.ui.reload_btn.triggered.connect(self.reloadPage)
+        self.ui.urlbar.returnPressed.connect(self.navigate_to_url)
         self.ui.ext_player_btn.clicked.connect(self.openExternalPlayer)
-        self.ui.auto_btn.clicked.connect(self.manage_autohide)
         self.ui.search_off_btn.clicked.connect(self.manage_search)
         self.ui.search_on_btn.clicked.connect(self.manage_search)
         self.ui.dl_on_btn.clicked.connect(self.manage_downloads)
@@ -457,17 +460,11 @@ class MainWindow(QMainWindow):
             self.ui.reload_btn.setToolTip("Stop loading page")
 
     def onLoadFinished(self, loadedOk, browser):
+        # This signal is not triggered in many sites when clicking "inner" links!!!
+        # It has to be handled in title_changed(), but sometimes it is triggered TWICE!!!
         if browser == self.ui.tabs.currentWidget():
             self.ui.reload_btn.setText(self.ui.reload_char)
             self.ui.reload_btn.setToolTip("Reload page")
-        # TODO: find a reliable way to check if there is a media playback error (most likely, there isn't)
-        # browser.page().checkCanPlayMedia()
-        if loadedOk and self.settings.enableHistory:
-            full_filename = self._getIconFileName(browser.url())
-            item = [str(time.time()), browser.title(), browser.url().toString(), full_filename]
-            added = self.history_manager.addHistoryEntry(item)
-            if added:
-                self.history_widget.addHistoryEntry(item)
 
     def getProfile(self, browser=None):
 
@@ -563,10 +560,28 @@ class MainWindow(QMainWindow):
                 self.moveOtherWidgets()
 
     def title_changed(self, title, browser):
-
+        """
+        Phil Collins, Eric Clapton, Michael Bolton, Rod Stewart, Bee Gees 📀 Soft Rock Ballads 70s 80s 90s - YouTube PyQt6.QtCore.QUrl('https://www.youtube.com/watch?v=AHLjPOKMO-Q&list=RDAHLjPOKMO-Q&start_radio=1&t=78s') PyQt6.QtCore.QUrl('https://www.youtube.com/watch?v=AHLjPOKMO-Q&list=RDAHLjPOKMO-Q&start_radio=1&t=78s')
+        live - YouTube PyQt6.QtCore.QUrl('https://www.youtube.com/results?search_query=live') PyQt6.QtCore.QUrl('https://www.youtube.com/results?search_query=live')
+        WHY THIS?? --> Phil Collins, Eric Clapton, Michael Bolton, Rod Stewart, Bee Gees 📀 Soft Rock Ballads 70s 80s 90s - YouTube PyQt6.QtCore.QUrl('https://www.youtube.com/watch?v=36YnV9STBqc') PyQt6.QtCore.QUrl('https://www.youtube.com/watch?v=36YnV9STBqc')
+        The Good Life Radio • 24/7 Live Radio | Best Relax House, Chillout, Study, Running, Gym, Happy Music - YouTube PyQt6.QtCore.QUrl('https://www.youtube.com/watch?v=36YnV9STBqc') PyQt6.QtCore.QUrl('https://www.youtube.com/watch?v=36YnV9STBqc')
+        """
         tabIndex = self.ui.tabs.indexOf(browser)
         self.ui.tabs.tabBar().setTabText(tabIndex, (title + " " * 30)[:29] if self.h_tabbar else "")
         self.ui.tabs.setTabToolTip(tabIndex, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
+        # TODO: find a reliable way to check if there is a media playback error (most likely, there isn't)
+        # this is the opposite strategy: checking if it can be streamed using streamlink...
+        # ... but it takes A LOT of time (1.8 secs)
+        # url = browser.url().toString()
+        # if url not in self.checkedURL and browser == self.ui.tabs.currentWidget():
+        #     self.checkedURL.append(url)
+        #     browser.page().checkCanPlayMedia()
+        if self.settings.enableHistory:
+            full_filename = self._getIconFileName(browser.url())
+            item = [str(time.time()), browser.title(), browser.url().toString(), full_filename]
+            added = self.history_manager.addHistoryEntry(item)
+            if added:
+                self.history_widget.addHistoryEntry(item)
 
     def icon_changed(self, icon, browser):
 
@@ -663,18 +678,27 @@ class MainWindow(QMainWindow):
         if tabIndex < self.ui.tabs.count() - 1:
 
             # update the url
-            self.update_urlbar(self.ui.tabs.currentWidget().url(), self.ui.tabs.currentWidget())
+            qurl = self.ui.tabs.currentWidget().url()
+            page = self.ui.tabs.currentWidget().page()
+            self.update_urlbar(qurl, self.ui.tabs.currentWidget())
 
-            if self.ui.tabs.currentWidget().page().isLoading():
+            if page.isLoading():
                 self.ui.reload_btn.setText(self.ui.stop_char)
                 self.ui.reload_btn.setToolTip("Stop loading page")
             else:
                 self.ui.reload_btn.setText(self.ui.reload_char)
                 self.ui.reload_btn.setToolTip("Reload page")
 
+            # this takes A LOT of time (1.8 secs)
+            # url = qurl.toString()
+            # if url not in self.checkedURL:
+            #     self.checkedURL.append(url)
+            #     page.checkCanPlayMedia()
+
         if self.search_widget.isVisible():
             self.ui.tabs.currentWidget().findText("")
             self.search_widget.hide()
+
 
     def tab_clicked(self, tabIndex):
         if QApplication.mouseButtons() == Qt.MouseButton.LeftButton:
@@ -728,7 +752,7 @@ class MainWindow(QMainWindow):
             self.ui.tabs.setCurrentIndex(targetIndex)
 
         # delete tab widget safely
-        self.widgetToDelete.deleteLater()
+        # self.widgetToDelete.deleteLater()
 
         LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"Tab closed")
 

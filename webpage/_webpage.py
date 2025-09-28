@@ -2,6 +2,7 @@ from PyQt6.QtCore import pyqtSlot
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineCertificateError
 from PyQt6.QtWidgets import QMessageBox
+from streamlink import Streamlink
 
 from logger import LOGGER, LoggerSettings
 from settings import DefaultSettings
@@ -108,15 +109,27 @@ class WebPage(QWebEnginePage):
             rejectSlot=request.deny)
 
     def checkCanPlayMedia(self):
+        # this detects if media can be streamed using streamlink (very likely media is not compatible, but not always)
+        # the problem is that it takes A LOT of time (1.8 secs.)
+        session = Streamlink()
+        url = self.url().toString()
+        try:
+            streams = session.streams(url)
+            stream = streams["best"]
+        except:
+            stream = None
+        if stream is not None:
+            self.externalPlayer.handleExternalPlayerRequest(url)
+
         # this detects media failures, but sometimes it sends "false" alarms (e.g. in YT videos)
         # other times it returns ok, but it is not (e.g. 2nd time and following in Twitch)
         # see example of debug data at the end of the file. How could we get this info from python/PyQt?
         # this is ASYNCHRONOUS, so can't be used to return any value. Must use a method/function to handle return
-        self.runJavaScript("""
-                var mediaElements = document.querySelectorAll('video, audio');
-                var canPlay = Array.from(mediaElements).every(media => media.canPlayType(media.type) !== '');
-                canPlay;
-            """, lambda ok, u=self.url().toString(): self.handleMediaError(ok, u))
+        # self.runJavaScript("""
+        #         var mediaElements = document.querySelectorAll('video, audio');
+        #         var canPlay = Array.from(mediaElements).every(media => media.canPlayType(media.type) !== '');
+        #         canPlay;
+        #     """, lambda ok, u=self.url().toString(): self.handleMediaError(ok, u))
 
         # self.runJavaScript("""
         #     var mediaElements = document.querySelectorAll('video, audio');
@@ -131,9 +144,9 @@ class WebPage(QWebEnginePage):
         # """, lambda ok, u=self.url().toString(): self.handleMediaError(ok, u))
 
     # launch external player dialog if media can't be played
-    def handleMediaError(self, ok, url):
-        if not ok:
-            self.externalPlayer.handleExternalPlayerRequest(url)
+    # def handleMediaError(self, ok, url):
+    #     if not ok:
+    #         self.externalPlayer.handleExternalPlayerRequest(url)
 
     def javaScriptConsoleMessage(self, level, message, lineNumber=0, sourceID=""):
 
