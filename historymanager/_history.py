@@ -56,11 +56,13 @@ class History:
                 if icon not in icons:
                     icons.append(icon)
             else:
-                if icon != DefaultSettings.Icons.loading and os.path.exists(icon) and icon not in icons:
-                    try:
-                        os.remove(icon)
-                    except:
-                        pass
+                break
+        for iconFile in os.listdir(self.historyFolder):
+            if iconFile not in icons:
+                try:
+                    os.remove(iconFile)
+                except:
+                    pass
         self._historyValues = historySorted
 
     @property
