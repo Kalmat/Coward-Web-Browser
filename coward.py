@@ -1289,7 +1289,7 @@ class MainWindow(QMainWindow):
                 for i in range(1, w.ui.tabs.count() - 1):
                     browser = w.ui.tabs.widget(i)
                     page = browser.page()
-                    page.closeExternalPlayer(False)
+                    page.externalPlayer.closeExternalPlayer(False)
                     new_tabs.append([browser.url().toString(), browser.page().zoomFactor(), i == w.ui.tabs.currentIndex()])
 
                 # won't keep any incognito data
