@@ -16,11 +16,12 @@ class ExternalPlayer(QObject):
         super().__init__()
 
         self.page = page
+        self.dialog_manager = dialog_manager
+        self.http_manager = http_manager
+
         self.streamers = {}
         self.players = {}
         self.dialogsToDelete = {}
-        self.dialog_manager = dialog_manager
-        self.http_manager = http_manager
 
         self._bufferingStartedSig.connect(self.bufferingStarted)
         self._streamStartedSig.connect(self.streamStarted)
@@ -145,6 +146,7 @@ class ExternalPlayer(QObject):
             rejectedSlot=rejectSlot
         )
         return dialog
+
 
 """
     {

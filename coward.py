@@ -374,11 +374,11 @@ class MainWindow(QMainWindow):
         current = 1
         if tabs:
             for i, tab in enumerate(tabs):
-                qurl, zoom, active = tab
+                url, zoom, active = tab
                 if active:
                     current = i + 1
-                    QTimer.singleShot(0, lambda u=qurl: self.ui.urlbar.setText(u))
-                self.add_tab(QUrl(qurl), zoom)
+                    QTimer.singleShot(0, lambda u=url: self.ui.urlbar.setText(u))
+                self.add_tab(QUrl(url), zoom)
 
         else:
             self.add_tab(QUrl(DefaultSettings.Browser.defaultPage))
@@ -393,7 +393,7 @@ class MainWindow(QMainWindow):
         for new_tabs in new_wins:
             self.show_in_new_window(new_tabs)
 
-        LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Tabs created")
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"All tabs created: {len(tabs)}")
 
     def add_tab(self, qurl, zoom=1.0, label="Loading...", tabIndex=None):
 
@@ -420,7 +420,7 @@ class MainWindow(QMainWindow):
         else:
             self.ui.tabs.tabBar().setTabButton(tabIndex, QTabBar.ButtonPosition.RightSide, None)
 
-        LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"Tab created")
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"Tab created: {qurl.toString()}")
 
         return tabIndex
 
@@ -443,7 +443,7 @@ class MainWindow(QMainWindow):
     def connectBrowserSlots(self, browser):
 
         # adding action to the browser when url changes
-        browser.urlChanged.connect(lambda u, b=browser: self.update_urlbar(u, b))
+        browser.urlChanged.connect(lambda qurl, b=browser: self.update_urlbar(qurl, b))
 
         # check start/finish loading (e.g. for loading animations)
         browser.loadStarted.connect(lambda b=browser: self.onLoadStarted(b))
