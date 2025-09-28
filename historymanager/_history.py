@@ -57,7 +57,7 @@ class History:
             else:
                 break
         for iconFile in os.listdir(self.historyFolder):
-            if iconFile not in icons:
+            if iconFile != self.historyFile and iconFile not in icons:
                 try:
                     os.remove(iconFile)
                 except:
