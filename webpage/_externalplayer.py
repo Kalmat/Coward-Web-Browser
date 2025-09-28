@@ -28,54 +28,15 @@ class ExternalPlayer(QObject):
         self._streamClosedSig.connect(self.closeExternalPlayer)
         self._playerClosedSig.connect(self.externalPlayerClosed)
 
-    def checkCanPlayMedia(self):
-        # this detects media failures, but sometimes it sends "false" alarms (e.g. in YT videos)
-        # other times it returns ok, but it is not (e.g. 2nd time and following in Twitch)
-        # see example of debug data at the end of the file. How could we get this info from python/PyQt?
-        # this is ASYNCHRONOUS, so can't be used to return any value. Must use a method/function to handle return
-        self.page.runJavaScript("""
-                var mediaElements = document.querySelectorAll('video, audio');
-                var canPlay = Array.from(mediaElements).every(media => media.canPlayType(media.type) !== '');
-                canPlay;
-            """, lambda ok, u=self.page.url().toString(): self.handleMediaError(ok, u))
+    def handleExternalPlayerRequest(self, url):
+        message = DefaultSettings.DialogMessages.externalPlayerRequest
+        self.showDialog(
+            message=message,
+            acceptSlot=lambda u=url: self.openInExternalPlayer(u)
+        )
 
-        # self.runJavaScript("""
-        #     var mediaElements = document.querySelectorAll('video, audio');
-        #     var canPlay = true;
-        #     mediaElements.forEach(function(media) {
-        #         media.onerror = function() {
-        #             canPlay = false;
-        #             console.log('COWARD --- Media playback error detected.');
-        #         };
-        #     });
-        #     canPlay;
-        # """, lambda ok, u=self.url().toString(): self.handleMediaError(ok, u))
-
-    def launchStream(self, url, title, ffmpeg_started_sig=None):
-        stream_thread = Streamer(url=url,
-                                 title=title,
-                                 player_type=DefaultSettings.Player.externalPlayerType,
-                                 http_manager=self.http_manager,
-                                 buffering_started_sig=self._bufferingStartedSig,
-                                 stream_started_sig=self._streamStartedSig,
-                                 stream_error_sig=self._streamErrorSig,
-                                 closed_sig=self._streamClosedSig,
-                                 ffmpeg_started_sig=ffmpeg_started_sig,
-                                 index=len(self.streamers))
-        self.streamers[url] = stream_thread
-        return stream_thread
-
-    # launch external player dialog if media can't be played
-    def handleMediaError(self, ok, qurl):
-        if not ok:
-            message = DefaultSettings.DialogMessages.externalPlayerRequest
-            self.showDialog(
-                message=message,
-                acceptSlot=self.openInExternalPlayer)
-
-    def openInExternalPlayer(self):
+    def openInExternalPlayer(self, url):
         # allow (or not) multiple external player instances per page
-        url = self.page.url().toString()
         keys = list(self.streamers.keys())
         if any(url in key for key in keys):
             self.showDialog(
@@ -111,6 +72,20 @@ class ExternalPlayer(QObject):
             media_player.show()
             media_player.start()
             self.players[self.page.url().toString()] = media_player
+
+    def launchStream(self, url, title, ffmpeg_started_sig=None):
+        stream_thread = Streamer(url=url,
+                                 title=title,
+                                 player_type=DefaultSettings.Player.externalPlayerType,
+                                 http_manager=self.http_manager,
+                                 buffering_started_sig=self._bufferingStartedSig,
+                                 stream_started_sig=self._streamStartedSig,
+                                 stream_error_sig=self._streamErrorSig,
+                                 closed_sig=self._streamClosedSig,
+                                 ffmpeg_started_sig=ffmpeg_started_sig,
+                                 index=len(self.streamers))
+        self.streamers[url] = stream_thread
+        return stream_thread
 
     @pyqtSlot(str)
     def bufferingStarted(self, qurl):

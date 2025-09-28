@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import QMessageBox
 from logger import LOGGER, LoggerSettings
 from settings import DefaultSettings
 from themes import Themes
-from webpage._externalplayer import ExternalPlayer
+from ._externalplayer import ExternalPlayer
 
 
 class WebPage(QWebEnginePage):
@@ -107,23 +107,33 @@ class WebPage(QWebEnginePage):
             acceptSlot=request.grant,
             rejectSlot=request.deny)
 
-    def handleExternalPlayerRequest(self):
-        message = DefaultSettings.DialogMessages.externalPlayerRequest
-        self.showDialog(
-            message=message,
-            acceptSlot=self.externalPlayer.openInExternalPlayer
-        )
+    def checkCanPlayMedia(self):
+        # this detects media failures, but sometimes it sends "false" alarms (e.g. in YT videos)
+        # other times it returns ok, but it is not (e.g. 2nd time and following in Twitch)
+        # see example of debug data at the end of the file. How could we get this info from python/PyQt?
+        # this is ASYNCHRONOUS, so can't be used to return any value. Must use a method/function to handle return
+        self.runJavaScript("""
+                var mediaElements = document.querySelectorAll('video, audio');
+                var canPlay = Array.from(mediaElements).every(media => media.canPlayType(media.type) !== '');
+                canPlay;
+            """, lambda ok, u=self.url().toString(): self.handleMediaError(ok, u))
 
-    def showDialog(self, message, buttonOkOnly=False, acceptSlot=None, rejectSlot=None):
-        dialog = self.dialog_manager.createDialog(
-            icon=self.icon(),
-            title=self.title() or self.url().toString(),
-            message=message,
-            buttonOkOnly=buttonOkOnly,
-            acceptedSlot=acceptSlot,
-            rejectedSlot=rejectSlot
-        )
-        return dialog
+        # self.runJavaScript("""
+        #     var mediaElements = document.querySelectorAll('video, audio');
+        #     var canPlay = true;
+        #     mediaElements.forEach(function(media) {
+        #         media.onerror = function() {
+        #             canPlay = false;
+        #             console.log('COWARD --- Media playback error detected.');
+        #         };
+        #     });
+        #     canPlay;
+        # """, lambda ok, u=self.url().toString(): self.handleMediaError(ok, u))
+
+    # launch external player dialog if media can't be played
+    def handleMediaError(self, ok, url):
+        if not ok:
+            self.externalPlayer.handleExternalPlayerRequest(url)
 
     def javaScriptConsoleMessage(self, level, message, lineNumber=0, sourceID=""):
 

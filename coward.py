@@ -885,7 +885,7 @@ class MainWindow(QMainWindow):
 
     def openExternalPlayer(self):
         page = self.ui.tabs.currentWidget().page()
-        page.externalPlayer.openInExternalPlayer()
+        page.externalPlayer.openInExternalPlayer(page.url().toString())
         LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"Opening external player: {DefaultSettings.Player.externalPlayerType.value}")
 
     def manage_autohide(self, checked=False, enabled=None, hide_all=False):
