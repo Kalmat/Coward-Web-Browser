@@ -460,7 +460,7 @@ class MainWindow(QMainWindow):
             self.ui.reload_btn.setToolTip("Reload page")
         # TODO: find a reliable way to check if there is a media playback error (most likely, there isn't)
         # browser.page().checkCanPlayMedia()
-        if self.settings.enableHistory:
+        if loadedOk and self.settings.enableHistory:
             full_filename = self._getIconFileName(browser.url())
             item = [str(time.time()), browser.title(), browser.url().toString(), full_filename]
             added = self.history_manager.addHistoryEntry(item)

@@ -48,16 +48,17 @@ class History:
         keys = list(self._historyValues.keys())
         keys.sort(reverse=True)
         historySorted = {}
-        for i, key in enumerate(keys):
+        for i, date in enumerate(keys):
+            item = self._historyValues[date]
+            icon = item["icon"]
+            url = item["url"]
             if i <= DefaultSettings.History.historySize:
-                item = self._historyValues[key]
-                historySorted[key] = item
-                self._historyValuesByUrl[item["url"]] = key
+                historySorted[date] = item
+                self._historyValuesByUrl[url] = date
             else:
-                icon_file = self._historyValues[key]["icon"]
-                if os.path.exists(icon_file):
+                if icon != DefaultSettings.Icons.loading and os.path.exists(icon) and url not in self._historyValuesByUrl.keys():
                     try:
-                        os.remove(icon_file)
+                        os.remove(icon)
                     except:
                         pass
         self._historyValues = historySorted
@@ -66,9 +67,9 @@ class History:
     def history(self):
         return self._historyValues
 
-    def addHistoryEntry(self, value):
+    def addHistoryEntry(self, item):
         added = True
-        date, title, url, icon = value
+        date, title, url, icon = item
         old_date = self._historyValuesByUrl.get(url, None)
         self._historyValuesByUrl[url] = date
         if old_date is not None:
@@ -81,10 +82,10 @@ class History:
         }
         return added
 
-    def deleteHistoryEntry(self, key):
+    def deleteHistoryEntry(self, date):
         try:
-            url = self._historyValues[key]["url"]
-            del self._historyValues[key]
+            url = self._historyValues[date]["url"]
+            del self._historyValues[date]
             del self._historyValuesByUrl[url]
             LOGGER.write(LoggerSettings.LogLevels.info, "History", f"History entry deleted: {url}")
         except:

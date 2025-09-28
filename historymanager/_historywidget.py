@@ -227,8 +227,9 @@ class HistoryWidget(QWidget):
                 self.show()
             iconFile = w.layout().itemAt(0).widget().accessibleName()
             self._historyWidgets[iconFile].pop(self._historyWidgets[iconFile].index(w))
-            if not self._historyWidgets[iconFile]:
-                os.remove(os.path.join(self.history_manager.historyFolder, iconFile))
+            iconPath = os.path.join(self.history_manager.historyFolder, iconFile)
+            if os.path.exists(iconPath) and not self._historyWidgets[iconFile]:
+                os.remove(iconPath)
             w.deleteLater()
 
     def loadHistoryEntry(self, url):
