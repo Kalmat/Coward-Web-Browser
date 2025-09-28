@@ -83,6 +83,16 @@ class History:
         }
         return added
 
+    def updateHistoryEntry(self, url, title=None, icon=None):
+        date = self._historyValuesByUrl.get(url, None)
+        if date is not None:
+            item = self._historyValues[date]
+            if title is not None:
+                item["title"] = title
+            if icon is not None:
+                item["icon"] = icon
+            self._historyValues[date] = item
+
     def deleteHistoryEntry(self, date):
         try:
             url = self._historyValues[date]["url"]

@@ -446,7 +446,7 @@ class MainWindow(QMainWindow):
     def connectBrowserSlots(self, browser):
 
         # adding action to the browser when url changes
-        browser.urlChanged.connect(lambda qurl, b=browser: self.update_urlbar(qurl, b))
+        browser.urlChanged.connect(lambda qurl, b=browser: self.url_changed(qurl, b))
 
         # check start/finish loading (e.g. for loading animations)
         browser.loadStarted.connect(lambda b=browser: self.onLoadStarted(b))
@@ -461,7 +461,7 @@ class MainWindow(QMainWindow):
 
     def onLoadFinished(self, loadedOk, browser):
         # This signal is not triggered in many sites when clicking "inner" links!!!
-        # It has to be handled in title_changed(), but sometimes it is triggered TWICE!!!
+        # Things like history must be handled in title_changed() (not the ideal place, but...)
         if browser == self.ui.tabs.currentWidget():
             self.ui.reload_btn.setText(self.ui.reload_char)
             self.ui.reload_btn.setToolTip("Reload page")
@@ -559,16 +559,9 @@ class MainWindow(QMainWindow):
                 self.showNormal()
                 self.moveOtherWidgets()
 
-    def title_changed(self, title, browser):
-        """
-        Phil Collins, Eric Clapton, Michael Bolton, Rod Stewart, Bee Gees 📀 Soft Rock Ballads 70s 80s 90s - YouTube PyQt6.QtCore.QUrl('https://www.youtube.com/watch?v=AHLjPOKMO-Q&list=RDAHLjPOKMO-Q&start_radio=1&t=78s') PyQt6.QtCore.QUrl('https://www.youtube.com/watch?v=AHLjPOKMO-Q&list=RDAHLjPOKMO-Q&start_radio=1&t=78s')
-        live - YouTube PyQt6.QtCore.QUrl('https://www.youtube.com/results?search_query=live') PyQt6.QtCore.QUrl('https://www.youtube.com/results?search_query=live')
-        WHY THIS?? --> Phil Collins, Eric Clapton, Michael Bolton, Rod Stewart, Bee Gees 📀 Soft Rock Ballads 70s 80s 90s - YouTube PyQt6.QtCore.QUrl('https://www.youtube.com/watch?v=36YnV9STBqc') PyQt6.QtCore.QUrl('https://www.youtube.com/watch?v=36YnV9STBqc')
-        The Good Life Radio • 24/7 Live Radio | Best Relax House, Chillout, Study, Running, Gym, Happy Music - YouTube PyQt6.QtCore.QUrl('https://www.youtube.com/watch?v=36YnV9STBqc') PyQt6.QtCore.QUrl('https://www.youtube.com/watch?v=36YnV9STBqc')
-        """
-        tabIndex = self.ui.tabs.indexOf(browser)
-        self.ui.tabs.tabBar().setTabText(tabIndex, (title + " " * 30)[:29] if self.h_tabbar else "")
-        self.ui.tabs.setTabToolTip(tabIndex, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
+    def url_changed(self, qurl, browser):
+        self.update_urlbar(qurl, browser)
+
         # TODO: find a reliable way to check if there is a media playback error (most likely, there isn't)
         # this is the opposite strategy: checking if it can be streamed using streamlink...
         # ... but it takes A LOT of time (1.8 secs)
@@ -576,12 +569,23 @@ class MainWindow(QMainWindow):
         # if url not in self.checkedURL and browser == self.ui.tabs.currentWidget():
         #     self.checkedURL.append(url)
         #     browser.page().checkCanPlayMedia()
+
         if self.settings.enableHistory:
-            full_filename = self._getIconFileName(browser.url())
-            item = [str(time.time()), browser.title(), browser.url().toString(), full_filename]
+            full_filename = self._getIconFileName(qurl)
+            item = [str(time.time()), browser.title(), qurl.toString(), full_filename]
             added = self.history_manager.addHistoryEntry(item)
             if added:
                 self.history_widget.addHistoryEntry(item)
+
+    def title_changed(self, title, browser):
+        # sometimes this is called twice for the same page, passing an obsolete title (though URL is ok... weird)
+        tabIndex = self.ui.tabs.indexOf(browser)
+        self.ui.tabs.tabBar().setTabText(tabIndex, (title + " " * 30)[:29] if self.h_tabbar else "")
+        self.ui.tabs.setTabToolTip(tabIndex, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
+
+        if self.settings.enableHistory:
+            full_filename = self._getIconFileName(browser.url())
+            self.history_widget.updateEntryTitle(title, browser.url().toString(), full_filename)
 
     def icon_changed(self, icon, browser):
 

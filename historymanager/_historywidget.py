@@ -1,5 +1,6 @@
 import os.path
 import shutil
+import time
 
 from PyQt6.QtCore import Qt, QUrl, pyqtSlot, pyqtSignal, QSize
 from PyQt6.QtGui import QPixmap, QAction
@@ -105,6 +106,7 @@ class HistoryWidget(QWidget):
         self.customContextMenuRequested.connect(self.showContextMenu)
         self.eraseHistorySig.connect(self.eraseHistory)
 
+        self.pendingTitles = {}
         self.pendingIcons = {}
         self.loading_ico = QPixmap(DefaultSettings.Icons.loading).scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
 
@@ -154,6 +156,7 @@ class HistoryWidget(QWidget):
         entryText.setFixedSize(400, 32)
         entryText.setText(title)
         entryText.setToolTip(url)
+        self.pendingTitles[url] = entryText
         layout.addWidget(entryText, 0, 1)
 
         layout.setColumnStretch(1, 0)
@@ -174,6 +177,16 @@ class HistoryWidget(QWidget):
             self._historyWidgets[iconFile] += [widget]
         else:
             self._historyWidgets[iconFile] = [widget]
+
+    def updateEntryTitle(self, title, url, icon):
+        entryText = self.pendingTitles.get(url, None)
+        if entryText is not None:
+            entryText.setText(title)
+            entryText.update()
+            if self.isVisible():
+                self.hide()
+                self.show()
+            self.history_manager.updateHistoryEntry(url, title=title)
 
     def updateEntryIcon(self, icon, iconPath):
         pixmap = icon.pixmap(QSize(16, 16))
@@ -199,6 +212,7 @@ class HistoryWidget(QWidget):
     def eraseHistory(self):
         self.history_manager.deleteAllHistory()
         self.pendingIcons = {}
+        self.pendingTitles = {}
         self._historyWidgets = {}
         for i in range(0, self.content_layout.count()):
             w = self.content_layout.itemAt(i).widget()
