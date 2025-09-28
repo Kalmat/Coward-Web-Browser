@@ -23,6 +23,7 @@ class History:
         self._historyValues = self._getDict("History/history", {})
         self._historyValuesByUrl = {}
         self.filterHistory()
+        LOGGER.write(LoggerSettings.LogLevels.info, "History", f"History loaded")
 
     def _getDict(self, key, defaultValue):
         value = defaultValue

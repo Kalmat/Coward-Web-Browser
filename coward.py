@@ -420,6 +420,8 @@ class MainWindow(QMainWindow):
         else:
             self.ui.tabs.tabBar().setTabButton(tabIndex, QTabBar.ButtonPosition.RightSide, None)
 
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"Tab created")
+
         return tabIndex
 
     def getBrowser(self, qurl, zoom):
@@ -563,13 +565,10 @@ class MainWindow(QMainWindow):
     def title_changed(self, title, browser):
 
         tabIndex = self.ui.tabs.indexOf(browser)
-
         self.ui.tabs.tabBar().setTabText(tabIndex, (title + " " * 30)[:29] if self.h_tabbar else "")
         self.ui.tabs.setTabToolTip(tabIndex, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
 
     def icon_changed(self, icon, browser):
-
-        tabIndex = self.ui.tabs.indexOf(browser)
 
         pixmap = icon.pixmap(QSize(self.icon_size, self.icon_size))
         pixmap = utils.fixDarkImage(pixmap)
@@ -578,6 +577,8 @@ class MainWindow(QMainWindow):
             pixmapRotated = pixmap
         else:
             pixmapRotated = pixmap.transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation)
+
+        tabIndex = self.ui.tabs.indexOf(browser)
         self.ui.tabs.tabBar().setTabIcon(tabIndex, QIcon(pixmapRotated))
 
         if self.settings.enableHistory:
@@ -602,23 +603,23 @@ class MainWindow(QMainWindow):
 
     def add_tab_action(self):
         self.addtab_btn = QLabel()
-        i = self.ui.tabs.addTab(self.addtab_btn, " ✚ ")
-        self.ui.tabs.tabBar().setTabButton(i, QTabBar.ButtonPosition.RightSide, None)
-        self.ui.tabs.widget(i).setDisabled(True)
-        self.ui.tabs.tabBar().setTabToolTip(i, "New tab")
+        tabIndex = self.ui.tabs.addTab(self.addtab_btn, " ✚ ")
+        self.ui.tabs.tabBar().setTabButton(tabIndex, QTabBar.ButtonPosition.RightSide, None)
+        self.ui.tabs.widget(tabIndex).setDisabled(True)
+        self.ui.tabs.tabBar().setTabToolTip(tabIndex, "New tab")
 
     # method for adding new tab when requested by user
     def add_new_tab(self, qurl=None, setFocus=True):
         self.ui.tabs.removeTab(self.ui.tabs.count() - 1)
         qurl = qurl or QUrl(DefaultSettings.Browser.defaultPage)
         if setFocus:
-            i = self.add_tab(qurl)
+            tabIndex = self.add_tab(qurl)
         else:
-            i = self.add_tab(qurl, tabIndex=self.ui.tabs.currentIndex() + 1)
+            tabIndex = self.add_tab(qurl, tabIndex=self.ui.tabs.currentIndex() + 1)
         self.update_urlbar(self.ui.tabs.currentWidget().url(), self.ui.tabs.currentWidget())
         self.add_tab_action()
         if setFocus:
-            self.ui.tabs.setCurrentIndex(i)
+            self.ui.tabs.setCurrentIndex(tabIndex)
 
     # method to update the url when tab is changed
     def navigate_to_url(self):
@@ -654,12 +655,12 @@ class MainWindow(QMainWindow):
         self.ui.back_btn.setEnabled(browser.history().canGoBack())
         self.ui.next_btn.setEnabled(browser.history().canGoForward())
 
-    def current_tab_changed(self, i):
+    def current_tab_changed(self, tabIndex):
 
-        if i == 0:
+        if tabIndex == 0:
             self.ui.tabs.setCurrentIndex(self.prevTabIndex or 1)
 
-        if i < self.ui.tabs.count() - 1:
+        if tabIndex < self.ui.tabs.count() - 1:
 
             # update the url
             self.update_urlbar(self.ui.tabs.currentWidget().url(), self.ui.tabs.currentWidget())
@@ -675,12 +676,12 @@ class MainWindow(QMainWindow):
             self.ui.tabs.currentWidget().findText("")
             self.search_widget.hide()
 
-    def tab_clicked(self, i):
+    def tab_clicked(self, tabIndex):
         if QApplication.mouseButtons() == Qt.MouseButton.LeftButton:
-            if i == 0:
+            if tabIndex == 0:
                 self.prevTabIndex = self.ui.tabs.currentIndex()
                 self.toggle_tabbar(clicked=True)
-            elif i == self.ui.tabs.count() - 1:
+            elif tabIndex == self.ui.tabs.count() - 1:
                 # this is needed to immediately refresh url bar content (maybe locked by qwebengineview?)
                 QTimer.singleShot(0, lambda p=DefaultSettings.Browser.defaultPage: self.ui.urlbar.setText(p))
                 self.add_new_tab()
@@ -729,6 +730,8 @@ class MainWindow(QMainWindow):
         # delete tab widget safely
         self.widgetToDelete.deleteLater()
 
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"Tab closed")
+
     def showContextMenu(self, point):
 
         tabIndex = self.ui.tabs.tabBar().tabAt(point)
@@ -745,15 +748,19 @@ class MainWindow(QMainWindow):
 
     def openLinkRequested(self, request):
 
+        url = request.requestedUrl().toString()
         if request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewWindow:
-            self.show_in_new_window([[request.requestedUrl().toString(), 1.0, True]])
+            self.show_in_new_window([[url, 1.0, True]])
+            LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"New window open: {url}")
 
         elif request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewTab:
-            self.add_new_tab(request.requestedUrl(), setFocus=False)
+            self.add_new_tab(url, setFocus=False)
+            LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"New tab open: {url}")
 
         elif request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewDialog:
             if request.isUserInitiated():
                 self.show_in_new_dialog(request)
+                LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"New dialog open: {url}")
         #     else:
         #         # This would allow popups... something we don't want, of course
         #         self.show_in_new_dialog(request)
@@ -878,7 +885,8 @@ class MainWindow(QMainWindow):
 
     def openExternalPlayer(self):
         page = self.ui.tabs.currentWidget().page()
-        page.openInExternalPlayer()
+        page.externalPlayer.openInExternalPlayer()
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"Opening external player: {DefaultSettings.Player.externalPlayerType.value}")
 
     def manage_autohide(self, checked=False, enabled=None, hide_all=False):
 
