@@ -221,7 +221,7 @@ class HistoryWidget(QWidget):
     def deleteHistoryEntry(self, checked, point):
         w = self._getWidgetByPosition(point)
         if w:
-            url = w.toolTip()
+            url = w.layout().itemAt(1).widget().toolTip()
             if url:
                 self.history_manager.deleteHistoryEntry(url)
             self.update()
