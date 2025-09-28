@@ -110,7 +110,6 @@ class HistoryWidget(QWidget):
         self.pendingIcons = {}
         self.loading_ico = QPixmap(DefaultSettings.Icons.loading).scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
 
-        self._historyWidgets = {}
         for url in self.history_manager.history.keys():
             date = self.history_manager.history[url]["date"]
             title = self.history_manager.history[url]["title"]
@@ -172,11 +171,6 @@ class HistoryWidget(QWidget):
             self.hide()
             self.show()
 
-        if iconFile in self._historyWidgets.keys():
-            self._historyWidgets[iconFile] += [widget]
-        else:
-            self._historyWidgets[iconFile] = [widget]
-
     def updateEntryTitle(self, title, url):
         entryText = self.pendingTitles.get(url, None)
         if entryText is not None:
@@ -213,7 +207,6 @@ class HistoryWidget(QWidget):
         self.history_manager.deleteAllHistory()
         self.pendingIcons = {}
         self.pendingTitles = {}
-        self._historyWidgets = {}
         for i in range(0, self.content_layout.count()):
             w = self.content_layout.itemAt(i).widget()
             w.deleteLater()
@@ -228,11 +221,6 @@ class HistoryWidget(QWidget):
             if self.isVisible():
                 self.hide()
                 self.show()
-            iconFile = w.layout().itemAt(0).widget().accessibleName()
-            self._historyWidgets[iconFile].pop(self._historyWidgets[iconFile].index(w))
-            iconPath = os.path.join(self.history_manager.historyFolder, iconFile)
-            if os.path.exists(iconPath) and not self._historyWidgets[iconFile]:
-                os.remove(iconPath)
             w.deleteLater()
 
     def loadHistoryEntry(self, url):
