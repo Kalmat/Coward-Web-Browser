@@ -21,7 +21,6 @@ class History:
             os.makedirs(self.historyFolder)
 
         self._historyValues = self._getDict("History/history", {})
-        self._historyValuesByUrl = {}
         self.filterHistory()
         LOGGER.write(LoggerSettings.LogLevels.info, "History", f"History loaded")
 
@@ -46,18 +45,18 @@ class History:
         return self._historyObj.fileName()
 
     def filterHistory(self):
-        keys = list(self._historyValues.keys())
-        keys.sort(reverse=True)
         historySorted = {}
-        for i, date in enumerate(keys):
-            item = self._historyValues[date]
+        icons = []
+        # sort by date and discard items beyond maximum history size (also delete icon file if not needed anymore)
+        for i, (url, item) in enumerate(sorted(self._historyValues.items(), reverse=True, key=lambda item: item[1]["date"])):
+            item = self._historyValues[url]
             icon = item["icon"]
-            url = item["url"]
             if i <= DefaultSettings.History.historySize:
-                historySorted[date] = item
-                self._historyValuesByUrl[url] = date
+                historySorted[url] = item
+                if icon not in icons:
+                    icons.append(icon)
             else:
-                if icon != DefaultSettings.Icons.loading and os.path.exists(icon) and url not in self._historyValuesByUrl.keys():
+                if icon != DefaultSettings.Icons.loading and os.path.exists(icon) and icon not in icons:
                     try:
                         os.remove(icon)
                     except:
@@ -71,42 +70,37 @@ class History:
     def addHistoryEntry(self, item):
         added = True
         date, title, url, icon = item
-        prevDate = self._historyValuesByUrl.get(url, None)
-        self._historyValuesByUrl[url] = date
-        if prevDate is not None:
+        item = self._historyValues.get(url, None)
+        if item is not None:
             added = False
-            del self._historyValues[prevDate]
-        self._historyValues[date] = {
+            del self._historyValues[url]
+        self._historyValues[url] = {
+            "date": date,
             "title": title,
-            "url": url,
             "icon": icon
         }
         return added
 
     def updateHistoryEntry(self, url, title=None, icon=None):
-        date = self._historyValuesByUrl.get(url, None)
-        if date is not None:
-            item = self._historyValues[date]
+        item = self._historyValues.get(url, None)
+        if item is not None:
             if title is not None:
                 item["title"] = title
             if icon is not None:
                 item["icon"] = icon
-            self._historyValues[date] = item
+            self._historyValues[url] = item
 
-    def deleteHistoryEntry(self, date):
+    def deleteHistoryEntry(self, url):
         try:
-            url = self._historyValues[date]["url"]
-            del self._historyValues[date]
-            del self._historyValuesByUrl[url]
+            del self._historyValues[url]
             LOGGER.write(LoggerSettings.LogLevels.info, "History", f"History entry deleted: {url}")
         except:
-            LOGGER.write(LoggerSettings.LogLevels.warning, "HistoryManager", f"History entry couldn't be deleted: {date}")
+            LOGGER.write(LoggerSettings.LogLevels.warning, "HistoryManager", f"History entry couldn't be deleted: {url}")
 
     def deleteAllHistory(self):
         try:
             shutil.rmtree(self.historyFolder)
             self._historyValues = {}
-            self._historyValuesByUrl = {}
             self.saveHistory()
             LOGGER.write(LoggerSettings.LogLevels.info, "HistoryManager", "History deleted")
         except:

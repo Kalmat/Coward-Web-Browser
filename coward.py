@@ -562,6 +562,8 @@ class MainWindow(QMainWindow):
     def url_changed(self, qurl, browser):
         self.update_urlbar(qurl, browser)
 
+        # All this has to be done here since loadfinished() is not triggered, titleChanged() is triggered twice, etc...
+
         # TODO: find a reliable way to check if there is a media playback error (most likely, there isn't)
         # this is the opposite strategy: checking if it can be streamed using streamlink...
         # ... but it takes A LOT of time (1.8 secs)
@@ -570,7 +572,6 @@ class MainWindow(QMainWindow):
         #     self.checkedURL.append(url)
         #     browser.page().checkCanPlayMedia()
 
-        # this has to be done here since loadfinished() is not triggered, titleChanged() is triggered twice, etc...
         if self.settings.enableHistory:
             full_filename = self._getIconFileName(qurl)
             item = [str(time.time()), browser.title(), qurl.toString(), full_filename]

@@ -111,11 +111,10 @@ class HistoryWidget(QWidget):
         self.loading_ico = QPixmap(DefaultSettings.Icons.loading).scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
 
         self._historyWidgets = {}
-        for key in self.history_manager.history.keys():
-            date = key
-            title = self.history_manager.history[key]["title"]
-            url = self.history_manager.history[key]["url"]
-            icon = self.history_manager.history[key]["icon"]
+        for url in self.history_manager.history.keys():
+            date = self.history_manager.history[url]["date"]
+            title = self.history_manager.history[url]["title"]
+            icon = self.history_manager.history[url]["icon"]
             self.addHistoryEntry([date, title, url, icon])
 
     def addHistoryEntry(self, entry):
@@ -186,6 +185,7 @@ class HistoryWidget(QWidget):
             if self.isVisible():
                 self.hide()
                 self.show()
+            # can not delete pendingTitles item since this can be invoked several times
             self.history_manager.updateHistoryEntry(url, title=title)
 
     def updateEntryIcon(self, icon, iconPath):
@@ -221,9 +221,9 @@ class HistoryWidget(QWidget):
     def deleteHistoryEntry(self, checked, point):
         w = self._getWidgetByPosition(point)
         if w:
-            key = w.accessibleName()
-            if key:
-                self.history_manager.deleteHistoryEntry(key)
+            url = w.toolTip()
+            if url:
+                self.history_manager.deleteHistoryEntry(url)
             self.update()
             if self.isVisible():
                 self.hide()
