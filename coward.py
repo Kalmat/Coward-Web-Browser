@@ -460,6 +460,14 @@ class MainWindow(QMainWindow):
             self.ui.reload_btn.setToolTip("Reload page")
         # TODO: find a reliable way to check if there is a media playback error (most likely, there isn't)
         # browser.page().checkCanPlayMedia()
+        if self.settings.enableHistory:
+            full_filename = self._getIconFileName(browser.url())
+            item = [str(time.time()), browser.title(), browser.url().toString(), full_filename]
+            added = self.history_manager.addHistoryEntry(item)
+            if added:
+                self.history_widget.addHistoryEntry(item)
+            else:
+                self.history_widget.updateHistoryEntry(item)
 
     def getProfile(self, browser=None):
 
@@ -575,19 +583,12 @@ class MainWindow(QMainWindow):
         self.ui.tabs.tabBar().setTabIcon(tabIndex, QIcon(pixmapRotated))
 
         if self.settings.enableHistory:
-            full_filename = self._getIconFileName(browser.url().toString())
-            item = [str(time.time()), browser.page().title(), self.ui.tabs.widget(tabIndex).url().toString(), full_filename]
-            added = self.history_manager.addHistoryEntry(item)
-            if added:
-                if not os.path.exists(full_filename):
-                    (pixmap.scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-                           .save(full_filename, "PNG"))
-                self.history_widget.addHistoryEntry(item, browser.__str__())
-            else:
-                self.history_widget.updateHistoryEntry(item)
+            full_filename = self._getIconFileName(browser.url())
+            self.history_widget.updateEntryIcon(icon, full_filename)
 
-    def _getIconFileName(self, url):
-        hash_object = hashlib.sha256(url.encode())
+    def _getIconFileName(self, qurl):
+        host = qurl.host()
+        hash_object = hashlib.sha256(host.encode())
         filename = str(hash_object.hexdigest())
         full_filename = os.path.join(self.history_manager.historyFolder, filename)
         return full_filename

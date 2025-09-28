@@ -1,7 +1,7 @@
 import os.path
 import shutil
 
-from PyQt6.QtCore import Qt, QUrl, pyqtSlot, pyqtSignal
+from PyQt6.QtCore import Qt, QUrl, pyqtSlot, pyqtSignal, QSize
 from PyQt6.QtGui import QPixmap, QAction
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QGridLayout, QPushButton, QCheckBox, QScrollArea, QMenu, \
     QStyle, QApplication
@@ -116,7 +116,7 @@ class HistoryWidget(QWidget):
             icon = self.history_manager.history[key]["icon"]
             self.addHistoryEntry([date, title, url, icon])
 
-    def addHistoryEntry(self, entry, key=None):
+    def addHistoryEntry(self, entry):
 
         self.init_label.setText(self.historyText if self._settings.enableHistory else self.historyDisabled)
 
@@ -134,10 +134,15 @@ class HistoryWidget(QWidget):
 
         entryIcon = QLabel()
         entryIcon.setObjectName("entryIcon")
+        iconFile = os.path.basename(icon)
+        entryIcon.setAccessibleName(iconFile)
         # entryIcon.setDisabled(True)
         entryIcon.setFixedSize(24, 24)
         if not os.path.exists(icon):
-            self.pendingIcons[key] = entryIcon
+            if icon in self.pendingIcons.keys():
+                self.pendingIcons[os.path.basename(icon)] += [entryIcon]
+            else:
+                self.pendingIcons[os.path.basename(icon)] = [entryIcon]
             icon = self.loading_ico
         entryIcon.setPixmap(QPixmap(icon))
         layout.addWidget(entryIcon, 0, 0)
@@ -165,12 +170,15 @@ class HistoryWidget(QWidget):
             self.hide()
             self.show()
 
-        self._historyWidgets[url] = widget
+        if iconFile in self._historyWidgets.keys():
+            self._historyWidgets[iconFile] += [widget]
+        else:
+            self._historyWidgets[iconFile] = [widget]
 
     def updateHistoryEntry(self, entry):
         date, title, url, icon = entry
-        w = self._historyWidgets.get(url, None)
-        if w is not None:
+        widgets = self._historyWidgets.get(os.path.basename(icon), [])
+        for w in widgets:
             w.layout().itemAt(1).widget().setText(title)
             w.setAccessibleName(date)
             w.update()
@@ -178,36 +186,20 @@ class HistoryWidget(QWidget):
                 self.hide()
                 self.show()
 
-    def updateEntryIcon(self, icon, key):
-        entryIcon = self.pendingIcons.get(key, None)
-        if entryIcon is not None:
-            entryIcon.setPixmap(QPixmap(icon))
-            entryIcon.update()
+    def updateEntryIcon(self, icon, iconPath):
+        pixmap = icon.pixmap(QSize(16, 16))
+        if not os.path.exists(iconPath):
+            pixmap.save(iconPath, "PNG")
+        iconFile = os.path.basename(iconPath)
+        entryIcons = self.pendingIcons.get(iconFile, [])
+        if entryIcons:
+            for entryIcon in entryIcons:
+                entryIcon.setPixmap(QPixmap(pixmap))
+                entryIcon.update()
+            self.pendingIcons.pop(iconFile)
             if self.isVisible():
                 self.hide()
                 self.show()
-            del self.pendingIcons[key]
-
-    def loadHistoryEntry(self, url):
-        self.load_url_sig.emit(QUrl(url))
-
-    def toggleHistory(self, state):
-        enabled = self.toggle_chk.checkState() == Qt.CheckState.Checked
-        self.toggle_chk.setChecked(enabled)
-        self.toggle_chk.setText("Disable History" if enabled else "Enable History")
-        self._settings.setEnableHistory(enabled, persistent=True)
-        widgets_count = self.content_layout.count()
-        if enabled:
-            self.scroll.show()
-            self.content_widget.show()
-            if widgets_count > 1:
-                self.init_label.setText(self.historyText)
-            else:
-                self.init_label.setText(self.historyEmpty)
-        else:
-            self.scroll.hide()
-            self.content_widget.hide()
-            self.init_label.setText(self.historyDisabled)
 
     def eraseHistoryRequest(self):
         dialog = self.dialog_manager.createDialog(
@@ -233,9 +225,32 @@ class HistoryWidget(QWidget):
             if self.isVisible():
                 self.hide()
                 self.show()
-            url = w.layout().itemAt(1).widget().toolTip()
-            del self._historyWidgets[url]
+            iconFile = w.layout().itemAt(0).widget().accessibleName()
+            self._historyWidgets[iconFile].pop(self._historyWidgets[iconFile].index(w))
+            if not self._historyWidgets[iconFile]:
+                os.remove(os.path.join(self.history_manager.historyFolder, iconFile))
             w.deleteLater()
+
+    def loadHistoryEntry(self, url):
+        self.load_url_sig.emit(QUrl(url))
+
+    def toggleHistory(self, state):
+        enabled = self.toggle_chk.checkState() == Qt.CheckState.Checked
+        self.toggle_chk.setChecked(enabled)
+        self.toggle_chk.setText("Disable History" if enabled else "Enable History")
+        self._settings.setEnableHistory(enabled, persistent=True)
+        widgets_count = self.content_layout.count()
+        if enabled:
+            self.scroll.show()
+            self.content_widget.show()
+            if widgets_count > 1:
+                self.init_label.setText(self.historyText)
+            else:
+                self.init_label.setText(self.historyEmpty)
+        else:
+            self.scroll.hide()
+            self.content_widget.hide()
+            self.init_label.setText(self.historyDisabled)
 
     def showContextMenu(self, point):
         self.delete_action.triggered.disconnect()
