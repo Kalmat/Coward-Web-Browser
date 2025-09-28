@@ -588,9 +588,12 @@ class MainWindow(QMainWindow):
 
     def _getIconFileName(self, qurl):
         host = qurl.host()
-        hash_object = hashlib.sha256(host.encode())
-        filename = str(hash_object.hexdigest())
-        full_filename = os.path.join(self.history_manager.historyFolder, filename)
+        if host:
+            hash_object = hashlib.sha256(host.encode())
+            filename = str(hash_object.hexdigest())
+            full_filename = os.path.join(self.history_manager.historyFolder, filename)
+        else:
+            full_filename = DefaultSettings.Icons.loading
         return full_filename
 
     def add_toggletab_action(self):

@@ -139,11 +139,11 @@ class HistoryWidget(QWidget):
         # entryIcon.setDisabled(True)
         entryIcon.setFixedSize(24, 24)
         if not os.path.exists(icon):
-            if icon in self.pendingIcons.keys():
-                self.pendingIcons[os.path.basename(icon)] += [entryIcon]
+            iconFile = os.path.basename(icon)
+            if iconFile in self.pendingIcons.keys():
+                self.pendingIcons[iconFile] += [entryIcon]
             else:
-                self.pendingIcons[os.path.basename(icon)] = [entryIcon]
-            icon = self.loading_ico
+                self.pendingIcons[iconFile] = [entryIcon]
         entryIcon.setPixmap(QPixmap(icon))
         layout.addWidget(entryIcon, 0, 0)
 
