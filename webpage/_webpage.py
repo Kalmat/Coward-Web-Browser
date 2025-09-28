@@ -161,3 +161,14 @@ class WebPage(QWebEnginePage):
         #             # this works, but throws too many "false" alarms
         #             self.checkCanPlayMedia()
 
+
+    def showDialog(self, message, buttonOkOnly=False, acceptSlot=None, rejectSlot=None):
+        dialog = self.dialog_manager.createDialog(
+            icon=self.icon(),
+            title=self.title() or self.url().toString(),
+            message=message,
+            buttonOkOnly=buttonOkOnly,
+            acceptedSlot=acceptSlot,
+            rejectedSlot=rejectSlot
+        )
+        return dialog

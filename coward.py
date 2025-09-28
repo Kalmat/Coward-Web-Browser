@@ -1272,8 +1272,9 @@ class MainWindow(QMainWindow):
         for i in range(1, self.ui.tabs.count() - 1):
             browser = self.ui.tabs.widget(i)
             page = browser.page()
-            page.closeExternalPlayer(False, page.url().toString())
+            page.externalPlayer.closeExternalPlayer(False, page.url().toString())
             tabs.append([browser.url().toString(), page.zoomFactor(), i == self.ui.tabs.currentIndex()])
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"Current tabs saved: {len(tabs)}")
 
         # save other open windows
         # only open windows when main instance is closed will be remembered
@@ -1297,6 +1298,7 @@ class MainWindow(QMainWindow):
 
             # closing all other open child windows
             w.close()
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"New windows saved: {len(new_wins)}")
 
         # only main window can save settings
         if not self.isNewWin and not self.isIncognito:
@@ -1309,12 +1311,13 @@ class MainWindow(QMainWindow):
         if self.cache_manager.deleteCacheRequested and not self.isNewWin and not self.isIncognito:
             # restart app to wipe all cache folders but the last one (not possible while running since it's locked)
             args += [appconfig.Options.deleteCache] + [self.cache_manager.lastCache]
+            LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Restart application to delete cache")
 
         if os.path.exists(DefaultSettings.App.tempFolder):
             args += [appconfig.Options.deletePlayerTemp]
+            LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Restart application to delete temp files")
 
         if args:
-            LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Restart application to delete cache and/or temp files")
             status = QProcess.startDetached(sys.executable, sys.argv + args)
 
 
