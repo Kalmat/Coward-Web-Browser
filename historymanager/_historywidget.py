@@ -178,7 +178,7 @@ class HistoryWidget(QWidget):
         else:
             self._historyWidgets[iconFile] = [widget]
 
-    def updateEntryTitle(self, title, url, icon):
+    def updateEntryTitle(self, title, url):
         entryText = self.pendingTitles.get(url, None)
         if entryText is not None:
             entryText.setText(title)

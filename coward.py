@@ -584,8 +584,7 @@ class MainWindow(QMainWindow):
         self.ui.tabs.setTabToolTip(tabIndex, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
 
         if self.settings.enableHistory:
-            full_filename = self._getIconFileName(browser.url())
-            self.history_widget.updateEntryTitle(title, browser.url().toString(), full_filename)
+            self.history_widget.updateEntryTitle(title, browser.url().toString())
 
     def icon_changed(self, icon, browser):
 
