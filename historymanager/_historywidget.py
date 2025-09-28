@@ -185,7 +185,7 @@ class HistoryWidget(QWidget):
             for entryIcon in entryIcons:
                 entryIcon.setPixmap(QPixmap(pixmap))
                 entryIcon.update()
-            self.pendingIcons.pop(iconFile)
+            del self.pendingIcons[iconFile]
             if self.isVisible():
                 self.hide()
                 self.show()

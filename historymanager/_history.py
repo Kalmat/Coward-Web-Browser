@@ -103,6 +103,7 @@ class History:
 
     def saveHistory(self):
         self._historyObj.setValue("History/history", self._historyValues)
+        LOGGER.write(LoggerSettings.LogLevels.info, "HistoryManager", "History saved")
 
     def instance(self):
         if self._historyObj is None:
