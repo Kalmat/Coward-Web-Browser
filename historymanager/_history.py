@@ -70,11 +70,11 @@ class History:
     def addHistoryEntry(self, item):
         added = True
         date, title, url, icon = item
-        old_date = self._historyValuesByUrl.get(url, None)
+        prevDate = self._historyValuesByUrl.get(url, None)
         self._historyValuesByUrl[url] = date
-        if old_date is not None:
+        if prevDate is not None:
             added = False
-            del self._historyValues[old_date]
+            del self._historyValues[prevDate]
         self._historyValues[date] = {
             "title": title,
             "url": url,
@@ -89,7 +89,7 @@ class History:
             del self._historyValuesByUrl[url]
             LOGGER.write(LoggerSettings.LogLevels.info, "History", f"History entry deleted: {url}")
         except:
-            LOGGER.write(LoggerSettings.LogLevels.warning, "HistoryManager", f"History entry couldn't be deleted: {key}")
+            LOGGER.write(LoggerSettings.LogLevels.warning, "HistoryManager", f"History entry couldn't be deleted: {date}")
 
     def deleteAllHistory(self):
         try:

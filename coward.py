@@ -466,8 +466,6 @@ class MainWindow(QMainWindow):
             added = self.history_manager.addHistoryEntry(item)
             if added:
                 self.history_widget.addHistoryEntry(item)
-            else:
-                self.history_widget.updateHistoryEntry(item)
 
     def getProfile(self, browser=None):
 

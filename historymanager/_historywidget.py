@@ -175,17 +175,6 @@ class HistoryWidget(QWidget):
         else:
             self._historyWidgets[iconFile] = [widget]
 
-    def updateHistoryEntry(self, entry):
-        date, title, url, icon = entry
-        widgets = self._historyWidgets.get(os.path.basename(icon), [])
-        for w in widgets:
-            w.layout().itemAt(1).widget().setText(title)
-            w.setAccessibleName(date)
-            w.update()
-            if self.isVisible():
-                self.hide()
-                self.show()
-
     def updateEntryIcon(self, icon, iconPath):
         pixmap = icon.pixmap(QSize(16, 16))
         if not os.path.exists(iconPath):
