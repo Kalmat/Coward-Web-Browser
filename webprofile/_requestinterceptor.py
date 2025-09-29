@@ -18,19 +18,24 @@ except:
 
 class RequestInterceptor(QWebEngineUrlRequestInterceptor):
 
-    def __init__(self, blocked_urls, rulesFolder):
+    def __init__(self, blocked_urls, rules_folder):
         super().__init__()
 
         # List of URLs (as strings or patterns) to block
         self.blocked_urls = blocked_urls
-        self.easylistPath = os.path.join(rulesFolder, DefaultSettings.AdBlocker.easylistFile)
-        self.easyprivacyPath = os.path.join(rulesFolder, DefaultSettings.AdBlocker.easyprivacytFile)
+        self.easylistPath = os.path.join(rules_folder, DefaultSettings.AdBlocker.easylistFile)
+        self.easyprivacyPath = os.path.join(rules_folder, DefaultSettings.AdBlocker.easyprivacytFile)
 
         # enable / disable adblocker
         self.enableAdBlocker = DefaultSettings.AdBlocker.enableAdBlocker
+        self.adblocker = None
         self.resourceTypes = {}
 
-        if self.enableAdBlocker:
+    def setEnabled(self, enabled):
+
+        self.enableAdBlocker = enabled
+
+        if self.enableAdBlocker and self.adblocker is None:
 
             self.resourceTypes = self.getRequestType()
 
@@ -71,7 +76,7 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
                 LOGGER.write(LoggerSettings.LogLevels.info, "RequestInterceptor", f"Black List Blocked: {url}")
 
         # check ad-block rules
-        if self.enableAdBlocker:
+        if self.enableAdBlocker and self.adblocker is not None:
             should_block = self.adblocker.check_network_urls(
                 url=url,
                 source_url=info.initiator().url(),

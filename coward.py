@@ -79,6 +79,9 @@ class MainWindow(QMainWindow):
         # prepare new wins config, with or without initial tabs
         self.isNewWin = new_win
 
+        # Enable/Disable adblocker
+        self.adblock = self.settings.enableAdblocker
+
         # Enable/Disable cookies and prepare incognito environment
         if (new_win and incognito is not None) or OPTIONS.incognitoMode:
             self.cookies = True
@@ -113,6 +116,7 @@ class MainWindow(QMainWindow):
         self.settings.backupSettings()
 
         # save all values (even those which are internal by the moment, in case .ini file didn't exist)
+        self.settings.setEnableAdblocker(self.adblock, True)
         self.settings.setAllowCookies(self.cookies, True)
         self.settings.setTheme(self.settings.theme, True)
         self.settings.setForceDark(self.dark_mode, True)
@@ -161,7 +165,9 @@ class MainWindow(QMainWindow):
 
         # Request interceptor for blocking URLs and ad-blocking
         self.requestInterceptor = RequestInterceptor(DefaultSettings.AdBlocker.urlBlackList,
-                                                     os.path.join(self.appStorageFolder, DefaultSettings.AdBlocker.filterlistsFolder))
+                                                     os.path.join(self.appStorageFolder, DefaultSettings.AdBlocker.filterlistsFolder)
+                                                     )
+        self.requestInterceptor.setEnabled(self.settings.enableAdblocker)
 
         # creating download manager before custom title bar to allow moving it too
         self.dl_manager = DownloadManager(self)
@@ -227,7 +233,8 @@ class MainWindow(QMainWindow):
         # apply styles to independent widgets
         self.applyStyles()
 
-        # set cookies configuration according to settings
+        # set cookies and adblocker configuration according to settings
+        self.manage_adblock(clicked=False)
         self.manage_cookies(clicked=False)
 
         # set tabbar configuration according to orientation
@@ -288,6 +295,7 @@ class MainWindow(QMainWindow):
         self.ui.hist_off_btn.clicked.connect(self.manage_history)
         self.ui.dark_on_btn.clicked.connect(self.manage_dark_mode)
         self.ui.dark_off_btn.clicked.connect(self.manage_dark_mode)
+        self.ui.adblock_btn.triggered.connect(lambda: self.manage_adblock(clicked=True))
         self.ui.cookie_btn.triggered.connect(lambda: self.manage_cookies(clicked=True))
         self.ui.clean_btn.triggered.connect(self.handleCleanAllRequest)
         self.ui.ninja_btn.clicked.connect(lambda: self.show_in_new_window(incognito=True))
@@ -480,8 +488,7 @@ class MainWindow(QMainWindow):
                 # apply application cache location
                 cache_path = self.cache_manager.cachePath
 
-            self._profile = WebProfile(cache_path, browser, self.cookie_filter,
-                                       DefaultSettings.AdBlocker.enableAdBlocker, self.requestInterceptor)
+            self._profile = WebProfile(cache_path, browser, self.cookie_filter, self.requestInterceptor)
 
         return self._profile
 
@@ -1087,11 +1094,20 @@ class MainWindow(QMainWindow):
         if self.dl_manager.addDownload(item):
             self.show_dl_manager()
 
+    def manage_adblock(self, clicked):
+
+        if clicked:
+            self.adblock = not self.adblock
+        self.requestInterceptor.setEnabled(self.adblock)
+        self.ui.adblock_btn.setText("🛑" if self.adblock else "📢")
+        self.ui.adblock_btn.setToolTip("Adblocker is now %s (ads are %s)"
+                                       % (("enabled", "blocked") if self.adblock else ("disabled", "allowed")))
+
     def manage_cookies(self, clicked):
 
         if clicked:
             self.cookies = not self.cookies
-        self.ui.cookie_btn.setText("🍪" if self.cookies else "⛔")
+        self.ui.cookie_btn.setText("🍪" if self.cookies else "⛔")  # ⛔🚫🚯
         self.ui.cookie_btn.setToolTip("Cookies are now %s" % ("enabled" if self.cookies else "disabled"))
 
     def cookie_filter(self, cookie, origin=None):

@@ -198,6 +198,13 @@ class Ui_MainWindow:
 
         self.navtab.addSeparator()
 
+        # adding adblocker mgt.
+        self.adblock_btn = QAction("", self.navtab)
+        font = self.adblock_btn.font()
+        font.setPointSize(font.pointSize() + 4)
+        self.adblock_btn.setFont(font)
+        self.navtab.addAction(self.adblock_btn)
+
         # adding cookie mgt.
         self.cookie_btn = QAction("", self.navtab)
         font = self.cookie_btn.font()

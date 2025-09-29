@@ -18,6 +18,7 @@ class Settings:
                                    DefaultSettings.Storage.Settings.settingsFile
                                    )
 
+        self._enableAdblocker = self._getBool("Security/adblocker", True)
         self._allowCookies = self._getBool("Security/cookies", True)
         self._enableHistory = self._getBool("Security/history", True)
         self._theme = self._getStr("Appearance/theme", DefaultSettings.Theme.defaultTheme)
@@ -171,6 +172,15 @@ class Settings:
         self._iconSize = value
         if persistent:
             self._settings.setValue("Appearance/icon_size", value)
+
+    @property
+    def enableAdblocker(self):
+        return self._enableAdblocker
+
+    def setEnableAdblocker(self, value, persistent=False):
+        self._enableAdblocker = value
+        if persistent:
+            self._settings.setValue("Security/adblocker", value)
 
     @property
     def allowCookies(self):
