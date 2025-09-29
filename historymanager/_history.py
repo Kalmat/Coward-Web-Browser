@@ -59,7 +59,7 @@ class History:
         for iconFile in os.listdir(self.historyFolder):
             if iconFile != self.historyFile and iconFile not in icons:
                 try:
-                    os.remove(iconFile)
+                    os.remove(os.path.join(self.historyFolder, iconFile))
                 except:
                     pass
         self._historyValues = historySorted

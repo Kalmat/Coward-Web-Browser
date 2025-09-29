@@ -203,7 +203,7 @@ class MainWindow(QMainWindow):
             self.http_manager = HttpManager()
 
         # trying to control which URLs have being already checked for non-compatible media
-        self.checkedURL = []
+        # self.checkedURL = []
 
         # keep track of open popups and assure their persistence (anyway, we are not allowing popups by now)
         self.popups = []
