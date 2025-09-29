@@ -10,6 +10,8 @@ class Options:
     deleteCache = "-delete_cache"
     deletePlayerTemp = "--delete_player_temp"
     enableDebug = "-enable_debug"
+    enableJavaConsoleMessages = "-enable_JavaConsoleMessages"
+    enableRequestInterceptorMessages = "-enable_RequestInterceptorMessages"
     enableLogging = "-enable_logging"
     enableDPI = "-enable_DPI"
     securityLevel = "-security_level"
@@ -29,6 +31,8 @@ class OptionsParser:
         self.deleteCache = self.lastCache is not None
         self.deletePlayerTemp = Options.deletePlayerTemp in args
         self.enableDebug = self._getBool(args, Options.enableDebug)
+        self.enableJavaConsoleMessages = self._getBool(args, Options.enableJavaConsoleMessages)
+        self.enableRequestInterceptorMessages = self._getBool(args, Options.enableRequestInterceptorMessages)
         self.enableLogging = self._getBool(args, Options.enableLogging)
         self.enableDPI = Options.deleteCache in args
         self.securityLevel = self._getSecurityLevel(args, Options.securityLevel)
@@ -62,7 +66,7 @@ class OptionsParser:
         value = self._getValue(args, option)
         if value is not None:
             if value in ("True", "true", "1", "False", "false", "0"):
-                return value
+                return value in ("True", "true", "1")
             else:
                 valid_values = "True/true/1 or False/false/0"
                 LOGGER.write(LoggerSettings.LogLevels.info, "OptionsParser", f"Value for {option} must be in {valid_values}", force=True)

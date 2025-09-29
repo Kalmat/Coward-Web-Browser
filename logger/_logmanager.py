@@ -9,6 +9,8 @@ class LoggerManager:
     def __init__(self):
 
         self.debugEnabled = LoggerSettings.debugEnabled
+        self.javaConsoleMessagesEnabled = LoggerSettings.javaConsoleEnabled
+        self.requestInterceptorMessagesEnabled = LoggerSettings.requestInterceptorEnabled
         self.loggingEnabled = LoggerSettings.loggingEnabled
         self.logDepth = LoggerSettings.logDepth
         self.logFolder = LoggerSettings.loggerFolder
@@ -21,6 +23,12 @@ class LoggerManager:
 
     def enableDebug(self, enable):
         self.debugEnabled = enable
+
+    def enableJavaConsoleMessages(self, enable):
+        self.javaConsoleMessagesEnabled = enable
+
+    def enableRequestInterceptorMessages(self, enable):
+        self.requestInterceptorMessagesEnabled = enable
 
     def enableLogging(self, enable):
 
@@ -43,11 +51,14 @@ class LoggerManager:
     def write(self, error_level, origin, message, force=False):
         msg = error_level.value + time.strftime(" %Y%m%d-%H%M%S ") + origin + " --- " + message
         if self.debugEnabled or force:
-            if self.loggingEnabled:
-                with open(self.logFile, 'a', encoding="utf-8") as file:
-                    file.write(msg + "\n")
-            else:
-                print(msg)
+            if (origin not in ("JavaScriptConsole", "RequestInterceptor") or
+                    (origin == "JavaScriptConsole" and self.javaConsoleMessagesEnabled) or
+                    (origin == "RequestInterceptor" and self.requestInterceptorMessagesEnabled)):
+                if self.loggingEnabled:
+                    with open(self.logFile, 'a', encoding="utf-8") as file:
+                        file.write(msg + "\n")
+                else:
+                    print(msg)
 
     def checkFiles(self, logFolder, logDepth):
 

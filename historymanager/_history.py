@@ -21,6 +21,7 @@ class History:
             os.makedirs(self.historyFolder)
 
         self._historyValues = self._getDict("History/history", {})
+        self._titles = {}
         self.filterHistory()
         LOGGER.write(LoggerSettings.LogLevels.info, "History", f"History loaded")
 
@@ -50,10 +51,12 @@ class History:
         # sort by date and discard items beyond maximum history size (also delete icon file if not needed anymore)
         for i, (url, item) in enumerate(sorted(self._historyValues.items(), reverse=True, key=lambda item: item[1]["date"])):
             item = self._historyValues[url]
+            title = item["title"]
             icon = item["icon"]
             if i < DefaultSettings.History.historySize:
                 historySorted[url] = item
                 icons.add(icon)
+                self._titles[title] = url
             else:
                 break
         for iconFile in os.listdir(self.historyFolder):
@@ -75,6 +78,11 @@ class History:
         if item is not None:
             added = False
             del self._historyValues[url]
+        if title in self._titles.keys():
+            added = False
+            old_url = self._titles[title]
+            del self._historyValues[old_url]
+        self._titles[title] = url
         self._historyValues[url] = {
             "date": date,
             "title": title,
@@ -87,11 +95,12 @@ class History:
         if item is not None:
             if title is not None:
                 item["title"] = title
+                self._titles[title] = url
             if icon is not None:
                 item["icon"] = icon
             self._historyValues[url] = item
 
-    def deleteHistoryEntry(self, url):
+    def deleteHistoryEntryByUrl(self, url):
         try:
             del self._historyValues[url]
             LOGGER.write(LoggerSettings.LogLevels.info, "History", f"History entry deleted: {url}")

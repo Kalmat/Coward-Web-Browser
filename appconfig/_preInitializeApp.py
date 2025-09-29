@@ -19,6 +19,14 @@ def preInitializeApp(options):
             # is this necessary or are these messages also caught by JavaScriptConsoleMessages()?
             # utils.enableChromiumDebug()
 
+        # enable / disable debugging javascript console messages (requires to enable debug too)
+        if options.enableJavaConsoleMessages is not None:
+            LOGGER.enableJavaConsoleMessages(options.enableJavaConsoleMessages)
+
+        # enable / disable debugging adblocker messages in request interceptor (requires to enable debug too)
+        if options.enableRequestInterceptorMessages is not None:
+            LOGGER.enableRequestInterceptorMessages(options.enableRequestInterceptorMessages)
+
         # enable / disable logging to file
         if options.enableLogging is not None:
             LOGGER.enableLogging(options.enableLogging)

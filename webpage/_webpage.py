@@ -156,8 +156,7 @@ class WebPage(QWebEnginePage):
         # YOUTUBE:
         # --> No error
 
-        if LoggerSettings.javaConsoleEnabled:
-            LOGGER.write(self.errorLevel.get(level, LoggerSettings.LogLevels.fatal), "JavaScriptConsole", message)
+        LOGGER.write(self.errorLevel.get(level, LoggerSettings.LogLevels.fatal), "JavaScriptConsole", message)
 
         # if level == WebEnginePage.JavaScriptConsoleMessageLevel.ErrorMessageLevel:
         #

@@ -72,8 +72,7 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
         if not QUrl(url).isValid() or any(blocked in url for blocked in self.blocked_urls):
             # Block the request (redirect to about:blank? How to detect it is not the "main" url???)
             info.block(True)
-            if LoggerSettings.requestInterceptorEnabled:
-                LOGGER.write(LoggerSettings.LogLevels.info, "RequestInterceptor", f"Black List Blocked: {url}")
+            LOGGER.write(LoggerSettings.LogLevels.info, "RequestInterceptor", f"Black List Blocked: {url}")
 
         # check ad-block rules
         if self.enableAdBlocker and self.adblocker is not None:
@@ -83,8 +82,7 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
                 request_type=self.resourceTypes.get(info.resourceType(), ""))
             if should_block:
                 info.block(True)
-                if LoggerSettings.requestInterceptorEnabled:
-                    LOGGER.write(LoggerSettings.LogLevels.info, "RequestInterceptor",  f"AD Blocked: {url}")
+                LOGGER.write(LoggerSettings.LogLevels.info, "RequestInterceptor",  f"AD Blocked: {url}")
 
     def getRequestType(self):
         """
