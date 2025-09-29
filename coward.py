@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import *
 import appconfig
 import utils
 from appconfig import OPTIONS
+from appconfig import Splash
 from cachemanager import CacheManager
 from dialog import DialogsManager
 from downloadmanager import DownloadManager
@@ -1369,16 +1370,25 @@ class MainWindow(QMainWindow):
 
 def main():
 
+    # app-independent settings (some must be done BEFORE creating app)
     appconfig.preInitializeApp(OPTIONS)
 
-    # creating a PyQt5 application and (windows only) force dark mode
+    # create app
     app = QApplication(sys.argv + ['-platform', 'windows:darkmode=1'])
 
-    # creating and showing MainWindow object
+    # launch splash screen, though main app usually starts very quick...
+    # ... check in other systems to decide if needed or just for aesthetics
+    # splash = Splash()
+    # splash.start(app)
+
+    # create and show main window
     window = MainWindow()
     window.show()
 
-    # loop
+    # hide splash and sync with main window
+    # splash.stop(window)
+
+    # run app
     app.exec()
 
 
