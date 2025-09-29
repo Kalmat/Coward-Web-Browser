@@ -1,3 +1,5 @@
+import os
+
 from PyQt6.QtCore import QPoint, Qt, QUrl
 from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtMultimedia import QSoundEffect
@@ -75,15 +77,19 @@ class Dialog(QDialog):
         self.setLayout(self.mainLayout)
 
         filename = utils.resource_path(DefaultSettings.Media.dialogInformationSound)
-        self.effect = QSoundEffect()
-        self.effect.setSource(QUrl.fromLocalFile(filename))
-        self.effect.setVolume(0.7)
+        if os.path.exists(filename):
+            self.effect = QSoundEffect()
+            self.effect.setSource(QUrl.fromLocalFile(filename))
+            self.effect.setVolume(0.7)
+        else:
+            self.effect = None
 
     def show(self):
         super().show()
         if self._getPosFunc is not None:
             self.move(self._getPosFunc())
-        self.effect.play()
+        if self.effect is not None:
+            self.effect.play()
         if self._showSig is not None:
             self._showSig.emit()
 
