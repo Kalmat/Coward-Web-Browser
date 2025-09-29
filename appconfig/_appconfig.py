@@ -13,7 +13,7 @@ def setAppAttributes(parent):
 
     # setting window title and icon
     parent.setWindowTitle(DefaultSettings.App.appName)
-    parent.setWindowIcon(QIcon(DefaultSettings.App.appIcon))
+    parent.setWindowIcon(QIcon(DefaultSettings.App.appIcon_32))
 
     # if not setting this, main window loses focus and flickers when showing tooltips... ????
     parent.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
