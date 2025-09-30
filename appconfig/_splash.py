@@ -11,7 +11,7 @@ class Splash(QSplashScreen):
     def __init__(self):
         super().__init__()
 
-        self.pixmap = QPixmap(DefaultSettings.Icons.appIcon)
+        self.pixmap = QPixmap(DefaultSettings.Icons.appIconTransp)
         self.setPixmap(self.pixmap)
 
     def start(self, app):

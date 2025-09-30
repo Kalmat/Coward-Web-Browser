@@ -81,7 +81,8 @@ class History:
         if title in self._titles.keys():
             added = False
             old_url = self._titles[title]
-            del self._historyValues[old_url]
+            if old_url in self._historyValues.keys():
+                del self._historyValues[old_url]
         self._titles[title] = url
         self._historyValues[url] = {
             "date": date,

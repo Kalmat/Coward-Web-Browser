@@ -11,8 +11,6 @@ class DefaultSettings:
 
     class App:
         appName = "Coward"
-        appIcon = utils.resource_path("res/coward.png")
-        appIcon_32 = utils.resource_path("res/coward_32.png")
         tempFolder = os.path.join(os.getenv("SystemDrive"), "Windows", "Temp", "Coward")
 
     class History:
@@ -28,6 +26,8 @@ class DefaultSettings:
     class Icons:
         appIcon = utils.resource_path("res/coward.png")
         appIcon_32 = utils.resource_path("res/coward_32.png")
+        appIconTransp = utils.resource_path("res/coward_transp.png")
+        appIconTransp_32 = utils.resource_path("res/coward_transp_32.png")
         loading = utils.resource_path("res/web.png")
         # path separator inverted ("/") for qss files
         tabSeparator = utils.resource_path("res/tabsep.png", True)

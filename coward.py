@@ -792,7 +792,7 @@ class MainWindow(QMainWindow):
             LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"New window open: {url}")
 
         elif request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewTab:
-            self.add_new_tab(url, setFocus=False)
+            self.add_new_tab(QUrl(url), setFocus=False)
             LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"New tab open: {url}")
 
         elif request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewDialog:
@@ -1378,15 +1378,15 @@ def main():
 
     # launch splash screen, though main app usually starts very quick...
     # ... check in other systems to decide if needed or just for aesthetics
-    # splash = Splash()
-    # splash.start(app)
+    splash = Splash()
+    splash.start(app)
 
     # create and show main window
     window = MainWindow()
     window.show()
 
     # hide splash and sync with main window
-    # splash.stop(window)
+    splash.stop(window)
 
     # run app
     app.exec()

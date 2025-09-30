@@ -33,7 +33,10 @@ def fixDarkImage(pixmap):
         return np.mean(non_transparent_pixels) <= thrshld
 
     def changeImageBackground(array):
-        array[array[:, :, 3] == 0] = [255, 255, 255, 255]
+        try:
+            array[array[:, :, 3] == 0] = [255, 255, 255, 255]
+        except:
+            pass
         return array
 
     array = pixmapToArray(pixmap)
