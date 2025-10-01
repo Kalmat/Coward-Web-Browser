@@ -25,29 +25,29 @@ Rationally, this will never be a good replacement for any of the commercial web 
 
 ### Keyboard shortcuts
 
-| Shortcut             | Action                                 |
-|----------------------|----------------------------------------|
-| `Ctrl` `T`           | Open new tab                           |
-| `Ctrl` `N`           | Open new window                        |
-| `Ctrl` `Shift` `N`   | Open new incognito window              |
-| `Ctrl` `W`           | Close current tab                      |
-| `Alt` `F4`           | Close current window                   |
-| `F11`                | Enter fullscreen                       |
-| `Esc`                | Exit fullscreen                        |
-| `Esc`                | Cancel url input (in url bar)          |
-| `Ctrl` `Tab`         | Select tab Forward                     |
-| `Ctrl` `Shift` `Tab` | Select tab Backward                    |
-| `Ctrl` `1` - `9`     | Select tab 1 to 9                      |
-| `Ctrl` `F`           | Show search box                        |
-| `Ctrl` `H`           | Show / hide History                    |
-| `Tab`                | Select next link                       |
-| `Shift` `Tab`        | Select previous link                   |
-| `Enter`              | Load URL or selected link              |
-| `Ctrl` `C`           | Copy text (if text selected)           |
-| `Ctrl` `C`           | Copy URL bar (if nothing selected)     |
-| `Ctrl` `V`           | Paste clipboard content                |
-| `Ctrl` `U`           | Paste clipboard as URL and load it     |
-
+| Shortcut             | Action                             |
+|----------------------|------------------------------------|
+| `Ctrl` `T`           | Open new tab                       |
+| `Ctrl` `N`           | Open new window                    |
+| `Ctrl` `Shift` `N`   | Open new incognito window          |
+| `Ctrl` `W`           | Close current tab                  |
+| `Alt` `F4`           | Close current window               |
+| `F11`                | Enter fullscreen                   |
+| `Esc`                | Exit fullscreen                    |
+| `Esc`                | Cancel url input (in url bar)      |
+| `Ctrl` `Tab`         | Select tab Forward                 |
+| `Ctrl` `Shift` `Tab` | Select tab Backward                |
+| `Ctrl` `1` - `9`     | Select tab 1 to 9                  |
+| `Ctrl` `F`           | Show search box                    |
+| `Ctrl` `H`           | Show / hide History                |
+| `Tab`                | Select next link                   |
+| `Shift` `Tab`        | Select previous link               |
+| `Enter`              | Load URL (in url bar)              |
+| `Enter`              | Load selected link (within page)   |
+| `Ctrl` `C`           | Copy text (if text selected)       |
+| `Ctrl` `C`           | Copy URL bar (if nothing selected) |
+| `Ctrl` `V`           | Paste clipboard content            |
+| `Ctrl` `U`           | Paste clipboard as URL and load it |
 
 ### Mouse shortcuts
 
