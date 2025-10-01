@@ -864,7 +864,7 @@ class MainWindow(QMainWindow):
             return
 
         # set text to the url bar
-        self.ui.urlbar.setText(qurl.url().toString())
+        self.ui.urlbar.setText(qurl.url())
 
         # Enable/Disable navigation arrows according to page history
         self.ui.back_btn.setEnabled(browser.history().canGoBack())
