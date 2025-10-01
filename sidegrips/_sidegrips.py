@@ -124,5 +124,5 @@ class AppSideGrips:
             inRect.width(), self.gripSize)
 
         for grip in self.sideGrips + self.cornerGrips:
-            grip.setStyleSheet("background-color: transparent;")
+            grip.setStyleSheet("background: transparent;")
             grip.raise_()

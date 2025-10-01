@@ -47,7 +47,7 @@ class History:
 
     def filterHistory(self):
         historySorted = {}
-        icons = set(self.historyFile)
+        icons = {self.historyFile}
         # sort by date and discard items beyond maximum history size (also delete icon file if not needed anymore)
         for i, (url, item) in enumerate(sorted(self._historyValues.items(), reverse=True, key=lambda item: item[1]["date"])):
             item = self._historyValues[url]
@@ -55,7 +55,7 @@ class History:
             icon = item["icon"]
             if i < DefaultSettings.History.historySize:
                 historySorted[url] = item
-                icons.add(icon)
+                icons.add(os.path.basename(icon))
                 self._titles[title] = url
             else:
                 break

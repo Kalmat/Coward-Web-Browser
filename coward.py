@@ -19,7 +19,7 @@ from cachemanager import CacheManager
 from dialog import DialogsManager
 from downloadmanager import DownloadManager
 from historymanager import History, HistoryWidget
-from logger import LOGGER, LoggerSettings
+from logger import LoggerSettings, LOGGER
 from mediaplayer import HttpManager
 from searchwidget import SearchWidget
 from settings import Settings, DefaultSettings
@@ -49,6 +49,8 @@ class MainWindow(QMainWindow):
     def __init__(self, new_win=False, init_tabs=None, incognito=None):
         super(MainWindow, self).__init__()
 
+        self.file = str(time.time())
+
         # get Settings
         self.loadSettings(new_win, incognito)
 
@@ -77,6 +79,9 @@ class MainWindow(QMainWindow):
         # custom storage for browser profile aimed to persist cookies, cache, etc.
         self.appStorageFolder = self.settings.settingsFolder
 
+        # close on relaunch (delete cache and temp and exit) or keep main window open
+        self.dontCloseOnRelaunch = OPTIONS.dontCloseOnRelaunch
+
         # prepare new wins config, with or without initial tabs
         self.isNewWin = new_win
 
@@ -97,8 +102,9 @@ class MainWindow(QMainWindow):
         # set icon size (also affects to tabs and actions sizes)
         # since most "icons" are actually characters, we should also adjust fonts or stick to values between 24 and 32
         self.icon_size = int(max(24, min(32, self.settings.iconSize)))
-        self.action_size = self.settings.iconSize + max(16, self.settings.iconSize // 2)
         self.h_tab_size = self.icon_size + 8
+        self.action_size = self.settings.iconSize + max(16, self.settings.iconSize // 2)
+        self.medium_action_size = self.action_size - 8
         self.small_action_size = self.action_size - 16
 
         # set auto-hide
@@ -295,9 +301,9 @@ class MainWindow(QMainWindow):
         self.ui.hist_off_btn.clicked.connect(self.manage_history)
         self.ui.dark_on_btn.clicked.connect(self.manage_dark_mode)
         self.ui.dark_off_btn.clicked.connect(self.manage_dark_mode)
-        self.ui.adblock_btn.triggered.connect(lambda: self.manage_adblock(clicked=True))
-        self.ui.cookie_btn.triggered.connect(lambda: self.manage_cookies(clicked=True))
-        self.ui.clean_btn.triggered.connect(self.handleCleanAllRequest)
+        self.ui.adblock_btn.clicked.connect(lambda: self.manage_adblock(clicked=True))
+        self.ui.cookie_btn.clicked.connect(lambda: self.manage_cookies(clicked=True))
+        self.ui.clean_btn.clicked.connect(self.handleCleanAllRequest)
         self.ui.ninja_btn.clicked.connect(lambda: self.show_in_new_window(incognito=True))
 
         # window buttons if custom title bar
@@ -481,9 +487,6 @@ class MainWindow(QMainWindow):
             if self.isIncognito:
                 # apply no persistent cache
                 cache_path = None
-            elif self.cache_manager.deleteCacheRequested:
-                # apply temporary cache location to delete all previous cache when app is closed, but keeping these last
-                cache_path = self.cache_manager.lastCache
             else:
                 # apply application cache location
                 cache_path = self.cache_manager.cachePath
@@ -670,20 +673,6 @@ class MainWindow(QMainWindow):
         # set the url
         QTimer.singleShot(0, lambda u=qurl: self.ui.tabs.currentWidget().load(u))
 
-    def update_urlbar(self, qurl, browser: QWidget = None):
-
-        # If this signal is not from the current tab, ignore
-        if browser != self.ui.tabs.currentWidget():
-            # do nothing
-            return
-
-        # set text to the url bar
-        self.ui.urlbar.setText(qurl.toString())
-
-        # Enable/Disable navigation arrows according to page history
-        self.ui.back_btn.setEnabled(browser.history().canGoBack())
-        self.ui.next_btn.setEnabled(browser.history().canGoForward())
-
     def current_tab_changed(self, tabIndex):
 
         if tabIndex == 0:
@@ -708,11 +697,6 @@ class MainWindow(QMainWindow):
             # if url not in self.checkedURL:
             #     self.checkedURL.append(url)
             #     page.checkCanPlayMedia()
-
-        if self.search_widget.isVisible():
-            self.ui.tabs.currentWidget().findText("")
-            self.search_widget.hide()
-
 
     def tab_clicked(self, tabIndex):
         if QApplication.mouseButtons() == Qt.MouseButton.LeftButton:
@@ -755,6 +739,7 @@ class MainWindow(QMainWindow):
 
             # just removing the tab doesn't destroy associated widget.
             self.widgetToDelete = self.ui.tabs.widget(tabIndex)
+
             # remove the tab
             self.ui.tabs.removeTab(tabIndex)
 
@@ -765,65 +750,10 @@ class MainWindow(QMainWindow):
                 targetIndex = 1
             self.ui.tabs.setCurrentIndex(targetIndex)
 
-        # delete tab widget safely
+        # delete tab widget "safely" (turns out it's not so safe sometimes)
         # self.widgetToDelete.deleteLater()
 
         LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"Tab closed")
-
-    def showContextMenu(self, point):
-
-        tabIndex = self.ui.tabs.tabBar().tabAt(point)
-
-        if 1 <= tabIndex < self.ui.tabs.count() - 1:
-            # set buttons before running context menu (it blocks)
-            self.ui.close_action.triggered.disconnect()
-            self.ui.close_action.triggered.connect(lambda checked, b=self.ui.tabs.widget(tabIndex): self.tab_closed(b))
-            # create and run context menu
-            self.ui.createCloseTabContextMenu(tabIndex)
-
-        elif tabIndex == self.ui.tabs.count() - 1:
-            self.ui.createNewTabContextMenu(tabIndex)
-
-    def openLinkRequested(self, request):
-
-        url = request.requestedUrl().toString()
-        if request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewWindow:
-            self.show_in_new_window([[url, 1.0, True]])
-            LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"New window open: {url}")
-
-        elif request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewTab:
-            self.add_new_tab(QUrl(url), setFocus=False)
-            LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"New tab open: {url}")
-
-        elif request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewDialog:
-            if request.isUserInitiated():
-                self.show_in_new_dialog(request)
-                LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"New dialog open: {url}")
-        #     else:
-        #         # This would allow popups... something we don't want, of course
-        #         self.show_in_new_dialog(request)
-
-    def show_in_new_window(self, tabs=None, incognito=None):
-
-        if not self.isNewWin:
-            w = MainWindow(new_win=True, init_tabs=tabs, incognito=incognito)
-            self.instances.append(w)
-            w.show()
-
-    def show_in_new_dialog(self, request):
-
-        popup = QWebEngineView()
-        geom = request.requestedGeometry()
-        popup.setGeometry(50 if geom.x() < 50 else geom.x(), 50 if geom.y() < 50 else geom.y(), geom.width(), geom.height())
-        popup.load(request.requestedUrl())
-        self.popups.append(popup)
-        popup.show()
-
-    def inspect_page(self, p):
-
-        self.inspector.page().setInspectedPage(p)
-        self.inspector.setWindowTitle("DevTools - " + p.title())
-        self.inspector.show()
 
     def toggle_tabbar(self, clicked=True):
 
@@ -852,7 +782,7 @@ class MainWindow(QMainWindow):
         else:
             theme = self.settings.theme
 
-        self.ui.tabs.setStyleSheet(Themes.styleSheet(theme, Themes.Section.horizontalTabs) if self.h_tabbar else Themes.styleSheet(theme, Themes.Section.verticalTabs))
+        self.ui.tabs.setStyleSheet(self.h_navtab_style if self.h_tabbar else self.v_tab_style)
         self.ui.tabs.setTabPosition(QTabWidget.TabPosition.North if self.h_tabbar else QTabWidget.TabPosition.West)
         self.ui.tabs.tabBar().setTabButton(0, QTabBar.ButtonPosition.RightSide, None)
         self.ui.tabs.tabBar().setTabButton(self.ui.tabs.count() - 1, QTabBar.ButtonPosition.RightSide, None)
@@ -873,6 +803,44 @@ class MainWindow(QMainWindow):
                 else:
                     self.hoverVWidget.show()
 
+    def manage_autohide(self, checked=False, enabled=None, hide_all=False):
+
+        self.autoHide = not self.autoHide if enabled is None else enabled
+
+        if hide_all:
+            self.ui.navtab.hide()
+            self.ui.navtab.hide()
+            self.ui.tabs.tabBar().hide()
+            self.ui.hoverHWidget.hide()
+            self.ui.hoverVWidget.hide()
+
+        else:
+
+            self.ui.auto_btn.setText(self.ui.auto_on_char if self.autoHide else self.ui.auto_off_char)
+            self.ui.auto_btn.setToolTip("Auto-hide is now " + ("Enabled" if self.autoHide else "Disabled"))
+
+            if self.autoHide:
+                # if not self.ui.hoverHWidget.isVisible() and not self.ui.hoverHWidget.underMouse():
+                # this... fails sometimes???? WHY?????
+                # hypothesis: if nav tab is under mouse it will not hide, so trying to show hoverHWidget in the same position fails
+                curPos = QCursor.pos(self.screen())
+                x = self.ui.tabs.tabBar().width() if not self.h_tabbar else curPos.x()
+                y = self.ui.navtab.height()
+                QCursor.setPos(x, y)
+                self.ui.navtab.hide()
+                self.ui.tabs.tabBar().hide()
+                self.ui.hoverHWidget.show()
+                if not self.h_tabbar:
+                    self.ui.hoverVWidget.show()
+                else:
+                    self.ui.hoverVWidget.hide()
+
+            else:
+                self.ui.hoverHWidget.hide()
+                self.ui.hoverVWidget.hide()
+                self.ui.navtab.show()
+                self.ui.tabs.tabBar().show()
+
     def goBack(self):
         self.ui.tabs.currentWidget().back()
 
@@ -884,6 +852,25 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(0, lambda: self.ui.tabs.currentWidget().reload())
         else:
             self.ui.tabs.currentWidget().stop()
+
+    def update_urlbar(self, qurl, browser: QWidget = None):
+
+        # If this signal is not from the current tab, ignore
+        if browser != self.ui.tabs.currentWidget():
+            # do nothing
+            return
+
+        # set text to the url bar
+        self.ui.urlbar.setText(qurl.toString())
+
+        # Enable/Disable navigation arrows according to page history
+        self.ui.back_btn.setEnabled(browser.history().canGoBack())
+        self.ui.next_btn.setEnabled(browser.history().canGoForward())
+
+    def openExternalPlayer(self):
+        page = self.ui.tabs.currentWidget().page()
+        page.externalPlayer.openInExternalPlayer(page.url().toString())
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"Opening external player: {DefaultSettings.Player.externalPlayerType.value}")
 
     def get_search_widget_pos(self):
 
@@ -900,8 +887,8 @@ class MainWindow(QMainWindow):
         y = self.y() + self.ui.navtab.height() + gap
         return QPoint(x, y)
 
-    def manage_search(self):
-        if self.search_widget.isVisible():
+    def manage_search(self, forceHide=False):
+        if self.search_widget.isVisible() or forceHide:
             self.ui.tabs.currentWidget().findText("")
             self.search_widget.hide()
             self.ui.search_off_act.setVisible(False)
@@ -921,118 +908,18 @@ class MainWindow(QMainWindow):
             else:
                 self.ui.tabs.currentWidget().findText(textToFind, QWebEnginePage.FindFlag.FindBackward)
 
-    def openExternalPlayer(self):
-        page = self.ui.tabs.currentWidget().page()
-        page.externalPlayer.openInExternalPlayer(page.url().toString())
-        LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"Opening external player: {DefaultSettings.Player.externalPlayerType.value}")
-
-    def manage_autohide(self, checked=False, enabled=None, hide_all=False):
-
-        self.autoHide = not self.autoHide if enabled is None else enabled
-
-        if hide_all:
-            self.ui.navtab.hide()
-            self.ui.navtab.hide()
-            self.ui.tabs.tabBar().hide()
-            self.ui.hoverHWidget.hide()
-            self.ui.hoverVWidget.hide()
-
-        else:
-
-            self.ui.auto_btn.setText(self.ui.auto_on_char if self.autoHide else self.ui.auto_off_char)
-            self.ui.auto_btn.setToolTip("Auto-hide is now " + ("Enabled" if self.autoHide else "Disabled"))
-
-            if self.autoHide:
-                self.ui.navtab.hide()
-                self.ui.tabs.tabBar().hide()
-                if not self.ui.hoverHWidget.isVisible() and not self.ui.hoverHWidget.underMouse():
-                    # this... fails sometimes???? WHY?????
-                    # Hypothesis: if nav tab is under mouse it will not hide, so trying to show hoverHWidget in the same position fails
-                    self.ui.hoverHWidget.show()
-                if not self.h_tabbar:
-                    self.ui.hoverVWidget.show()
-                else:
-                    self.ui.hoverVWidget.hide()
-
-            else:
-                self.ui.hoverHWidget.hide()
-                self.ui.hoverVWidget.hide()
-                self.ui.navtab.show()
-                self.ui.tabs.tabBar().show()
-
-    @pyqtSlot()
-    def enterHHover(self):
-        if self.autoHide:
-            self.ui.hoverHWidget.hide()
-            self.ui.navtab.show()
-            if self.h_tabbar:
-                self.ui.tabs.tabBar().show()
-
-    @pyqtSlot()
-    def leaveHHover(self):
-        pass
-
-    @pyqtSlot()
-    def enterVHover(self):
-        if self.autoHide:
-            self.ui.hoverVWidget.hide()
-            self.ui.tabs.tabBar().show()
-
-    @pyqtSlot()
-    def leaveVHover(self):
-        pass
-
-    @pyqtSlot()
-    def enterNavBar(self):
-        pass
-
-    @pyqtSlot()
-    def leaveNavBar(self):
-        if self.autoHide:
-            if self.h_tabbar:
-                if not self.underMouse():
-                    self.ui.navtab.hide()
-                    self.ui.tabs.tabBar().hide()
-                    self.ui.hoverHWidget.show()
-            else:
-                self.ui.navtab.hide()
-                self.ui.hoverHWidget.show()
-
-    @pyqtSlot()
-    def enterTabBar(self):
-        pass
-
-    @pyqtSlot()
-    def leaveTabBar(self):
-        if self.autoHide:
-            if self.h_tabbar:
-                if not self.ui.navtab.rect().contains(self.mapFromGlobal(QCursor.pos())):
-                    self.ui.navtab.hide()
-                    self.ui.tabs.tabBar().hide()
-                    self.ui.hoverHWidget.show()
-            else:
-                self.ui.tabs.tabBar().hide()
-                self.ui.hoverVWidget.show()
-
-    def manage_downloads(self):
-
-        if self.dl_manager.isVisible():
-            self.ui.dl_on_act.setVisible(True)
-            self.ui.dl_off_act.setVisible(False)
-            self.dl_manager.hide()
-
-        else:
-            self.ui.dl_on_act.setVisible(False)
-            self.ui.dl_off_act.setVisible(True)
-            self.show_dl_manager()
-
     def get_dl_manager_pos(self):
 
         # getting title bar height (custom or standard)
         gap = self.mapToGlobal(self.ui.navtab.pos()).y() - self.y()
 
+        # take the visible action as reference to calculate position
+        refWidget = self.ui.dl_off_btn if self.ui.dl_off_btn.isVisible() else self.ui.dl_on_btn
+
         # calculate position
-        x = self.x() + self.width() - self.dl_manager.width()
+        actRect = refWidget.geometry()
+        actPos = self.mapToGlobal(actRect.topLeft())
+        x = actPos.x()
         y = self.y() + self.ui.navtab.height() + gap
         return QPoint(x, y)
 
@@ -1107,7 +994,7 @@ class MainWindow(QMainWindow):
 
         if clicked:
             self.cookies = not self.cookies
-        self.ui.cookie_btn.setText("🍪" if self.cookies else "⛔")  # ⛔🚫🚯
+        self.ui.cookie_btn.setText("🍪" if self.cookies else "⛔")
         self.ui.cookie_btn.setToolTip("Cookies are now %s" % ("enabled" if self.cookies else "disabled"))
 
     def cookie_filter(self, cookie, origin=None):
@@ -1132,29 +1019,8 @@ class MainWindow(QMainWindow):
             self.cache_manager.deleteCacheRequested = True
 
             # set a new cache folder (old ones will be deleted when app is restarted)
-            self.cache_manager.lastCache = os.path.join(self.cache_manager.cachePath, str(time.time()).replace(".", ""))
-
-        # fresh-reload all pages
-        tabsCount = self.ui.tabs.count()
-        currIndex = self.ui.tabs.currentIndex()
-        self.ui.tabs.setCurrentIndex(1)
-
-        tabs = []
-        for i in range(1, tabsCount - 1):
-            browser = self.ui.tabs.widget(1)
-            page = browser.page()
-            tabs.append([page.url(), page.zoomFactor()])
-            browser.deleteLater()
-            self.ui.tabs.removeTab(1)
-
-        self.ui.tabs.removeTab(1)
-
-        for item in tabs:
-            url, zoom = item
-            # new cache storage will be assigned in add_tab() method
-            self.add_tab(url, zoom)
-        self.add_tab_action()
-        self.ui.tabs.setCurrentIndex(currIndex)
+            self.dontCloseOnRelaunch = True
+            self.close()
 
     def showMaxRestore(self):
 
@@ -1167,6 +1033,127 @@ class MainWindow(QMainWindow):
             self.showMaximized()
             self.ui.max_btn.setText(self.ui.rest_chr)
             self.ui.max_btn.setToolTip("Restore")
+
+    def showContextMenu(self, point):
+
+        tabIndex = self.ui.tabs.tabBar().tabAt(point)
+
+        if 1 <= tabIndex < self.ui.tabs.count() - 1:
+            # set buttons before running context menu (it blocks)
+            self.ui.close_action.triggered.disconnect()
+            self.ui.close_action.triggered.connect(lambda checked, b=self.ui.tabs.widget(tabIndex): self.tab_closed(b))
+            # create and run context menu
+            self.ui.createCloseTabContextMenu(tabIndex)
+
+        elif tabIndex == self.ui.tabs.count() - 1:
+            self.ui.createNewTabContextMenu(tabIndex)
+
+    def openLinkRequested(self, request):
+
+        url = request.requestedUrl().toString()
+        if request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewWindow:
+            self.show_in_new_window([[url, 1.0, True]])
+            LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"New window open: {url}")
+
+        elif request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewTab:
+            self.add_new_tab(QUrl(url), setFocus=False)
+            LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"New tab open: {url}")
+
+        elif request.destination() == QWebEngineNewWindowRequest.DestinationType.InNewDialog:
+            if request.isUserInitiated():
+                self.show_in_new_dialog(request)
+                LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"New dialog open: {url}")
+        #     else:
+        #         # This would allow popups... something we don't want, of course
+        #         self.show_in_new_dialog(request)
+
+    def show_in_new_window(self, tabs=None, incognito=None):
+
+        if not self.isNewWin:
+            w = MainWindow(new_win=True, init_tabs=tabs, incognito=incognito)
+            self.instances.append(w)
+            w.show()
+
+    def show_in_new_dialog(self, request):
+
+        popup = QWebEngineView()
+        geom = request.requestedGeometry()
+        popup.setGeometry(50 if geom.x() < 50 else geom.x(), 50 if geom.y() < 50 else geom.y(), geom.width(), geom.height())
+        popup.load(request.requestedUrl())
+        self.popups.append(popup)
+        popup.show()
+
+    def inspect_page(self, p):
+
+        self.inspector.page().setInspectedPage(p)
+        self.inspector.setWindowTitle("DevTools - " + p.title())
+        self.inspector.show()
+
+    @pyqtSlot()
+    def enterHHover(self):
+        if self.autoHide:
+            self.ui.hoverHWidget.hide()
+            self.ui.navtab.show()
+            if self.h_tabbar:
+                self.ui.tabs.tabBar().show()
+
+    @pyqtSlot()
+    def leaveHHover(self):
+        pass
+
+    @pyqtSlot()
+    def enterVHover(self):
+        if self.autoHide:
+            self.ui.hoverVWidget.hide()
+            self.ui.tabs.tabBar().show()
+
+    @pyqtSlot()
+    def leaveVHover(self):
+        pass
+
+    @pyqtSlot()
+    def enterNavBar(self):
+        pass
+
+    @pyqtSlot()
+    def leaveNavBar(self):
+        if self.autoHide:
+            if self.h_tabbar:
+                if not self.underMouse():
+                    self.ui.navtab.hide()
+                    self.ui.tabs.tabBar().hide()
+                    self.ui.hoverHWidget.show()
+            else:
+                self.ui.navtab.hide()
+                self.ui.hoverHWidget.show()
+
+    @pyqtSlot()
+    def enterTabBar(self):
+        pass
+
+    @pyqtSlot()
+    def leaveTabBar(self):
+        if self.autoHide:
+            if self.h_tabbar:
+                if not self.ui.navtab.rect().contains(self.mapFromGlobal(QCursor.pos())):
+                    self.ui.navtab.hide()
+                    self.ui.tabs.tabBar().hide()
+                    self.ui.hoverHWidget.show()
+            else:
+                self.ui.tabs.tabBar().hide()
+                self.ui.hoverVWidget.show()
+
+    def manage_downloads(self):
+
+        if self.dl_manager.isVisible():
+            self.ui.dl_on_act.setVisible(True)
+            self.ui.dl_off_act.setVisible(False)
+            self.dl_manager.hide()
+
+        else:
+            self.ui.dl_on_act.setVisible(False)
+            self.ui.dl_off_act.setVisible(True)
+            self.show_dl_manager()
 
     def keyReleaseEvent(self, a0):
 
@@ -1279,7 +1266,8 @@ class MainWindow(QMainWindow):
 
     def deletePreviousCacheAndTemp(self):
         if OPTIONS.deleteCache:
-            self.cache_manager.deleteCache(OPTIONS.lastCache)
+            LOGGER.write(LoggerSettings.LogLevels.info, "Main", "DELETE Previous cache")
+            self.cache_manager.deleteCache()
             LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Previous cache deleted")
         if OPTIONS.deletePlayerTemp:
             if os.path.exists(DefaultSettings.App.tempFolder):
@@ -1288,8 +1276,8 @@ class MainWindow(QMainWindow):
                 except:
                     LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Temp folder not found")
             LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Previous temp files deleted")
-        if OPTIONS.deleteCache or OPTIONS.deletePlayerTemp:
-            # relaunched only to delete cache and / or temp files. Exiting...
+
+        if (OPTIONS.deleteCache or OPTIONS.deletePlayerTemp) and not OPTIONS.dontCloseOnRelaunch:
             QApplication.quit()
             sys.exit(0)
 
@@ -1357,7 +1345,9 @@ class MainWindow(QMainWindow):
         args = []
         if self.cache_manager.deleteCacheRequested and not self.isNewWin and not self.isIncognito:
             # restart app to wipe all cache folders but the last one (not possible while running since it's locked)
-            args += [appconfig.Options.deleteCache] + [self.cache_manager.lastCache]
+            args += [appconfig.Options.deleteCache]
+            if self.dontCloseOnRelaunch:
+                args += [appconfig.Options.dontCloseOnRelaunch]
             LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Restart application to delete cache")
 
         if os.path.exists(DefaultSettings.App.tempFolder):
@@ -1378,15 +1368,17 @@ def main():
 
     # launch splash screen, though main app usually starts very quick...
     # ... check in other systems to decide if needed or just for aesthetics
-    splash = Splash()
-    splash.start(app)
+    if not OPTIONS.dontCloseOnRelaunch:
+        splash = Splash()
+        splash.start(app)
 
     # create and show main window
     window = MainWindow()
     window.show()
 
     # hide splash and sync with main window
-    splash.stop(window)
+    if not OPTIONS.dontCloseOnRelaunch:
+        splash.stop(window)
 
     # run app
     app.exec()

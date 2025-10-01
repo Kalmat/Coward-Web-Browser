@@ -7,7 +7,8 @@ from themes import Themes
 
 class Options:
 
-    deleteCache = "-delete_cache"
+    deleteCache = "--delete_cache"
+    dontCloseOnRelaunch = "--dont_close_on_relaunch"
     deletePlayerTemp = "--delete_player_temp"
     enableDebug = "-enable_debug"
     enableJavaConsoleMessages = "-enable_JavaConsoleMessages"
@@ -27,14 +28,14 @@ class OptionsParser:
 
     def __init__(self, args):
 
-        self.lastCache = self._getStr(args, Options.deleteCache)
-        self.deleteCache = self.lastCache is not None
+        self.deleteCache = Options.deleteCache in args
+        self.dontCloseOnRelaunch = Options.dontCloseOnRelaunch in args
         self.deletePlayerTemp = Options.deletePlayerTemp in args
         self.enableDebug = self._getBool(args, Options.enableDebug)
         self.enableJavaConsoleMessages = self._getBool(args, Options.enableJavaConsoleMessages)
         self.enableRequestInterceptorMessages = self._getBool(args, Options.enableRequestInterceptorMessages)
         self.enableLogging = self._getBool(args, Options.enableLogging)
-        self.enableDPI = Options.deleteCache in args
+        self.enableDPI = Options.enableDPI in args
         self.securityLevel = self._getSecurityLevel(args, Options.securityLevel)
         self.cookies = self._getBool(args, Options.cookies)
         self.thirdPartyCookies = self._getBool(args, Options.cookies)

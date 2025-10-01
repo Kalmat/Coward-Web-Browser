@@ -1,13 +1,10 @@
 import os.path
-import shutil
-import time
 
-from PyQt6.QtCore import Qt, QUrl, pyqtSlot, pyqtSignal, QSize
+from PyQt6.QtCore import Qt, QUrl, pyqtSignal, QSize
 from PyQt6.QtGui import QPixmap, QAction
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QGridLayout, QPushButton, QCheckBox, QScrollArea, QMenu, \
     QStyle, QApplication
 
-from logger import LOGGER, LoggerSettings
 from settings import DefaultSettings, Settings
 from themes import Themes
 
@@ -160,7 +157,7 @@ class HistoryWidget(QWidget):
         layout.setColumnStretch(1, 1)
 
         widget.setLayout(layout)
-        self.content_layout.insertWidget(1, widget)
+        self.content_layout.insertWidget(0, widget)
 
         if not self._settings.enableHistory:
             widget.hide()

@@ -32,6 +32,10 @@ class DefaultSettings:
         # path separator inverted ("/") for qss files
         tabSeparator = utils.resource_path("res/tabsep.png", True)
 
+    class Splash:
+        enableSplash = True
+        splashImage = utils.resource_path("res/coward_transp.png")
+
     class Storage:
 
         class App:
@@ -125,6 +129,7 @@ class DefaultSettings:
                            "Your stream will start soon, please be patient."
         streamError = "There has been a problem while trying to stream this page.\n\n%s"
         cleanAllRequest = "This will erase all your history and stored cookies.\n" \
+                          "Coward will restart to properly wipe all content.\n" \
                           "This action can not be undone.\n\n" \
                           "Are you sure you want to proceed?"
         eraseHistorylRequest = "This will erase your navigation history.\n" \

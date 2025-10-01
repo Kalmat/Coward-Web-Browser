@@ -199,26 +199,30 @@ class Ui_MainWindow:
         self.navtab.addSeparator()
 
         # adding adblocker mgt.
-        self.adblock_btn = QAction("", self.navtab)
+        self.adblock_btn = QToolButton(self.navtab)
         font = self.adblock_btn.font()
         font.setPointSize(font.pointSize() + 4)
         self.adblock_btn.setFont(font)
-        self.navtab.addAction(self.adblock_btn)
+        self.adblock_act = self.navtab.addWidget(self.adblock_btn)
+        self.adblock_btn.setFixedSize(parent.medium_action_size, parent.medium_action_size)
 
-        # adding cookie mgt.
-        self.cookie_btn = QAction("", self.navtab)
+        # adding cookie mgt.   ⛔🚫🚯
+        self.cookie_btn = QToolButton(self.navtab)
         font = self.cookie_btn.font()
         font.setPointSize(font.pointSize() + 4)
         self.cookie_btn.setFont(font)
-        self.navtab.addAction(self.cookie_btn)
+        self.cookie_act = self.navtab.addWidget(self.cookie_btn)
+        self.cookie_btn.setFixedSize(parent.medium_action_size, parent.medium_action_size)
 
         # adding cleaning mgt.
-        self.clean_btn = QAction("🧹", self.navtab)
+        self.clean_btn = QToolButton(self.navtab)
         font = self.clean_btn.font()
         font.setPointSize(font.pointSize() + 6)
         self.clean_btn.setFont(font)
+        self.clean_btn.setText("🧹")
         self.clean_btn.setToolTip("Erase history and cookies")
-        self.navtab.addAction(self.clean_btn)
+        self.clean_act = self.navtab.addWidget(self.clean_btn)
+        self.clean_btn.setFixedSize(parent.medium_action_size, parent.medium_action_size)
 
         # adding open incognito window 🕶️🕶🥷👻👺
         self.ninja_btn = QToolButton(self.navtab)
@@ -229,6 +233,7 @@ class Ui_MainWindow:
         self.ninja_btn.setFont(font)
         self.ninja_btn.setToolTip("Open new window in incognito mode")
         self.ninja_act = self.navtab.addWidget(self.ninja_btn)
+        self.ninja_btn.setFixedSize(parent.medium_action_size, parent.medium_action_size)
         if parent.isNewWin:
             if parent.isIncognito:
                 self.ninja_act.setDisabled(True)

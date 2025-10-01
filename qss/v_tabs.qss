@@ -21,12 +21,12 @@ QTabBar::tab {
 }
 
 QTabBar::tab:selected {
-    background-color: #646464;
+    background: #646464;
     border: none;
 }
 
 QTabBar::tab:hover {
-    background-color: #646464;
+    background: #646464;
     border: none;
 }
 
@@ -43,7 +43,7 @@ QTabBar::tab:first {
 }
 
 QTabBar::tab:first:hover {
-    background-color: #646464;
+    background: #646464;
     border: none;
 }
 
@@ -56,6 +56,6 @@ QTabBar::tab:last {
 }
 
 QTabBar::tab:last:hover {
-    background-color: #646464;
+    background: #646464;
     border: none;
 }
