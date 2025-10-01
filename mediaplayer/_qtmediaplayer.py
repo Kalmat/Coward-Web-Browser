@@ -27,7 +27,7 @@ class QtMediaPlayer(QWidget):
         self.firstRun = True
 
         # manage input temporary files
-        self.stream_files = [os.path.normpath(os.path.join(DefaultSettings.App.tempFolder,
+        self.stream_files = [os.path.normpath(os.path.join(DefaultSettings.Storage.App.tempFolder,
                                                            DefaultSettings.Player.streamTempFolder,
                                                            str(index), temp_file))
                                     for temp_file in DefaultSettings.Player.streamTempFiles]

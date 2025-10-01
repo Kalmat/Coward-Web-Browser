@@ -214,6 +214,9 @@ class MainWindow(QMainWindow):
         if DefaultSettings.Player.externalPlayerType == DefaultSettings.Player.PlayerTypes.http:
             self.http_manager = HttpManager()
 
+        # create clipboard object
+        self.clipboard = QApplication.clipboard()
+
         # trying to control which URLs have being already checked for non-compatible media
         # self.checkedURL = []
 
@@ -1215,6 +1218,18 @@ class MainWindow(QMainWindow):
                 index = int(chr(a0.key()))
                 self.manage_tabs(index)
 
+        elif a0.key() == Qt.Key.Key_C:
+            if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                if not self.ui.tabs.currentWidget().hasSelection():
+                    self.clipboard.setText(self.ui.urlbar.text(), QClipboard.Mode.Clipboard)
+
+        elif a0.key() == Qt.Key.Key_U:
+            if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                url = self.clipboard.text(QClipboard.Mode.Clipboard)
+                if url:
+                    self.update_urlbar(QUrl(url), self.ui.tabs.currentWidget())
+                    self.navigate_to_url()
+
     def targetDlgPos(self):
         return QPoint(self.x() + 100,
                       self.y() + self.ui.navtab.height() + (self.ui.tabs.tabBar().height() if self.h_tabbar else 0))
@@ -1270,9 +1285,9 @@ class MainWindow(QMainWindow):
             self.cache_manager.deleteCache()
             LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Previous cache deleted")
         if OPTIONS.deletePlayerTemp:
-            if os.path.exists(DefaultSettings.App.tempFolder):
+            if os.path.exists(DefaultSettings.Storage.App.tempFolder):
                 try:
-                    shutil.rmtree(DefaultSettings.App.tempFolder)
+                    shutil.rmtree(DefaultSettings.Storage.App.tempFolder)
                 except:
                     LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Temp folder not found")
             LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Previous temp files deleted")
@@ -1350,7 +1365,7 @@ class MainWindow(QMainWindow):
                 args += [appconfig.Options.dontCloseOnRelaunch]
             LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Restart application to delete cache")
 
-        if os.path.exists(DefaultSettings.App.tempFolder):
+        if os.path.exists(DefaultSettings.Storage.App.tempFolder):
             args += [appconfig.Options.deletePlayerTemp]
             LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Restart application to delete temp files")
 
@@ -1368,7 +1383,7 @@ def main():
 
     # launch splash screen, though main app usually starts very quick...
     # ... check in other systems to decide if needed or just for aesthetics
-    if not OPTIONS.dontCloseOnRelaunch:
+    if DefaultSettings.Splash.enableSplash and not OPTIONS.dontCloseOnRelaunch:
         splash = Splash()
         splash.start(app)
 
@@ -1377,7 +1392,7 @@ def main():
     window.show()
 
     # hide splash and sync with main window
-    if not OPTIONS.dontCloseOnRelaunch:
+    if DefaultSettings.Splash.enableSplash and not OPTIONS.dontCloseOnRelaunch:
         splash.stop(window)
 
     # run app

@@ -11,7 +11,6 @@ class DefaultSettings:
 
     class App:
         appName = "Coward"
-        tempFolder = os.path.join(os.getenv("SystemDrive"), "Windows", "Temp", "Coward")
 
     class History:
         historySize = 100
@@ -40,6 +39,7 @@ class DefaultSettings:
 
         class App:
             storageFolder = ".kalmat"
+            tempFolder = os.path.join(os.getenv("SystemDrive"), "Windows", "Temp", "Coward")
 
         class Cache:
             cacheFolder = ".cache"
@@ -129,11 +129,11 @@ class DefaultSettings:
                            "Your stream will start soon, please be patient."
         streamError = "There has been a problem while trying to stream this page.\n\n%s"
         cleanAllRequest = "This will erase all your history and stored cookies.\n" \
-                          "Coward will restart to properly wipe all content.\n" \
-                          "This action can not be undone.\n\n" \
+                          "Coward will restart now to properly wipe all content.\n" \
+                          "Please be aware this action can not be undone.\n\n" \
                           "Are you sure you want to proceed?"
         eraseHistorylRequest = "This will erase your navigation history.\n" \
-                               "This action can not be undone.\n\n" \
+                               "Please be aware this action can not be undone.\n\n" \
                                "Are you sure you want to proceed?"
         certificateErrorThirdParty = "Certificate error while loading this URL:\n%s\n\n" \
                                      "From page:\n%s (%s)\n\n" \

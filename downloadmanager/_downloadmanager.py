@@ -48,7 +48,7 @@ class DownloadManager(QWidget):
         self.folder_char = "🗀"
 
         # to avoid garbage, downloads will be stored in system Temp folder, then moved to selected location
-        self.tempFolder = os.path.join(DefaultSettings.App.tempFolder, DefaultSettings.Downloads.downloadTempFolder)
+        self.tempFolder = os.path.join(DefaultSettings.Storage.App.tempFolder, DefaultSettings.Downloads.downloadTempFolder)
         try:
             shutil.rmtree(self.tempFolder)
         except:

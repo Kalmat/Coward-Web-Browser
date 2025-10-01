@@ -1,6 +1,6 @@
 # Coward
 
-This is an evolution of the many 'Simple Web Browser' examples built with PyQt5/PyQt6 you can find on the Internet, adding:
+This is an evolution of the many 'Simple Web Browser' examples built with PyQt5/PyQt6 you can find on the Internet, specially focused in privacy, and adding a number of features:
 
 - Tabs, which can be added, moved and removed
 - Vertical and Horizontal tabs positioning
@@ -11,7 +11,7 @@ This is an evolution of the many 'Simple Web Browser' examples built with PyQt5/
 - Incognito mode
 - Enable / Disable force Dark Mode for pages
 - Enable / Disable cookies
-- Wipe all cookies, history, permissions and cache
+- Easily wipe all cookies, history, permissions and cache
 - Navigation History which can be enabled/disabled, as well as deleted one by one or entirely
 - Download pages
 - Download files
@@ -25,24 +25,29 @@ Rationally, this will never be a good replacement for any of the commercial web 
 
 ### Keyboard shortcuts
 
-| Shortcut             | Action                        |
-|----------------------|-------------------------------|
-| `Ctrl` `T`           | Open new tab                  |
-| `Ctrl` `N`           | Open new window               |
-| `Ctrl` `Shift` `N`   | Open new incognito window     |
-| `Ctrl` `W`           | Close current tab             |
-| `Alt` `F4`           | Close current window          |
-| `F11`                | Enter fullscreen              |
-| `Esc`                | Exit fullscreen               |
-| `Esc`                | Cancel url input (in url bar) |
-| `Ctrl` `Tab`         | Select tab Forward            |
-| `Ctrl` `Shift` `Tab` | Select tab Backward           |
-| `Ctrl` `1` - `9`     | Select tab 1 to 9             |
-| `Ctrl` `F`           | Show search box               |
-| `Ctrl` `H`           | Show / hide History           |
-| `Tab`                | Select next link              |
-| `Shift` `Tab`        | Select previous link          |
-| `Enter`              | Load URL or selected link     |
+| Shortcut             | Action                                 |
+|----------------------|----------------------------------------|
+| `Ctrl` `T`           | Open new tab                           |
+| `Ctrl` `N`           | Open new window                        |
+| `Ctrl` `Shift` `N`   | Open new incognito window              |
+| `Ctrl` `W`           | Close current tab                      |
+| `Alt` `F4`           | Close current window                   |
+| `F11`                | Enter fullscreen                       |
+| `Esc`                | Exit fullscreen                        |
+| `Esc`                | Cancel url input (in url bar)          |
+| `Ctrl` `Tab`         | Select tab Forward                     |
+| `Ctrl` `Shift` `Tab` | Select tab Backward                    |
+| `Ctrl` `1` - `9`     | Select tab 1 to 9                      |
+| `Ctrl` `F`           | Show search box                        |
+| `Ctrl` `H`           | Show / hide History                    |
+| `Tab`                | Select next link                       |
+| `Shift` `Tab`        | Select previous link                   |
+| `Enter`              | Load URL or selected link              |
+| `Ctrl` `C`           | Copy text (if text selected)           |
+| `Ctrl` `C`           | Copy URL bar (if nothing selected)     |
+| `Ctrl` `V`           | Paste clipboard content                |
+| `Ctrl` `U`           | Paste clipboard as URL and load it     |
+
 
 ### Mouse shortcuts
 
@@ -70,6 +75,7 @@ QtWebEngine built-in codecs for audio and video have some limitations:
 Include additional codecs and software within QtWebEngine installation
 
 - Build QtWebEngine with option -webengine-proprietary-codecs ([see here](https://doc.qt.io/qt-6/qtwebengine-features.html#audio-and-video-codecs))
+- Build PyQt6 QtWebEngine pointing to the version of QtWebEngine built in previous step 
 - In addition to that, for pages requiring widevine:
   - Get `widevinecdm.dll` file. Check if you have a copy in your system or download (a safe) one
   - Set the environment variable: `QTWEBENGINE_CHROMIUM_FLAGS=--widevine-path="path/to/widevinecdm.dll"` (replace "path/to/" by the actual folder containing the .dll file)
@@ -82,6 +88,7 @@ Use an external player (MPV works quite well, and it's really lightweight), toge
 - Inside the directory in which you placed coward.py script and/or coward.exe, create a folder named `externalplayer`
 - Inside `externalplayer` folder, create another folder named `mpv`
 - [Unzip your downloaded mpv player, and] place the mpv.exe file inside `mpv` folder you created in previous step
+- WARNING: it will work in usual music, gaming or chatting live pages, but not in main media streaming platforms (see streamlink/plugins for an exhaustive list of places in which you can expect this to work)
 
 ### Support
 

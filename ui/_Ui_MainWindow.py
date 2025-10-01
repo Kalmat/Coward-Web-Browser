@@ -14,7 +14,7 @@ from titlebar import TitleBar
 
 class Ui_MainWindow:
 
-    def __init__(self, parent, settings, is_new_win, is_icognito):
+    def __init__(self, parent, settings, is_new_win, is_incognito):
 
         # prepare grips to resize window when using a custom title bar
         if settings.isCustomTitleBar:
@@ -220,9 +220,10 @@ class Ui_MainWindow:
         font.setPointSize(font.pointSize() + 6)
         self.clean_btn.setFont(font)
         self.clean_btn.setText("🧹")
-        self.clean_btn.setToolTip("Erase history and cookies")
+        self.clean_btn.setToolTip("Disabled (no content will be stored)" if is_incognito else "Erase history and cookies")
         self.clean_act = self.navtab.addWidget(self.clean_btn)
         self.clean_btn.setFixedSize(parent.medium_action_size, parent.medium_action_size)
+        self.clean_btn.setDisabled(is_incognito)
 
         # adding open incognito window 🕶️🕶🥷👻👺
         self.ninja_btn = QToolButton(self.navtab)
@@ -231,7 +232,7 @@ class Ui_MainWindow:
         font = self.ninja_btn.font()
         font.setPointSize(font.pointSize() + 6)
         self.ninja_btn.setFont(font)
-        self.ninja_btn.setToolTip("Open new window in incognito mode")
+        self.ninja_btn.setToolTip("Incognito mode activated" if is_incognito else "Open new window in incognito mode")
         self.ninja_act = self.navtab.addWidget(self.ninja_btn)
         self.ninja_btn.setFixedSize(parent.medium_action_size, parent.medium_action_size)
         if parent.isNewWin:

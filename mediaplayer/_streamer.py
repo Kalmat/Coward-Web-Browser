@@ -25,7 +25,7 @@ class Streamer(QThread):
         self.playerType = player_type
         self.index = index
         self.http_manager = http_manager
-        self.temp_folder = str(os.path.join(DefaultSettings.App.tempFolder, DefaultSettings.Player.streamTempFolder))
+        self.temp_folder = str(os.path.join(DefaultSettings.Storage.App.tempFolder, DefaultSettings.Player.streamTempFolder))
 
         # mpv player path
         self.externalPlayerPath = DefaultSettings.Player.mpvPlayerPath
