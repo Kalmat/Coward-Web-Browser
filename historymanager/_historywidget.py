@@ -1,9 +1,8 @@
 import os.path
 
-from PyQt6.QtCore import Qt, QUrl, pyqtSignal, QSize
+from PyQt6.QtCore import Qt, QUrl, pyqtSignal, QSize, pyqtSlot
 from PyQt6.QtGui import QPixmap, QAction
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QGridLayout, QPushButton, QCheckBox, QScrollArea, QMenu, \
-    QStyle, QApplication
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QGridLayout, QPushButton, QCheckBox, QScrollArea, QMenu, QStyle
 
 from settings import DefaultSettings, Settings
 from themes import Themes
@@ -12,6 +11,7 @@ from themes import Themes
 class HistoryWidget(QWidget):
 
     eraseHistorySig = pyqtSignal()
+    widgetClickedSig = pyqtSignal(Qt.MouseButton, QWidget)
 
     def __init__(self, parent=None, settings=None, history_manager=None, dialog_manager=None, loadUrlSig=None):
         super(HistoryWidget, self).__init__(parent)
@@ -101,6 +101,8 @@ class HistoryWidget(QWidget):
         self.entryContextMenu.addAction(self.delete_action)
 
         self.customContextMenuRequested.connect(self.showContextMenu)
+        self.widgetClickedSig.connect(self.onWidgetClicked)
+        self.widgetClicked = None
         self.eraseHistorySig.connect(self.eraseHistory)
 
         self.pendingTitles = {}
@@ -119,7 +121,7 @@ class HistoryWidget(QWidget):
 
         date, title, url, icon = entry
 
-        widget = QWidget()
+        widget = Widget(None, self.widgetClickedSig)
         widget.setObjectName("item")
         widget.setAccessibleName(str(date))
         widget.setContentsMargins(5, 0, 0, 0)
@@ -208,17 +210,28 @@ class HistoryWidget(QWidget):
             w = self.content_layout.itemAt(i).widget()
             w.deleteLater()
 
-    def deleteHistoryEntryByPos(self, checked, point):
-        w = self._getWidgetByPosition(point)
-        if w:
-            url = w.layout().itemAt(1).widget().toolTip()
+    @pyqtSlot(Qt.MouseButton, QWidget)
+    def onWidgetClicked(self, button, widget):
+        if button == Qt.MouseButton.LeftButton:
+            # load URL stored in history entry
+            url = widget.layout().itemAt(1).widget().toolTip()
+            if url:
+                self.load_url_sig.emit(QUrl(url))
+
+        elif button == Qt.MouseButton.RightButton:
+            # save clicked widget in case user selects "delete entry" in context menu
+            self.widgetClicked = widget
+
+    def deleteHistoryEntryByPos(self, checked):
+        if self.widgetClicked is not None:
+            url = self.widgetClicked.layout().itemAt(1).widget().toolTip()
             if url:
                 self.history_manager.deleteHistoryEntryByUrl(url)
             self.update()
             if self.isVisible():
                 self.hide()
                 self.show()
-            w.deleteLater()
+            self.widgetClicked.deleteLater()
 
     def loadHistoryEntry(self, url):
         self.load_url_sig.emit(QUrl(url))
@@ -243,53 +256,19 @@ class HistoryWidget(QWidget):
 
     def showContextMenu(self, point):
         self.delete_action.triggered.disconnect()
-        self.delete_action.triggered.connect(lambda checked, p=point: self.deleteHistoryEntryByPos(checked, p))
+        self.delete_action.triggered.connect(self.deleteHistoryEntryByPos)
         self.entryContextMenu.exec(self.mapToGlobal(point))
 
-    def _getIndexByPosition(self, point):
-        index = None
-        index = None
-        if point.y() > self.init_widget.height():
-            index = int((point.y() - self.init_widget.height()) / (32 + 3))
-            if index >= self.content_layout.count():
-                index = None
-        return index
 
-    def _getWidgetByPosition(self, point):
-        w = None
-        index = self._getIndexByPosition(point)
-        if index is not None:
-            try:
-                w = self.content_layout.itemAt(index).widget()
-            except:
-                w = None
-        return w
+class Widget(QWidget):
 
-    def _getUrlByPosition(self, point):
-        url = None
-        w = self._getWidgetByPosition(point)
-        if w is not None:
-            if w:
-                url = w.layout().itemAt(1).widget().toolTip()
-            else:
-                url = None
-        return url
+    def __init__(self, parent=None, clickedSig=None):
+        super(Widget, self).__init__(parent)
 
-    def _getDateByPosition(self, point):
-        date = None
-        w = self._getWidgetByPosition(point)
-        if w is not None:
-            if w:
-                date = w.layout().itemAt(1).widget().accessibleName()
-            else:
-                date = ""
-        return date
+        self.clickedSig = clickedSig
 
     def mousePressEvent(self, a0):
-        if QApplication.mouseButtons() == Qt.MouseButton.LeftButton:
-            url = self._getUrlByPosition(a0.pos())
-            if url:
-                self.load_url_sig.emit(QUrl(url))
+        pass
 
-    def keyReleaseEvent(self, a0):
-        self.parent().keyReleaseEvent(a0)
+    def mouseReleaseEvent(self, a0):
+        self.clickedSig.emit(a0.button(), self)
