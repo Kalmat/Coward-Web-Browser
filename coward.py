@@ -452,19 +452,7 @@ class MainWindow(QMainWindow):
             self.ui.tabs.insertTab(tabIndex, browser, label if self.h_tabbar else "")
         self.ui.tabs.setTabToolTip(tabIndex, label + ("" if self.h_tabbar else "\n(Right-click to close)"))
 
-        qicon = None
-        if icon:
-            iconFile = icon
-            if os.path.exists(iconFile):
-                if not self.h_tabbar:
-                    pixmap = QPixmap(iconFile)
-                    pixmap = pixmap.transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation)
-                    qicon = QIcon(pixmap)
-                else:
-                    qicon = QIcon(iconFile)
-        if qicon is None:
-            qicon = self.web_ico if self.h_tabbar else self.web_ico_rotated
-        self.ui.tabs.setTabIcon(tabIndex, qicon)
+        self.ui.tabs.setTabIcon(tabIndex, self._getTabIcon(icon))
 
         # connect browser and page signals (once we have the tab index)
         self.connectBrowserSlots(browser)
@@ -480,6 +468,20 @@ class MainWindow(QMainWindow):
         LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"Tab created: {qurl.toString()}")
 
         return tabIndex
+
+    def _getTabIcon(self, icon):
+        qicon = None
+        if icon:
+            if os.path.exists(icon):
+                if self.h_tabbar:
+                    qicon = QIcon(icon)
+                else:
+                    pixmap = QPixmap(icon)
+                    pixmap = pixmap.transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation)
+                    qicon = QIcon(pixmap)
+        if qicon is None:
+            qicon = self.web_ico if self.h_tabbar else self.web_ico_rotated
+        return qicon
 
     def getBrowser(self, qurl, zoom, loadUrl):
 
@@ -718,12 +720,8 @@ class MainWindow(QMainWindow):
         # get the line edit text and convert it to QUrl object
         qurl = QUrl(self.ui.urlbar.text())
         filename = self._getIconFileName(qurl)
-        filepath = os.path.join(self.tabIconsFolder, filename)
-        if os.path.exists(filepath):
-            qicon = QIcon(filepath)
-        else:
-            qicon = self.web_ico
-        self.ui.tabs.setTabIcon(self.ui.tabs.currentIndex(), qicon)
+        iconFile = os.path.join(self.tabIconsFolder, filename)
+        self.ui.tabs.setTabIcon(self.ui.tabs.currentIndex(), self._getTabIcon(iconFile))
 
         # if scheme is blank
         if not qurl.isValid() or ((" " in qurl.url() or "." not in qurl.url()) and qurl.scheme() not in ("chrome", "file")):
