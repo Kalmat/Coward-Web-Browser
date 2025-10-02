@@ -31,6 +31,10 @@ class DefaultSettings:
         # path separator inverted ("/") for qss files
         tabSeparator = utils.resource_path("res/tabsep.png", True)
 
+    class Tabs:
+        checkActivity = True
+        suspendTime = 5*60  # time in seconds to suspend tab
+
     class Splash:
         enableSplash = True
         splashImage = utils.resource_path("res/coward_transp.png")
@@ -52,9 +56,12 @@ class DefaultSettings:
             historyFolder = "coward.history"
             historyFile = "data"
 
+        class Tabs:
+            tabsFolder = "coward.tabs"
+
     class Browser:
         defaultPage = 'https://start.duckduckgo.com/?kae=d'
-        defaultTabs = [[defaultPage, 1.0, True]]
+        defaultTabs = [[defaultPage, 1.0, "", True, False, ""]]
         htmlPath = utils.resource_path("html")
         fatalErrorPage = "fatal_error.html"
 

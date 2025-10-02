@@ -183,16 +183,16 @@ class HistoryWidget(QWidget):
             self.history_manager.updateHistoryEntry(url, title=title)
 
     def updateEntryIcon(self, icon, iconPath):
-        pixmap = icon.pixmap(QSize(16, 16))
-        if not os.path.exists(iconPath):
-            pixmap.save(iconPath, "PNG")
         iconFile = os.path.basename(iconPath)
         entryIcons = self.pendingIcons.get(iconFile, [])
         if entryIcons:
+            pixmap = icon.pixmap(QSize(16, 16))
+            if not os.path.exists(iconPath):
+                pixmap.save(iconPath, "PNG")
             for entryIcon in entryIcons:
                 entryIcon.setPixmap(QPixmap(pixmap))
-                entryIcon.update()
             del self.pendingIcons[iconFile]
+            self.update()
             if self.isVisible():
                 self.hide()
                 self.show()
