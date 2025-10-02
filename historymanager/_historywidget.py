@@ -91,7 +91,7 @@ class HistoryWidget(QWidget):
 
         # creating a context menu to delete history entry
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.entryContextMenu = QMenu()
+        self.entryContextMenu = QMenu(self)
         self.entryContextMenu.setMinimumHeight(40)
         self.entryContextMenu.setContentsMargins(0, 5, 0, 0)
         self.delete_action = QAction()
@@ -103,7 +103,7 @@ class HistoryWidget(QWidget):
         self.delete_action.triggered.connect(self.deleteHistoryEntry)
         self.customContextMenuRequested.connect(self.showContextMenu)
         self.widgetClickedSig.connect(self.onWidgetClicked)
-        self.widgetClicked = None
+        self.clickedWidget = None
         self.eraseHistorySig.connect(self.eraseHistory)
 
         self.pendingTitles = {}
@@ -122,7 +122,7 @@ class HistoryWidget(QWidget):
 
         date, title, url, icon = entry
 
-        widget = Widget(None, self.widgetClickedSig)
+        widget = Widget(self, self.widgetClickedSig)
         widget.setObjectName("item")
         widget.setAccessibleName(str(date))
         widget.setContentsMargins(5, 0, 0, 0)
@@ -213,6 +213,7 @@ class HistoryWidget(QWidget):
 
     @pyqtSlot(Qt.MouseButton, QWidget)
     def onWidgetClicked(self, button, widget):
+        self.clickedWidget = None
         if button == Qt.MouseButton.LeftButton:
             # load URL stored in history entry
             url = widget.layout().itemAt(1).widget().toolTip()
@@ -221,15 +222,15 @@ class HistoryWidget(QWidget):
 
         elif button == Qt.MouseButton.RightButton:
             # save clicked widget in case user selects "delete entry" in context menu
-            self.widgetClicked = widget
+            self.clickedWidget = widget
 
     def deleteHistoryEntry(self, checked):
-        if self.widgetClicked is not None:
-            url = self.widgetClicked.layout().itemAt(1).widget().toolTip()
+        if self.clickedWidget is not None:
+            url = self.clickedWidget.layout().itemAt(1).widget().toolTip()
             if url:
                 self.history_manager.deleteHistoryEntryByUrl(url)
-            self.widgetClicked.deleteLater()
-            self.widgetClicked = None
+            self.clickedWidget.deleteLater()
+            self.clickedWidget = None
             self.update()
             if self.isVisible():
                 self.hide()
@@ -257,7 +258,7 @@ class HistoryWidget(QWidget):
             self.init_label.setText(self.historyDisabled)
 
     def showContextMenu(self, point):
-        if self.content_widget.underMouse():
+        if self.clickedWidget is not None and self.clickedWidget.underMouse():
             self.entryContextMenu.exec(self.mapToGlobal(point))
 
 
@@ -273,3 +274,4 @@ class Widget(QWidget):
 
     def mouseReleaseEvent(self, a0):
         self.clickedSig.emit(a0.button(), self)
+
