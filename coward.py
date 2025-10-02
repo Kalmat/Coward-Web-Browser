@@ -511,6 +511,8 @@ class MainWindow(QMainWindow):
 
     def onLoadStarted(self, browser):
 
+        self.ui.tabs.setTabIcon(self.ui.tabs.currentIndex(), self.web_ico if self.h_tabbar else self.web_ico_rotated)
+
         if browser == self.ui.tabs.currentWidget():
             self.ui.reload_btn.setText(self.ui.stop_char)
             self.ui.reload_btn.setToolTip("Stop loading page")
@@ -719,9 +721,6 @@ class MainWindow(QMainWindow):
 
         # get the line edit text and convert it to QUrl object
         qurl = QUrl(self.ui.urlbar.text())
-        filename = self._getIconFileName(qurl)
-        iconFile = os.path.join(self.tabIconsFolder, filename)
-        self.ui.tabs.setTabIcon(self.ui.tabs.currentIndex(), self._getTabIcon(iconFile))
 
         # if scheme is blank
         if not qurl.isValid() or ((" " in qurl.url() or "." not in qurl.url()) and qurl.scheme() not in ("chrome", "file")):
