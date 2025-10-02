@@ -508,6 +508,7 @@ class MainWindow(QMainWindow):
         browser.loadFinished.connect(lambda a, b=browser: self.onLoadFinished(a, b))
 
     def onLoadStarted(self, browser):
+
         if browser == self.ui.tabs.currentWidget():
             self.ui.reload_btn.setText(self.ui.stop_char)
             self.ui.reload_btn.setToolTip("Stop loading page")
@@ -716,6 +717,13 @@ class MainWindow(QMainWindow):
 
         # get the line edit text and convert it to QUrl object
         qurl = QUrl(self.ui.urlbar.text())
+        filename = self._getIconFileName(qurl)
+        filepath = os.path.join(self.tabIconsFolder, filename)
+        if os.path.exists(filepath):
+            qicon = QIcon(filepath)
+        else:
+            qicon = self.web_ico
+        self.ui.tabs.setTabIcon(self.ui.tabs.currentIndex(), qicon)
 
         # if scheme is blank
         if not qurl.isValid() or ((" " in qurl.url() or "." not in qurl.url()) and qurl.scheme() not in ("chrome", "file")):
@@ -1401,12 +1409,11 @@ class MainWindow(QMainWindow):
         tabs = []
         for i in range(1, self.ui.tabs.count() - 1):
             browser = self.ui.tabs.widget(i)
-            qurl = browser.url()
             page = browser.page()
+            qurl, _, _, frozen = self.tabsActivity[browser]
             if qurl.isValid():
                 url = qurl.toString()
                 page.externalPlayer.closeExternalPlayer(False, url)
-                _, _, _, frozen = self.tabsActivity[browser]
                 iconFile = self._getIconFileName(qurl)
                 tabs.append([url, page.zoomFactor(), page.title(), i == self.ui.tabs.currentIndex(), frozen, iconFile])
         LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"Current tabs saved: {len(tabs)}")
@@ -1423,12 +1430,11 @@ class MainWindow(QMainWindow):
                 new_tabs = []
                 for i in range(1, w.ui.tabs.count() - 1):
                     browser = w.ui.tabs.widget(i)
-                    qurl = browser.url()
                     page = browser.page()
+                    qurl, _, _, frozen = self.tabsActivity[browser]
                     if qurl.isValid():
                         url = qurl.toString()
                         page.externalPlayer.closeExternalPlayer(False, url)
-                        _, _, _, frozen = self.tabsActivity[browser]
                         iconFile = self._getIconFileName(qurl)
                         new_tabs.append([url, page.zoomFactor(), page.title(), i == self.ui.tabs.currentIndex(), frozen, iconFile])
 

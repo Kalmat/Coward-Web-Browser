@@ -36,7 +36,7 @@ class DefaultSettings:
         suspendTime = 5*60  # time in seconds to suspend tab
 
     class Splash:
-        enableSplash = True
+        enableSplash = False  # not really showing from the very beginning
         splashImage = utils.resource_path("res/coward_transp.png")
 
     class Storage:
@@ -163,12 +163,3 @@ class DefaultSettings:
         QWebEnginePage.Feature.ClipboardReadWrite: "copy to the clipboard",
         QWebEnginePage.Feature.LocalFontsAccess: "access local fonts"
     }
-
-
-
-
-
-
-
-
-
