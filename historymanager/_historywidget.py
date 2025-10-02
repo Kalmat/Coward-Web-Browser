@@ -100,6 +100,7 @@ class HistoryWidget(QWidget):
         self.entryContextMenu.setStyleSheet(Themes.styleSheet(DefaultSettings.Theme.defaultTheme, Themes.Section.contextmenu))
         self.entryContextMenu.addAction(self.delete_action)
 
+        self.delete_action.triggered.connect(self.deleteHistoryEntry)
         self.customContextMenuRequested.connect(self.showContextMenu)
         self.widgetClickedSig.connect(self.onWidgetClicked)
         self.widgetClicked = None
@@ -222,16 +223,17 @@ class HistoryWidget(QWidget):
             # save clicked widget in case user selects "delete entry" in context menu
             self.widgetClicked = widget
 
-    def deleteHistoryEntryByPos(self, checked):
+    def deleteHistoryEntry(self, checked):
         if self.widgetClicked is not None:
             url = self.widgetClicked.layout().itemAt(1).widget().toolTip()
             if url:
                 self.history_manager.deleteHistoryEntryByUrl(url)
+            self.widgetClicked.deleteLater()
+            self.widgetClicked = None
             self.update()
             if self.isVisible():
                 self.hide()
                 self.show()
-            self.widgetClicked.deleteLater()
 
     def loadHistoryEntry(self, url):
         self.load_url_sig.emit(QUrl(url))
@@ -255,9 +257,8 @@ class HistoryWidget(QWidget):
             self.init_label.setText(self.historyDisabled)
 
     def showContextMenu(self, point):
-        self.delete_action.triggered.disconnect()
-        self.delete_action.triggered.connect(self.deleteHistoryEntryByPos)
-        self.entryContextMenu.exec(self.mapToGlobal(point))
+        if self.content_widget.underMouse():
+            self.entryContextMenu.exec(self.mapToGlobal(point))
 
 
 class Widget(QWidget):
