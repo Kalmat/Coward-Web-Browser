@@ -11,8 +11,10 @@ from settings import DefaultSettings
 try:
     # braveblock is only available in python 3.11 by now
     from braveblock import Adblocker
+    _BRAVE_IMPORTED = True
 except:
     DefaultSettings.AdBlocker.enableAdBlocker = False
+    _BRAVE_IMPORTED = False
     LOGGER.write(LoggerSettings.LogLevels.info, "RequestInterceptor", f"Failed to load braveblock module. Python 3.11 is required to enable this feature")
 
 
@@ -33,7 +35,8 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
 
     def setEnabled(self, enabled):
 
-        self.enableAdBlocker = enabled
+        global _BRAVE_IMPORTED
+        self.enableAdBlocker = enabled and _BRAVE_IMPORTED
 
         if self.enableAdBlocker and self.adblocker is None:
 
@@ -44,7 +47,7 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
                     or not os.path.exists(self.easyprivacyPath) or currTime - os.path.getmtime(self.easyprivacyPath) >= 7 * 86400):
                 self.updateRules(self.easylistPath, self.easyprivacyPath)
 
-            # Load EasyList rules (download easylist.txt beforehand)
+            # Load EasyList rules (download easylist.txt and easyprivacy.txt beforehand)
             easylistrules = []
             easyprivacyrules = []
             easylistUpdated = easyprivacyUpdated = False

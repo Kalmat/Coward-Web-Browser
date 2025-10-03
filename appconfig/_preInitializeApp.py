@@ -39,11 +39,20 @@ def preInitializeApp(options):
         if options.securityLevel is not None:
             DefaultSettings.Security.securityLevel = options.securityLevel
 
+        # allow / block cookies
+        if options.cookies is not None:
+            DefaultSettings.Cookies.allow = options.cookies
+        if options.thirdPartyCookies is not None:
+            DefaultSettings.Cookies.allowThirdParty = options.thirdPartyCookies
+
         if options.theme is not None:
             DefaultSettings.Theme.defaultTheme = options.theme
 
         if options.externalPlayerType is not None:
             DefaultSettings.Player.externalPlayerType = options.externalPlayerType
+
+    # override settings with arguments passed
+    overrideDefaultSettings(options)
 
     # Qt6 is DPI-Aware, so all this is not likely required
     if options.enableDPI:
@@ -68,6 +77,4 @@ def preInitializeApp(options):
         # This will allow to show some tracebacks (not all, anyway)
         sys._excepthook = sys.excepthook
         sys.excepthook = exception_hook
-
-    overrideDefaultSettings(options)
 

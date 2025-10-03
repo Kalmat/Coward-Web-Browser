@@ -87,17 +87,17 @@ class MainWindow(QMainWindow):
         self.isNewWin = new_win
 
         # Enable/Disable adblocker
-        self.adblock = self.settings.enableAdblocker
+        self.adblock = self.settings.enableAdblocker if OPTIONS.enableAdblocker is None else OPTIONS.enableAdblocker
 
         # Enable/Disable cookies and prepare incognito environment
         if (new_win and incognito is not None) or OPTIONS.incognitoMode:
             self.cookies = True
             self.isIncognito = OPTIONS.incognitoMode if OPTIONS.incognitoMode is not None else incognito
         else:
-            self.cookies = self.settings.allowCookies
+            self.cookies = self.settings.allowCookies if OPTIONS.cookies is not None else OPTIONS.cookies
             self.isIncognito = False
 
-        # Enable/disabling froce dark mode in pages
+        # Enable/disabling force dark mode in pages
         self.dark_mode = self.settings.forceDark
 
         # set icon size (also affects to tabs and actions sizes)
@@ -179,7 +179,7 @@ class MainWindow(QMainWindow):
         # Request interceptor for blocking URLs and ad-blocking
         self.requestInterceptor = RequestInterceptor(DefaultSettings.AdBlocker.urlBlackList,
                                                      os.path.join(self.appStorageFolder, DefaultSettings.AdBlocker.filterlistsFolder))
-        self.requestInterceptor.setEnabled(self.settings.enableAdblocker)
+        self.requestInterceptor.setEnabled(self.adblock)
 
         # creating download manager before custom title bar to allow moving it too
         self.dl_manager = DownloadManager(self)
@@ -410,6 +410,7 @@ class MainWindow(QMainWindow):
         if self.currentTabs:
             for i, tab in enumerate(self.currentTabs):
                 url, zoom, title, active, frozen, icon = tab
+                print("CREATE", title)
                 if active:
                     current = i + 1
                     QTimer.singleShot(0, lambda u=url: self.ui.urlbar.setText(u))
@@ -442,7 +443,7 @@ class MainWindow(QMainWindow):
         browser = self.getBrowser(qurl, zoom, loadUrl)
         self.tabsActivity[browser] = [qurl, label, time.time(), not loadUrl]
 
-        # setting tab index and default icon
+        # add / insert tab and set title tooltip and icon
         if tabIndex is None:
             # add tab at the end
             tabIndex = self.ui.tabs.addTab(browser, label if self.h_tabbar else "")
@@ -451,7 +452,6 @@ class MainWindow(QMainWindow):
             # add tab in given position (e.g. when requested from page context menu)
             self.ui.tabs.insertTab(tabIndex, browser, label if self.h_tabbar else "")
         self.ui.tabs.setTabToolTip(tabIndex, label + ("" if self.h_tabbar else "\n(Right-click to close)"))
-
         self.ui.tabs.setTabIcon(tabIndex, self._getTabIcon(icon))
 
         # connect browser and page signals (once we have the tab index)
@@ -616,7 +616,7 @@ class MainWindow(QMainWindow):
     def url_changed(self, qurl, browser):
         # All this has to be done here since loadfinished() is not triggered, titleChanged() is triggered twice, etc...
 
-        if qurl.toString() != "about:blank":
+        if qurl.toString() and qurl.toString() != "about:blank":
             self.update_urlbar(qurl, browser)
             _, title, lastAccessed, frozen = self.tabsActivity[browser]
             self.tabsActivity[browser] = [qurl, title, lastAccessed, frozen]
@@ -640,8 +640,9 @@ class MainWindow(QMainWindow):
         # sometimes this is called twice for the same page, passing an obsolete title (though URL is ok... weird)
 
         _, _, _, frozen = self.tabsActivity[browser]
+        print("CHANGE", title)
 
-        if not frozen:
+        if title and not frozen and browser.url().toString() and browser.url().toString() != "about:blank":
 
             tabIndex = self.ui.tabs.indexOf(browser)
             self.ui.tabs.tabBar().setTabText(tabIndex, (title + " " * 30)[:29] if self.h_tabbar else "")
@@ -658,7 +659,9 @@ class MainWindow(QMainWindow):
 
         _, _, _, frozen = self.tabsActivity[browser]
 
-        if not frozen:
+        pixmap = icon.pixmap(QSize(self.icon_size, self.icon_size))
+
+        if not pixmap.isNull() and not frozen and browser.url().toString() and browser.url().toString() != "about:blank":
 
             pixmap = icon.pixmap(QSize(self.icon_size, self.icon_size))
             pixmap = utils.fixDarkImage(pixmap)
@@ -1407,12 +1410,12 @@ class MainWindow(QMainWindow):
         for i in range(1, self.ui.tabs.count() - 1):
             browser = self.ui.tabs.widget(i)
             page = browser.page()
-            qurl, _, _, frozen = self.tabsActivity[browser]
+            qurl, title, _, frozen = self.tabsActivity[browser]
             if qurl.isValid():
                 url = qurl.toString()
                 page.externalPlayer.closeExternalPlayer(False, url)
                 iconFile = self._getIconFileName(qurl)
-                tabs.append([url, page.zoomFactor(), page.title(), i == self.ui.tabs.currentIndex(), frozen, iconFile])
+                tabs.append([url, page.zoomFactor(), title, i == self.ui.tabs.currentIndex(), frozen, iconFile])
         LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"Current tabs saved: {len(tabs)}")
 
         # save other open windows
