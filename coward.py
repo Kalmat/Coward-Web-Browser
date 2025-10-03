@@ -410,7 +410,6 @@ class MainWindow(QMainWindow):
         if self.currentTabs:
             for i, tab in enumerate(self.currentTabs):
                 url, zoom, title, active, frozen, icon = tab
-                print("CREATE", title)
                 if active:
                     current = i + 1
                     QTimer.singleShot(0, lambda u=url: self.ui.urlbar.setText(u))
@@ -640,16 +639,16 @@ class MainWindow(QMainWindow):
         # sometimes this is called twice for the same page, passing an obsolete title (though URL is ok... weird)
 
         _, _, _, frozen = self.tabsActivity[browser]
-        print("CHANGE", title)
 
-        if title and not frozen and browser.url().toString() and browser.url().toString() != "about:blank":
+        if not frozen:
 
             tabIndex = self.ui.tabs.indexOf(browser)
             self.ui.tabs.tabBar().setTabText(tabIndex, (title + " " * 30)[:29] if self.h_tabbar else "")
             self.ui.tabs.setTabToolTip(tabIndex, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
 
             qurl, _, lastAccessed, frozen = self.tabsActivity[browser]
-            self.tabsActivity[browser] = [qurl, title, lastAccessed, frozen]
+            if browser.url().toString and browser.url().toString() != "about:blank":
+                self.tabsActivity[browser] = [qurl, title, lastAccessed, frozen]
 
             if self.settings.enableHistory:
                 # update title since it is asynchronous once the url changes
@@ -661,7 +660,7 @@ class MainWindow(QMainWindow):
 
         pixmap = icon.pixmap(QSize(self.icon_size, self.icon_size))
 
-        if not pixmap.isNull() and not frozen and browser.url().toString() and browser.url().toString() != "about:blank":
+        if not frozen:
 
             pixmap = icon.pixmap(QSize(self.icon_size, self.icon_size))
             pixmap = utils.fixDarkImage(pixmap)
