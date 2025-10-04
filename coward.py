@@ -510,18 +510,22 @@ class MainWindow(QMainWindow):
 
     def onLoadStarted(self, browser):
 
-        self.ui.tabs.setTabIcon(self.ui.tabs.currentIndex(), self.web_ico if self.h_tabbar else self.web_ico_rotated)
+        _, _, _, frozen = self.tabsActivity[browser]
+        if not frozen:
+            self.ui.tabs.setTabIcon(self.ui.tabs.indexOf(browser), self.web_ico if self.h_tabbar else self.web_ico_rotated)
 
-        if browser == self.ui.tabs.currentWidget():
-            self.ui.reload_btn.setText(self.ui.stop_char)
-            self.ui.reload_btn.setToolTip("Stop loading page")
+            if browser == self.ui.tabs.currentWidget():
+                self.ui.reload_btn.setText(self.ui.stop_char)
+                self.ui.reload_btn.setToolTip("Stop loading page")
 
     def onLoadFinished(self, loadedOk, browser):
         # This signal is not triggered in many sites when clicking "inner" links!!!
         # Things like history must be handled in title_changed() (not the ideal place, but...)
-        if browser == self.ui.tabs.currentWidget():
-            self.ui.reload_btn.setText(self.ui.reload_char)
-            self.ui.reload_btn.setToolTip("Reload page")
+        _, _, _, frozen = self.tabsActivity[browser]
+        if not frozen:
+            if browser == self.ui.tabs.currentWidget():
+                self.ui.reload_btn.setText(self.ui.reload_char)
+                self.ui.reload_btn.setToolTip("Reload page")
 
     def getProfile(self, browser=None):
 
@@ -638,7 +642,7 @@ class MainWindow(QMainWindow):
     def title_changed(self, title, browser):
         # sometimes this is called twice for the same page, passing an obsolete title (though URL is ok... weird)
 
-        _, _, _, frozen = self.tabsActivity[browser]
+        _, stored_title, _, frozen = self.tabsActivity[browser]
 
         if not frozen:
 
@@ -657,8 +661,6 @@ class MainWindow(QMainWindow):
     def icon_changed(self, icon, browser):
 
         _, _, _, frozen = self.tabsActivity[browser]
-
-        pixmap = icon.pixmap(QSize(self.icon_size, self.icon_size))
 
         if not frozen:
 
@@ -745,19 +747,18 @@ class MainWindow(QMainWindow):
             qurl, title, lastTimeLoaded, frozen = self.tabsActivity[browser]
             if browser == self.ui.tabs.currentWidget():
                 lastTimeLoaded = currTime
-            turned_frozen = frozen
             if not frozen and currTime - lastTimeLoaded > DefaultSettings.Tabs.suspendTime:
                 browser.load(QUrl())
-                turned_frozen = True
-            self.tabsActivity[browser] = [qurl, title, lastTimeLoaded, turned_frozen]
+                frozen = True
+            self.tabsActivity[browser] = [qurl, title, lastTimeLoaded, frozen]
 
     def current_tab_changed(self, tabIndex):
 
         if tabIndex <= 0:
             self.ui.tabs.setCurrentIndex(self.prevTabIndex or 1)
 
-        # if tabIndex >= self.ui.tabs.count() - 1:
-        #     self.ui.tabs.setCurrentIndex(self.ui.tabs.count() - 2)
+        if tabIndex >= self.ui.tabs.count() - 1:
+            self.ui.tabs.setCurrentIndex(self.ui.tabs.count() - 2)
 
         if tabIndex < self.ui.tabs.count() - 1:
 
