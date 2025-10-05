@@ -92,9 +92,9 @@ class MainWindow(QMainWindow):
         # Enable/Disable cookies and prepare incognito environment
         if (new_win and incognito is not None) or OPTIONS.incognitoMode:
             self.cookies = True
-            self.isIncognito = OPTIONS.incognitoMode if OPTIONS.incognitoMode is not None else incognito
+            self.isIncognito = incognito if OPTIONS.incognitoMode is None else OPTIONS.incognitoMode
         else:
-            self.cookies = OPTIONS.cookies if OPTIONS.cookies is not None else self.settings.allowCookies
+            self.cookies = self.settings.allowCookies if OPTIONS.cookies is None else OPTIONS.cookies
             self.isIncognito = False
 
         # Enable/disabling force dark mode in pages
