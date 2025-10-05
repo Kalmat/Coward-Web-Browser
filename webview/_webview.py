@@ -58,8 +58,8 @@ class WebView(QWebEngineView):
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.FullScreenSupportEnabled, True)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.FocusOnNavigationEnabled, True)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.LinksIncludedInFocusChain, True)
-        self.settings().setAttribute(QWebEngineSettings.WebAttribute.HyperlinkAuditingEnabled, True)
-        self.settings().setAttribute(QWebEngineSettings.WebAttribute.SpatialNavigationEnabled, True)
+        # self.settings().setAttribute(QWebEngineSettings.WebAttribute.HyperlinkAuditingEnabled, True)
+        # self.settings().setAttribute(QWebEngineSettings.WebAttribute.SpatialNavigationEnabled, True)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.NavigateOnDropEnabled, True)
         self.settings().setAttribute(QWebEngineSettings.WebAttribute.ForceDarkMode, dark_mode)
 

@@ -36,6 +36,9 @@ class ExternalPlayer(QObject):
             acceptSlot=lambda u=url: self.openInExternalPlayer(u)
         )
 
+    def hasExternalPlayerOpen(self):
+        return len(self.players) > 0
+
     def openInExternalPlayer(self, url):
         # allow (or not) multiple external player instances per page
         keys = list(self.streamers.keys())

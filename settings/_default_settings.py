@@ -33,7 +33,7 @@ class DefaultSettings:
 
     class Tabs:
         checkActivity = True
-        suspendTime = 5*60  # time in seconds to suspend inactive tabs
+        suspendTime = 1*60  # time in seconds to suspend inactive tabs
 
     class Splash:
         enableSplash = False  # not really showing from the very beginning
