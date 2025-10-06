@@ -493,7 +493,7 @@ class MainWindow(QMainWindow):
                 pixmap = QPixmap(iconFile)
                 if not enabled:
                     qimage = pixmap.toImage()
-                    grayscale_image = qimage.convertToFormat(QImage.Format.Format_Grayscale8)
+                    grayscale_image = self.convert_to_grayscale_with_alpha(qimage)
                     pixmap = QPixmap.fromImage(grayscale_image)
                 if not self.h_tabbar:
                     pixmap = pixmap.transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation)
@@ -501,6 +501,31 @@ class MainWindow(QMainWindow):
         if qicon is None:
             qicon = self.web_ico if self.h_tabbar else self.web_ico_rotated
         return qicon
+
+    def convert_to_grayscale_with_alpha(self, image):
+        # this is faster, but doesn't keep the alpha (transparency) channel
+        # grayscale_image = qimage.convertToFormat(QImage.Format.Format_Grayscale8, Qt.ImageConversionFlag.AutoColor)
+        argb_image = image.convertToFormat(QImage.Format.Format_ARGB32)
+        width = argb_image.width()
+        height = argb_image.height()
+        bpl = argb_image.bytesPerLine()
+
+        for y in range(height):
+            scan_line = argb_image.scanLine(y)
+            scan_line.setsize(bpl)  # Set size to access as buffer
+            for x in range(width):
+                # Access 4-byte pixel manually
+                i = x * 4
+                # Extract RGBA components
+                r, g, b = scan_line[i], scan_line[i + 1], scan_line[i + 2]
+                gray = qGray(int.from_bytes(r), int.from_bytes(g), int.from_bytes(b))
+                # Write back grayscale with original alpha
+                scan_line[i] = gray.to_bytes()
+                scan_line[i + 1] = gray.to_bytes()
+                scan_line[i + 2] = gray.to_bytes()
+                # scan_line[i+3] = a  # Alpha already preserved
+
+        return argb_image
 
     def getBrowser(self, qurl, zoom, loadUrl):
 
@@ -788,6 +813,7 @@ class MainWindow(QMainWindow):
                     zoom = browser.page().zoomFactor()
                     browser = self._replaceInactiveBrowser(browser, self.ui.tabs.indexOf(browser), QUrl(url), title, zoom)
                 frozen = True
+                LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"Tab suspended: {self.ui.tabs.indexOf(browser)}, {title}")
             self.tabsActivity[browser] = [url, title, zoom, lastTimeLoaded, frozen]
 
     def current_tab_changed(self, tabIndex):
@@ -813,13 +839,14 @@ class MainWindow(QMainWindow):
                 self.tabsActivity[browser] = [url, title, zoom, time.time(), False]
 
             # manage stop/reload button
-            page = browser.page()
-            if page.isLoading():
-                self.ui.reload_btn.setText(self.ui.stop_char)
-                self.ui.reload_btn.setToolTip("Stop loading page")
-            else:
-                self.ui.reload_btn.setText(self.ui.reload_char)
-                self.ui.reload_btn.setToolTip("Reload page")
+            if isinstance(browser, QWebEngineView):
+                page = browser.page()
+                if page.isLoading():
+                    self.ui.reload_btn.setText(self.ui.stop_char)
+                    self.ui.reload_btn.setToolTip("Stop loading page")
+                else:
+                    self.ui.reload_btn.setText(self.ui.reload_char)
+                    self.ui.reload_btn.setToolTip("Reload page")
 
             # this takes A LOT (1.8 secs)
             # url = qurl.toString()
