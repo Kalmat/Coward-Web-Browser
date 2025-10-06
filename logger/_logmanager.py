@@ -49,7 +49,7 @@ class LoggerManager:
         self.checkFiles(self.logFolder, self.logDepth)
 
     def write(self, error_level, origin, message, force=False):
-        msg = error_level.value + time.strftime(" %Y%m%d-%H%M%S ") + origin + " --- " + message
+        msg = error_level.value + time.strftime(" %Y/%m/%d-%H:%M:%S ") + origin + " --- " + message
         if self.debugEnabled or force:
             if (origin not in ("JavaScriptConsole", "RequestInterceptor") or
                     (origin == "JavaScriptConsole" and self.javaConsoleMessagesEnabled) or

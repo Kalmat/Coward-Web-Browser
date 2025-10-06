@@ -1,3 +1,4 @@
+import faulthandler
 import os
 import sys
 
@@ -18,6 +19,8 @@ def preInitializeApp(options):
             LOGGER.enableDebug(options.enableDebug)
             # is this necessary or are these messages also caught by JavaScriptConsoleMessages()?
             # utils.enableChromiumDebug()
+            if options.enableDebug:
+                faulthandler.enable(all_threads=True)
 
         # enable / disable debugging javascript console messages (requires to enable debug too)
         if options.enableJavaConsoleMessages is not None:
