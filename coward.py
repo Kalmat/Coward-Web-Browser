@@ -864,7 +864,6 @@ class MainWindow(QMainWindow):
                     self.ui.reload_btn.setText(self.ui.reload_char)
                     self.ui.reload_btn.setToolTip("Reload page")
 
-
     def _replaceInactiveBrowser(self, browser, tabIndex, qurl, title, zoom):
 
         # disconnect signal to avoid repeatedly calling current_tab_changed() when removing and adding tabs
