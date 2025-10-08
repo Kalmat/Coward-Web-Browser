@@ -9,8 +9,6 @@ class TabWidget(QTabWidget):
 
     def setCurrentIndex(self, index):
         index = max(1, min(index, self.count() - 2))
-        if self.widget(index) is None or not isinstance(self.widget(index), QWebEngineView):
-            index = 1
         super().setCurrentIndex(index)
 
     def keyPressEvent(self, a0):

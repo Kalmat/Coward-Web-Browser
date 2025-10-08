@@ -1,4 +1,4 @@
-from PyQt6.QtCore import pyqtSlot
+from PyQt6.QtCore import pyqtSlot, pyqtSignal, QTimer
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineCertificateError
 from PyQt6.QtWidgets import QMessageBox
@@ -12,9 +12,10 @@ from ._externalplayer import ExternalPlayer
 
 class WebPage(QWebEnginePage):
 
-    def __init__(self, profile, parent, dialog_manager, http_manager=None):
+    def __init__(self, profile, parent, isPlayingMediaSig, dialog_manager, http_manager=None):
         super(WebPage, self).__init__(profile, parent)
 
+        self.isPlayingMediaSig = isPlayingMediaSig
         self.dialog_manager = dialog_manager
         self.http_manager = http_manager
 
@@ -35,6 +36,10 @@ class WebPage(QWebEnginePage):
             QWebEnginePage.JavaScriptConsoleMessageLevel.WarningMessageLevel: LoggerSettings.LogLevels.warning,
             QWebEnginePage.JavaScriptConsoleMessageLevel.ErrorMessageLevel: LoggerSettings.LogLevels.error
         }
+
+        self.mediaCheckTimer = QTimer()
+        self.mediaCheckTimer.timeout.connect(self.check_media_playing)
+        self.mediaCheckTimer.start(60000)
 
     # def acceptNavigationRequest(self, url, type, isMainFrame: bool) -> bool:
     #     if type == QWebEnginePage.NavigationType.NavigationTypeLinkClicked: return False
@@ -147,6 +152,38 @@ class WebPage(QWebEnginePage):
     # def handleMediaError(self, ok, url):
     #     if not ok:
     #         self.externalPlayer.handleExternalPlayerRequest(url)
+
+    def check_media_playing(self):
+        self.runJavaScript("""
+            var videos = document.getElementsByTagName('video');
+            var audios = document.getElementsByTagName('audio');
+            var isPlaying = false;
+
+            for (var i = 0; i < videos.length; i++) {
+                if (!videos[i].paused) {
+                    isPlaying = true;
+                    break;
+                }
+            }
+
+            if (!isPlaying) {
+                for (var j = 0; j < audios.length; j++) {
+                    if (!audios[j].paused) {
+                        isPlaying = true;
+                        break;
+                    }
+                }
+            }
+
+            isPlaying;
+        """, self.handle_media_status)
+
+    def handle_media_status(self, isPlaying):
+        if isPlaying is None:
+            isPlaying = False
+        else:
+            isPlaying = isPlaying or self.externalPlayer.hasExternalPlayerOpen()
+        self.isPlayingMediaSig.emit(self, isPlaying)
 
     def javaScriptConsoleMessage(self, level, message, lineNumber=0, sourceID=""):
 

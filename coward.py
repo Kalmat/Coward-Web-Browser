@@ -3,7 +3,6 @@ import hashlib
 import os
 import shutil
 import sys
-import threading
 import time
 
 from PyQt6 import sip
@@ -50,11 +49,12 @@ class MainWindow(QMainWindow):
     # check activity
     checkTabsActivitySig = pyqtSignal()
 
+    # check if page is playing media to avoid suspending it
+    pageIsPlayingMediaSig = pyqtSignal(QWebEnginePage, bool)
+
     # constructor
     def __init__(self, new_win=False, init_tabs=None, incognito=None):
         super(MainWindow, self).__init__()
-
-        self.file = str(time.time())
 
         # get Settings
         self.loadSettings(new_win, incognito)
@@ -363,6 +363,9 @@ class MainWindow(QMainWindow):
         # signal to replace browser widget when suspended / re-enabled
         self.checkTabsActivitySig.connect(self.checkTabsActivity)
 
+        # signal to update if page is playing media (avoiding to suspend it)
+        self.pageIsPlayingMediaSig.connect(self.updatePageIsPlayingMedia)
+
         LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Signals connected")
 
     def show(self):
@@ -399,13 +402,13 @@ class MainWindow(QMainWindow):
         # open all windows and their tabs
         if self.isNewWin or self.isIncognito:
             # get open tabs for child window instance
-            self.currentTabs = init_tabs or DefaultSettings.Browser.defaultTabs
+            tabs = init_tabs or DefaultSettings.Browser.defaultTabs
             # no child windows allowed for child instances
             new_wins = []
 
         else:
             # get open tabs for  main instance window
-            self.currentTabs = self.settings.previousTabs
+            tabs = self.settings.previousTabs
             # get child windows instances and their open tabs
             new_wins = self.settings.newWindows
 
@@ -416,13 +419,12 @@ class MainWindow(QMainWindow):
         current = 1
         tabIcons = []
         self.tabsActivity = {}
-        if self.currentTabs:
-            for i, tab in enumerate(self.currentTabs):
+        if tabs:
+            for i, tab in enumerate(tabs):
                 url, zoom, title, active, frozen, icon = tab
                 if active:
                     current = i + 1
                     QTimer.singleShot(0, lambda u=url: self.ui.urlbar.setText(u))
-                # self.add_tab(QUrl(url), zoom, title, active or (not active and not self.checkActivityEnabled), icon)
                 self.add_tab(QUrl(url), zoom, title, active and not self.checkActivityEnabled, icon)
                 tabIcons.append(icon)
             for file in os.listdir(self.tabIconsFolder):
@@ -443,7 +445,7 @@ class MainWindow(QMainWindow):
         for new_tabs in new_wins:
             self.show_in_new_window(new_tabs)
 
-        LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"All tabs created: {len(self.currentTabs)}")
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"All tabs created: {len(tabs)}")
 
     def add_tab(self, qurl, zoom=1.0, label="Loading...", loadUrl=True, icon="", tabIndex=None):
 
@@ -460,7 +462,7 @@ class MainWindow(QMainWindow):
             browser = QLabel()
             tab_type = "DUMMY"
 
-        self.tabsActivity[browser] = [qurl.toString(), label, zoom, time.time(), not loadUrl]
+        self.tabsActivity[browser] = [qurl.toString(), label, zoom, time.time(), not loadUrl, False]
 
         # add / insert tab and set title tooltip and icon
         if tabIndex is None:
@@ -596,7 +598,7 @@ class MainWindow(QMainWindow):
     def getPage(self, profile, browser, zoom):
 
         # this will create the page and apply all selected settings
-        page = WebPage(profile, browser, self.dialog_manager, self.http_manager)
+        page = WebPage(profile, browser, self.pageIsPlayingMediaSig, self.dialog_manager, self.http_manager)
 
         # set page zoom factor
         page.setZoomFactor(zoom)
@@ -605,6 +607,16 @@ class MainWindow(QMainWindow):
         self.setPageContextMenu(page)
 
         return page
+
+    @pyqtSlot(QWebEnginePage, bool)
+    def updatePageIsPlayingMedia(self, page, isPlaying):
+        try:
+            browser = page.parent()
+        except:
+            browser = None
+        if browser is not None and browser in self.tabsActivity.keys():
+            url, title, zoom, lastTimeLoaded, frozen, _ = self.tabsActivity[browser]
+            self.tabsActivity[browser] = url, title, zoom, lastTimeLoaded, frozen, isPlaying
 
     def setPageContextMenu(self, page):
 
@@ -679,8 +691,8 @@ class MainWindow(QMainWindow):
         self.update_urlbar(qurl, browser)
         tabData = self.tabsActivity.get(browser, None)
         if tabData:
-            _, title, zoom, lastAccessed, frozen = tabData
-            self.tabsActivity[browser] = [qurl.toString(), title, zoom, lastAccessed, frozen]
+            _, title, zoom, lastAccessed, frozen, isPlayingMedia = tabData
+            self.tabsActivity[browser] = [qurl.toString(), title, zoom, lastAccessed, frozen, isPlayingMedia]
 
         # TODO: find a reliable way to check if there is a media playback error (most likely, there isn't)
         # this is the opposite strategy: checking if it can be streamed using streamlink...
@@ -706,8 +718,8 @@ class MainWindow(QMainWindow):
 
         tabData = self.tabsActivity.get(browser, None)
         if tabData:
-            url, _, zoom, lastAccessed, frozen = tabData
-            self.tabsActivity[browser] = [url, title, zoom, lastAccessed, frozen]
+            url, _, zoom, lastAccessed, frozen, isPlayingMedia = tabData
+            self.tabsActivity[browser] = [url, title, zoom, lastAccessed, frozen, isPlayingMedia]
 
         if self.settings.enableHistory:
             # update title since it is asynchronous once the url changes
@@ -791,7 +803,7 @@ class MainWindow(QMainWindow):
             qurl = QUrl(qurl.toString().replace("https:", "https://"))
 
         browser = self.ui.tabs.currentWidget()
-        self.tabsActivity[browser] = [qurl.toString(), "", 1.0, time.time(), False]
+        self.tabsActivity[browser] = [qurl.toString(), "", 1.0, time.time(), False, False]
 
         # set the url
         QTimer.singleShot(0, lambda u=qurl: self.ui.tabs.currentWidget().load(u))
@@ -804,39 +816,39 @@ class MainWindow(QMainWindow):
         tabKeys = list(self.tabsActivity.keys())
         currTime = time.time()
         for browser in tabKeys:
-            url, title, zoom, lastTimeLoaded, frozen = self.tabsActivity[browser]
-            if browser == self.ui.tabs.currentWidget():
+            url, title, zoom, lastTimeLoaded, frozen, isPlayingMedia = self.tabsActivity[browser]
+            if browser == self.ui.tabs.currentWidget() or isPlayingMedia:
                 lastTimeLoaded = currTime
             if not frozen and currTime - lastTimeLoaded > DefaultSettings.Tabs.suspendTime:
-                if isinstance(browser, QWebEngineView) and not browser.page().externalPlayer.hasExternalPlayerOpen():
+                if isinstance(browser, QWebEngineView):
                     # destroy qwebengineview to free resources and create a dummy qlabel widget
                     zoom = browser.page().zoomFactor()
                     browser = self._replaceInactiveBrowser(browser, self.ui.tabs.indexOf(browser), QUrl(url), title, zoom)
                 frozen = True
                 LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"Tab suspended: {self.ui.tabs.indexOf(browser)}, {title}")
-            self.tabsActivity[browser] = [url, title, zoom, lastTimeLoaded, frozen]
+            self.tabsActivity[browser] = [url, title, zoom, lastTimeLoaded, frozen, isPlayingMedia]
 
     def current_tab_changed(self, tabIndex):
 
         if tabIndex <= 0:
             self.ui.tabs.setCurrentIndex(self.prevTabIndex or 1)
 
-        if tabIndex >= self.ui.tabs.count() - 1:
+        elif tabIndex >= self.ui.tabs.count() - 1:
             self.ui.tabs.setCurrentIndex(self.ui.tabs.count() - 2)
 
-        if tabIndex < self.ui.tabs.count() - 1:
+        else:
 
             browser = self.ui.tabs.widget(tabIndex)
             tabData = self.tabsActivity.get(browser, None)
             if tabData:
-                url, title, zoom, _, frozen = tabData
+                url, title, zoom, _, frozen, isPlayingMedia = tabData
                 qurl = QUrl(url)
                 # update the url
                 QTimer.singleShot(0, lambda q=qurl, b=browser: self.update_urlbar(q, b))
                 if isinstance(browser, QLabel):
                     # create qwebengineview if page was suspended and load url
                     browser = self._replaceInactiveBrowser(browser, tabIndex, qurl, title, zoom)
-                self.tabsActivity[browser] = [url, title, zoom, time.time(), False]
+                self.tabsActivity[browser] = [url, title, zoom, time.time(), False, isPlayingMedia]
 
             # manage stop/reload button
             if isinstance(browser, QWebEngineView):
@@ -848,31 +860,38 @@ class MainWindow(QMainWindow):
                     self.ui.reload_btn.setText(self.ui.reload_char)
                     self.ui.reload_btn.setToolTip("Reload page")
 
-            # this takes A LOT (1.8 secs)
-            # url = qurl.toString()
-            # if url not in self.checkedURL:
-            #     self.checkedURL.append(url)
-            #     page.checkCanPlayMedia()
+                # this takes A LOT (1.8 secs)
+                # url = qurl.toString()
+                # if url not in self.checkedURL:
+                #     self.checkedURL.append(url)
+                #     page.checkCanPlayMedia()
 
     def _replaceInactiveBrowser(self, browser, tabIndex, qurl, title, zoom):
 
         # disconnect signal to avoid repeatedly calling current_tab_changed() when removing and adding tabs
         self.ui.tabs.currentChanged.disconnect()
-        self.ui.tabs.removeTab(tabIndex)
+
+        # close previous widget and tab
         del self.tabsActivity[browser]
+        self.ui.tabs.removeTab(tabIndex)
         isView = isinstance(browser, QWebEngineView)
-        icon = self._getIconFileName(qurl)
-        tabIndex = self.add_tab(qurl, zoom, title, not isView, icon, tabIndex)
-        self.ui.tabs.setTabIcon(tabIndex, self._getTabIcon(self._getIconFileName(qurl), not isView))
         if isView:
             self.connectPageSlots(browser.page(), False)
             # sip.delete(browser.page())
             self.connectBrowserSlots(browser, False)
-        else:
-            self.ui.tabs.setCurrentIndex(tabIndex)
-        browser.close()
         # sip.delete(browser)
+        browser.close()
+
+        # create new widget in add_tab() method (QWebEngineView if it was QLabel and viceversa)
+        icon = self._getIconFileName(qurl)
+        tabIndex = self.add_tab(qurl, zoom, title, not isView, icon, tabIndex)
+        self.ui.tabs.setTabIcon(tabIndex, self._getTabIcon(self._getIconFileName(qurl), not isView))
+        if not isView:
+            self.ui.tabs.setCurrentIndex(tabIndex)
+
+        # reconnect signal for current index changed
         self.ui.tabs.currentChanged.connect(self.current_tab_changed)
+
         return self.ui.tabs.widget(tabIndex)
 
     def tab_clicked(self, tabIndex):
@@ -888,12 +907,12 @@ class MainWindow(QMainWindow):
 
     def tab_moved(self, to_index, from_index):
 
-        if to_index == self.ui.tabs.count() - 1:
+        if to_index >= self.ui.tabs.count() - 1:
             # Avoid moving last tab (add new tab) if dragging another tab onto it
             self.ui.tabs.removeTab(from_index)
             self.add_tab_action()
 
-        elif to_index == 0:
+        elif to_index <= 0:
             # Avoid moving first tab (toggle tab orientation) if dragging another tab onto it
             self.ui.tabs.removeTab(from_index)
             self.add_toggletab_action()
@@ -918,18 +937,17 @@ class MainWindow(QMainWindow):
             tabData = self.tabsActivity.get(browser, None)
             title = ""
             if tabData is not None:
-                _, title, _, _, _ = tabData
+                _, title, _, _, _, _ = tabData
                 del self.tabsActivity[browser]
 
-            # remove the tab
+            # remove tab and delete tab widget safely
             self.ui.tabs.removeTab(tabIndex)
-            # delete tab widget immediately and (hopefully) safely
             if isinstance(browser, QWebEngineView):
                 self.connectPageSlots(browser.page(), False)
                 # sip.delete(browser.page())
                 self.connectBrowserSlots(browser, False)
-            browser.close()
             # sip.delete(browser)
+            browser.close()
 
             # adjust target tab index according to new tabs number (but not tab 0, the toggle button)
             if targetIndex >= self.ui.tabs.count() - 1:
@@ -957,7 +975,7 @@ class MainWindow(QMainWindow):
                 tabData = self.tabsActivity.get(browser, None)
                 title = ""
                 if tabData is not None:
-                    _, title, _, _, _ = tabData
+                    _, title, _, _, _, _ = tabData
                 self.title_changed(title, browser)
                 self.ui.tabs.tabBar().tabButton(i, QTabBar.ButtonPosition.RightSide).clicked.connect(lambda checked, b=self.ui.tabs.widget(i): self.tab_closed(b))
             else:
@@ -1006,6 +1024,7 @@ class MainWindow(QMainWindow):
                 # if not self.ui.hoverHWidget.isVisible() and not self.ui.hoverHWidget.underMouse():
                 # this... fails sometimes???? WHY?????
                 # hypothesis: if nav tab is under mouse it will not hide, so trying to show hoverHWidget in the same position fails
+                # solution: moving the mouse out of the nav bar
                 curPos = QCursor.pos(self.screen())
                 x = self.ui.tabs.tabBar().width() if not self.h_tabbar else curPos.x()
                 y = self.ui.navtab.height()
@@ -1502,7 +1521,7 @@ class MainWindow(QMainWindow):
         tabs = []
         for i in range(1, self.ui.tabs.count() - 1):
             browser = self.ui.tabs.widget(i)
-            url, title, zoom, _, frozen = self.tabsActivity[browser]
+            url, title, zoom, _, frozen, _ = self.tabsActivity[browser]
             if isinstance(browser, QWebEngineView):
                 url = browser.url().toString()
                 page = browser.page()
@@ -1524,7 +1543,7 @@ class MainWindow(QMainWindow):
                 new_tabs = []
                 for i in range(1, w.ui.tabs.count() - 1):
                     browser = w.ui.tabs.widget(i)
-                    url, title, zoom, _, frozen = self.tabsActivity[browser]
+                    url, title, zoom, _, frozen, _ = self.tabsActivity[browser]
                     if isinstance(browser, QWebEngineView):
                         url = browser.url().toString()
                         page = browser.page()
