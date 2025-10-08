@@ -93,6 +93,7 @@ class DefaultSettings:
         easyprivacytFile = "easyprivacy.txt"
 
     class Media:
+        checkPageCanPlayMedia = False
         dialogInformationSound = utils.resource_path("res/dialog-information.wav")
         bufferingVideo = utils.resource_path("res/loading.mp4")
 

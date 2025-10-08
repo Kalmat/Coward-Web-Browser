@@ -696,7 +696,7 @@ class MainWindow(QMainWindow):
             url = qurl.toString()
             self.tabsActivity[browser] = [url, title, zoom, lastAccessed, frozen, isPlayingMedia]
 
-            if url and url not in self.checkedURL:
+            if DefaultSettings.Media.checkPageCanPlayMedia and url and url not in self.checkedURL:
                 self.checkedURL.append(qurl.toString())
                 browser.page().mediaCheck.checkCanPlayMedia(url)
 
@@ -850,7 +850,7 @@ class MainWindow(QMainWindow):
                     browser = self._replaceInactiveBrowser(browser, tabIndex, qurl, title, zoom)
                 self.tabsActivity[browser] = [url, title, zoom, time.time(), False, isPlayingMedia]
 
-                if url not in self.checkedURL:
+                if DefaultSettings.Media.checkPageCanPlayMedia and url and url not in self.checkedURL:
                     self.checkedURL.append(url)
                     browser.page().mediaCheck.checkCanPlayMedia(url)
 
@@ -864,11 +864,6 @@ class MainWindow(QMainWindow):
                     self.ui.reload_btn.setText(self.ui.reload_char)
                     self.ui.reload_btn.setToolTip("Reload page")
 
-                # this takes A LOT (1.8 secs)
-                # url = qurl.toString()
-                # if url not in self.checkedURL:
-                #     self.checkedURL.append(url)
-                #     page.checkCanPlayMedia()
 
     def _replaceInactiveBrowser(self, browser, tabIndex, qurl, title, zoom):
 

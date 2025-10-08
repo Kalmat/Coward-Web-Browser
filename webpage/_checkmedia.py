@@ -18,7 +18,7 @@ class CheckMedia:
         # TODO: find a reliable way to check if there is a media playback error (most likely, there isn't)
         # instead, this detects if media can be streamed using streamlink (very likely media is not compatible, but not always)
         # the problem is that it takes A LOT of time (1.8 secs.), so running it in separate thread
-        self.check_thread = CheckMediaWorker(url, self.mediaErrorSig)
+        self.check_thread = _CheckMediaWorker(url, self.mediaErrorSig)
         self.check_thread.start()
 
     def checkMediaPlaying(self):
@@ -43,7 +43,7 @@ class CheckMedia:
         self.isPlayingMediaSig.emit(self.page, isPlaying)
 
 
-class CheckMediaWorker(QThread):
+class _CheckMediaWorker(QThread):
 
     def __init__(self, url, handleMediaErrorSig):
         super().__init__()
