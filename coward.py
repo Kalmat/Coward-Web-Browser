@@ -235,7 +235,7 @@ class MainWindow(QMainWindow):
         self.clipboard = QApplication.clipboard()
 
         # trying to control which URLs have being already checked for non-compatible media
-        # self.checkedURL = []
+        self.checkedURL = []
 
         # keep track of open popups and assure their persistence (anyway, we are not allowing popups by now)
         self.popups = []
@@ -693,15 +693,12 @@ class MainWindow(QMainWindow):
         tabData = self.tabsActivity.get(browser, None)
         if tabData:
             _, title, zoom, lastAccessed, frozen, isPlayingMedia = tabData
-            self.tabsActivity[browser] = [qurl.toString(), title, zoom, lastAccessed, frozen, isPlayingMedia]
+            url = qurl.toString()
+            self.tabsActivity[browser] = [url, title, zoom, lastAccessed, frozen, isPlayingMedia]
 
-        # TODO: find a reliable way to check if there is a media playback error (most likely, there isn't)
-        # this is the opposite strategy: checking if it can be streamed using streamlink...
-        # ... but it takes A LOT of time (1.8 secs)
-        # url = browser.url().toString()
-        # if url not in self.checkedURL and browser == self.ui.tabs.currentWidget():
-        #     self.checkedURL.append(url)
-        #     browser.page().checkCanPlayMedia()
+            if url not in self.checkedURL:
+                self.checkedURL.append(qurl.toString())
+                browser.page().checkCanPlayMedia()
 
         if self.settings.enableHistory:
             iconFile = os.path.join(self.history_manager.historyFolder, self._getIconFileName(qurl))
@@ -842,14 +839,20 @@ class MainWindow(QMainWindow):
             browser = self.ui.tabs.widget(tabIndex)
             tabData = self.tabsActivity.get(browser, None)
             if tabData:
+
                 url, title, zoom, _, frozen, isPlayingMedia = tabData
                 qurl = QUrl(url)
                 # update the url
                 QTimer.singleShot(0, lambda q=qurl, b=browser: self.update_urlbar(q, b))
+
                 if isinstance(browser, QLabel):
                     # create qwebengineview if page was suspended and load url
                     browser = self._replaceInactiveBrowser(browser, tabIndex, qurl, title, zoom)
                 self.tabsActivity[browser] = [url, title, zoom, time.time(), False, isPlayingMedia]
+
+                if url not in self.checkedURL:
+                    self.checkedURL.append(url)
+                    browser.page().checkCanPlayMedia()
 
             # manage stop/reload button
             if isinstance(browser, QWebEngineView):
