@@ -1,4 +1,4 @@
-from PyQt6.QtCore import pyqtSlot, pyqtSignal, QTimer
+from PyQt6.QtCore import pyqtSlot, QTimer
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineCertificateError
 from PyQt6.QtWidgets import QMessageBox
@@ -116,62 +116,57 @@ class WebPage(QWebEnginePage):
     def checkCanPlayMedia(self):
         # this detects if media can be streamed using streamlink (very likely media is not compatible, but not always)
         # the problem is that it takes A LOT of time (1.8 secs.)
-        session = Streamlink()
-        url = self.url().toString()
-        try:
-            streams = session.streams(url)
-            stream = streams["best"]
-        except:
-            stream = None
-        if stream is not None:
-            self.externalPlayer.handleExternalPlayerRequest(url)
+        # session = Streamlink()
+        # url = self.url().toString()
+        # try:
+        #     streams = session.streams(url)
+        #     stream = streams["best"]
+        # except:
+        #     stream = None
+        # if stream is not None:
+        #     self.externalPlayer.handleExternalPlayerRequest(url)
 
+        # this is ASYNCHRONOUS, so can't be used to return any value. Must use a method/function to handle return
         # this detects media failures, but sometimes it sends "false" alarms (e.g. in YT videos)
         # other times it returns ok, but it is not (e.g. 2nd time and following in Twitch)
         # see example of debug data at the end of the file. How could we get this info from python/PyQt?
-        # this is ASYNCHRONOUS, so can't be used to return any value. Must use a method/function to handle return
         # self.runJavaScript("""
         #         var mediaElements = document.querySelectorAll('video, audio');
         #         var canPlay = Array.from(mediaElements).every(media => media.canPlayType(media.type) !== '');
         #         canPlay;
         #     """, lambda ok, u=self.url().toString(): self.handleMediaError(ok, u))
 
-        # self.runJavaScript("""
-        #     var mediaElements = document.querySelectorAll('video, audio');
-        #     var canPlay = true;
-        #     mediaElements.forEach(function(media) {
-        #         media.onerror = function() {
-        #             canPlay = false;
-        #             console.log('COWARD --- Media playback error detected.');
-        #         };
-        #     });
-        #     canPlay;
-        # """, lambda ok, u=self.url().toString(): self.handleMediaError(ok, u))
+        self.runJavaScript("""
+            var mediaElements = document.querySelectorAll('video, audio');
+            var hasError = false;
+            
+            mediaElements.forEach(function(media) {
+                media.onerror = function() {
+                    hasError = true;
+                    console.log('COWARD --- Error detected on media element:', media);
+                };
+            });
+            if (!hasError) {
+                console.log('COWARD --- All media elements loaded successfully.');
+            };
+            hasError;
+        """, lambda hasError, u=self.url().toString(): self.handleMediaError(hasError, u))
 
     # launch external player dialog if media can't be played
-    # def handleMediaError(self, ok, url):
-    #     if not ok:
-    #         self.externalPlayer.handleExternalPlayerRequest(url)
+    def handleMediaError(self, hasError, url):
+        if hasError:
+            self.externalPlayer.handleExternalPlayerRequest(url)
 
     def check_media_playing(self):
         self.runJavaScript("""
-            var videos = document.getElementsByTagName('video');
-            var audios = document.getElementsByTagName('audio');
+            var mediaElements = document.querySelectorAll('video, audio');
             var isPlaying = false;
 
-            for (var i = 0; i < videos.length; i++) {
-                if (!videos[i].paused) {
+            for (var i = 0; i < mediaElements.length; i++) {
+                if (!mediaElements[i].paused) {
                     isPlaying = true;
+                    console.log('COWARD --- media is playing');
                     break;
-                }
-            }
-
-            if (!isPlaying) {
-                for (var j = 0; j < audios.length; j++) {
-                    if (!audios[j].paused) {
-                        isPlaying = true;
-                        break;
-                    }
                 }
             }
 
@@ -179,10 +174,7 @@ class WebPage(QWebEnginePage):
         """, self.handle_media_status)
 
     def handle_media_status(self, isPlaying):
-        if isPlaying is None:
-            isPlaying = False
-        else:
-            isPlaying = isPlaying or self.externalPlayer.hasExternalPlayerOpen()
+        isPlaying = (isPlaying is not None and isPlaying) or self.externalPlayer.hasExternalPlayerOpen()
         self.isPlayingMediaSig.emit(self, isPlaying)
 
     def javaScriptConsoleMessage(self, level, message, lineNumber=0, sourceID=""):
@@ -203,7 +195,7 @@ class WebPage(QWebEnginePage):
         #
         #     # this works for twitch, but not for YT live videos
         #     if "Player" in message and "ErrorNotSupported" in message:
-        #         self.mediaError.emit(self)
+        #         self.externalPlayer.handleExternalPlayerRequest(self.url().toString())
         # elif level ==WebEnginePage.JavaScriptConsoleMessageLevel.WarningMessageLevel:
         #
         #     if "generate_204" in message:

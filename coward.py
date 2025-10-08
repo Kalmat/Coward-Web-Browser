@@ -689,6 +689,7 @@ class MainWindow(QMainWindow):
         # All this has to be done here since loadfinished() is not triggered, titleChanged() is triggered twice, etc...
 
         self.update_urlbar(qurl, browser)
+
         tabData = self.tabsActivity.get(browser, None)
         if tabData:
             _, title, zoom, lastAccessed, frozen, isPlayingMedia = tabData
