@@ -1,12 +1,12 @@
-from PyQt6.QtCore import pyqtSlot, QTimer, QThread, pyqtSignal, QObject
+from PyQt6.QtCore import pyqtSlot, pyqtSignal
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineCertificateError
 from PyQt6.QtWidgets import QMessageBox
-from streamlink import Streamlink
 
 from logger import LOGGER, LoggerSettings
 from settings import DefaultSettings
 from themes import Themes
+from . import CheckMedia
 from ._externalplayer import ExternalPlayer
 
 
@@ -39,11 +39,8 @@ class WebPage(QWebEnginePage):
             QWebEnginePage.JavaScriptConsoleMessageLevel.ErrorMessageLevel: LoggerSettings.LogLevels.error
         }
 
+        self.mediaCheck = CheckMedia(self, self.isPlayingMediaSig, self.mediaErrorSig)
         self.mediaErrorSig.connect(self.handleMediaError)
-
-        self.mediaCheckTimer = QTimer()
-        self.mediaCheckTimer.timeout.connect(self.checkMediaPlaying)
-        self.mediaCheckTimer.start(60000)
 
     # def acceptNavigationRequest(self, url, type, isMainFrame: bool) -> bool:
     #     if type == QWebEnginePage.NavigationType.NavigationTypeLinkClicked: return False
@@ -117,33 +114,10 @@ class WebPage(QWebEnginePage):
             acceptSlot=request.grant,
             rejectSlot=request.deny)
 
-    def checkCanPlayMedia(self):
-        # TODO: find a reliable way to check if there is a media playback error (most likely, there isn't)
-        # instead, this detects if media can be streamed using streamlink (very likely media is not compatible, but not always)
-        # the problem is that it takes A LOT of time (1.8 secs.), so running it in separate thread
-        self.check_thread = CheckMedia(self, self.mediaErrorSig)
-        self.check_thread.start()
-
     @pyqtSlot(str)
     def handleMediaError(self, url):
         # launch external player dialog if media can't be played
         self.externalPlayer.handleExternalPlayerRequest(url)
-
-    def checkMediaPlaying(self):
-        self.runJavaScript("""
-            var mediaElements = document.querySelectorAll('video, audio');
-            var isPlaying = false;
-
-            for (var i = 0; i < mediaElements.length; i++) {
-                if (!mediaElements[i].paused) {
-                    isPlaying = true;
-                    console.log('COWARD --- media is playing');
-                    break;
-                }
-            }
-
-            isPlaying;
-        """, self.handleMediaStatus)
 
     def handleMediaStatus(self, isPlaying):
         isPlaying = (isPlaying is not None and isPlaying) or self.externalPlayer.hasExternalPlayerOpen()
@@ -163,52 +137,6 @@ class WebPage(QWebEnginePage):
             rejectedSlot=rejectSlot
         )
         return dialog
-
-
-class CheckMedia(QThread):
-
-    def __init__(self, page, handleMediaErrorSig):
-        super().__init__()
-
-        self.page = page
-        self.url = page.url().toString()
-        self.handleMediaErrorSig = handleMediaErrorSig
-
-    def run(self):
-        session = Streamlink()
-        try:
-            streams = session.streams(self.url)
-            stream = streams["best"]
-        except:
-            stream = None
-        if stream:
-            self.handleMediaErrorSig.emit(self.url)
-
-        # this is ASYNCHRONOUS, so can't be used to return any value. Must use a method/function to handle return
-        # this detects media failures, but sometimes it sends "false" alarms (e.g. in YT videos)
-        # other times it returns ok, but it is not (e.g. 2nd time and following in Twitch)
-        # see example of debug data at the end of the file. How could we get this info from python/PyQt?
-        # self.runJavaScript("""
-        #         var mediaElements = document.querySelectorAll('video, audio');
-        #         var canPlay = Array.from(mediaElements).every(media => media.canPlayType(media.type) !== '');
-        #         canPlay;
-        #     """, lambda ok, u=self.url().toString(): self.handleMediaError(ok, u))
-
-        # self.runJavaScript("""
-        #     var mediaElements = document.querySelectorAll('video, audio');
-        #     var hasError = false;
-        #
-        #     mediaElements.forEach(function(media) {
-        #         media.onerror = function() {
-        #             hasError = true;
-        #             console.log('COWARD --- Error detected on media element:', media);
-        #         };
-        #     });
-        #     if (!hasError) {
-        #         console.log('COWARD --- All media elements loaded successfully.');
-        #     };
-        #     hasError;
-        # """, lambda hasError, u=self.url().toString(): self.handleMediaError(hasError, u))
 
 
 """

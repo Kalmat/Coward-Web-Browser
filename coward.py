@@ -696,9 +696,9 @@ class MainWindow(QMainWindow):
             url = qurl.toString()
             self.tabsActivity[browser] = [url, title, zoom, lastAccessed, frozen, isPlayingMedia]
 
-            if url not in self.checkedURL:
+            if url and url not in self.checkedURL:
                 self.checkedURL.append(qurl.toString())
-                browser.page().checkCanPlayMedia()
+                browser.page().mediaCheck.checkCanPlayMedia(url)
 
         if self.settings.enableHistory:
             iconFile = os.path.join(self.history_manager.historyFolder, self._getIconFileName(qurl))
@@ -852,7 +852,7 @@ class MainWindow(QMainWindow):
 
                 if url not in self.checkedURL:
                     self.checkedURL.append(url)
-                    browser.page().checkCanPlayMedia()
+                    browser.page().mediaCheck.checkCanPlayMedia(url)
 
             # manage stop/reload button
             if isinstance(browser, QWebEngineView):

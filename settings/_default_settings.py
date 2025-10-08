@@ -130,8 +130,10 @@ class DefaultSettings:
     class DialogMessages:
         featureRequest = "This page is asking for your permission to %s."
         permissionRequest = "This page is asking for your permission to %s."
-        externalPlayerRequest = "This page contains non-compatible media.\n\n" \
-                                "Do you want to try to load it using an external player?"
+        externalPlayerRequest = "This page may contain non-compatible media.\n" \
+                                "If you are experiencing issues trying to load/play any media in this page\n" \
+                                "you can try to load it using an external player\n\n" \
+                                "Do you want to open the external player now?"
         bufferingStarted = "Buffering content to stream to external player.\n\n" \
                            "Your stream will start soon, please be patient."
         streamError = "There has been a problem while trying to stream this page.\n\n%s"
