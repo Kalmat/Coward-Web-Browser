@@ -23,7 +23,7 @@ class TabWidget(QTabWidget):
             available_width = self.width() - ((self.icon_size + b_width) * self.count())
             tab_width = available_width / self.count()
             if tab_width < DefaultSettings.Tabs.maxWidth - (self.icon_size + b_width):
-                target_length = min(len(orig_text), int(available_width / self.count() / self.char_width))
+                target_length = int(tab_width / self.char_width)
             else:
                 target_length = len(self.tabText(index))
         else:
@@ -62,7 +62,8 @@ class TabWidget(QTabWidget):
     def setTabText(self, index, a1):
         target_text = a1
         if 0 < index < self.count() - 1:
-            target_text = a1[:self._getTextSize(index, a1)]
+            text_length = self._getTextSize(index, a1)
+            target_text = a1[:text_length] + (" " * max(0, (text_length - len(a1))))
         super().setTabText(index, target_text)
 
     def removeTab(self, index):
