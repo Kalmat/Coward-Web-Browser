@@ -44,7 +44,8 @@ class WebPage(QWebEnginePage):
         self.windowCloseRequested.connect(self.onCloseRequested)
 
     # def acceptNavigationRequest(self, url, type, isMainFrame: bool) -> bool:
-    #     if type == QWebEnginePage.NavigationType.NavigationTypeLinkClicked: return False
+    # non-usual types are mostly detected as NavigationTypeOther, so it's not easy to distinguish legit vs. suspicious
+    #     if type == QWebEnginePage.NavigationType.NavigationTypeRedirect: return False
     #     return super().acceptNavigationRequest(url, type, isMainFrame)
 
     @pyqtSlot(QWebEngineCertificateError)

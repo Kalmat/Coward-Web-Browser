@@ -39,7 +39,7 @@ class CheckMedia:
 
     @pyqtSlot(bool)
     def handleMediaStatus(self, isPlaying):
-        # detect and update if there is media playing in page
+        # detect and update if there is media playing in page (returns None if page has been closed)
         self.isPlayingMediaSig.emit(self.page, False if isPlaying is None else isPlaying)
 
     def stop(self):
