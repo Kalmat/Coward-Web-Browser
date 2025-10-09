@@ -288,7 +288,8 @@ class MainWindow(QMainWindow):
         # horizontal tabs
         self.h_tab_style = Themes.styleSheet(theme, Themes.Section.horizontalTabs)
         # inject variable parameters: tab separator image (to make it shorter), min-width and height
-        self.h_tab_style = self.h_tab_style % (DefaultSettings.Icons.tabSeparator, self.h_tab_size,  self.h_tab_size,
+        self.h_tab_style = self.h_tab_style % (DefaultSettings.Icons.tabSeparator, self.h_tab_size,
+                                               DefaultSettings.Tabs.maxWidth, self.h_tab_size,
                                                DefaultSettings.Icons.closeButton, DefaultSettings.Icons.closeButtonHover)
         # vertical tabs
         self.v_tab_style = Themes.styleSheet(theme, Themes.Section.verticalTabs)
@@ -620,7 +621,7 @@ class MainWindow(QMainWindow):
             browser = None
         if browser is not None and browser in self.tabsActivity.keys():
             url, title, zoom, lastTimeLoaded, frozen, _ = self.tabsActivity[browser]
-            self.tabsActivity[browser] = url, title, zoom, lastTimeLoaded, frozen, isPlaying
+            self.tabsActivity[browser] = [url, title, zoom, lastTimeLoaded, frozen, isPlaying]
 
     def setPageContextMenu(self, page):
 

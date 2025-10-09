@@ -34,6 +34,7 @@ class DefaultSettings:
         closeButtonHover = utils.resource_path("res/close_hover.png", True)
 
     class Tabs:
+        maxWidth = 240
         checkActivity = True
         suspendTime = 5*60  # time in seconds to suspend inactive tabs
 
