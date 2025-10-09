@@ -288,7 +288,8 @@ class MainWindow(QMainWindow):
         # horizontal tabs
         self.h_tab_style = Themes.styleSheet(theme, Themes.Section.horizontalTabs)
         # inject variable parameters: tab separator image (to make it shorter), min-width and height
-        self.h_tab_style = self.h_tab_style % (DefaultSettings.Icons.tabSeparator, self.h_tab_size, self.h_tab_size)
+        self.h_tab_style = self.h_tab_style % (DefaultSettings.Icons.tabSeparator, self.h_tab_size,  self.h_tab_size,
+                                               DefaultSettings.Icons.closeButton, DefaultSettings.Icons.closeButtonHover)
         # vertical tabs
         self.v_tab_style = Themes.styleSheet(theme, Themes.Section.verticalTabs)
         # inject variable parameters: fixed width and height
@@ -760,13 +761,13 @@ class MainWindow(QMainWindow):
 
     def add_toggletab_action(self):
         self.toggletab_btn = QLabel()
-        self.ui.tabs.insertTab(0, self.toggletab_btn, " ▼ ", self.h_tabbar, True) #🢃⯯⛛▼🞃▼⮟⬎
+        self.ui.tabs.insertTab(0, self.toggletab_btn, " ▼ ", True) #🢃⯯⛛▼🞃▼⮟⬎
         self.ui.tabs.tabBar().setTabButton(0, QTabBar.ButtonPosition.RightSide, None)
         self.ui.tabs.widget(0).setDisabled(True)
 
     def add_tab_action(self):
         self.addtab_btn = QLabel()
-        tabIndex = self.ui.tabs.addTab(self.addtab_btn, " ✚ ", self.h_tabbar, True)
+        tabIndex = self.ui.tabs.addTab(self.addtab_btn, " ✚ ", True)
         self.ui.tabs.tabBar().setTabButton(tabIndex, QTabBar.ButtonPosition.RightSide, None)
         self.ui.tabs.widget(tabIndex).setDisabled(True)
         self.ui.tabs.tabBar().setTabToolTip(tabIndex, "New tab")
@@ -964,8 +965,17 @@ class MainWindow(QMainWindow):
         if clicked:
             self.h_tabbar = not self.h_tabbar
 
-        # enable buttons first (only if horizontal tabbar)
+        # set tabs properties first
+        self.ui.tabs.setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)
+        self.ui.tabs.tabBar().setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)
+        self.ui.tabs.setTabPosition(QTabWidget.TabPosition.North if self.h_tabbar else QTabWidget.TabPosition.West)
+        self.ui.tabs.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu if self.h_tabbar else Qt.ContextMenuPolicy.CustomContextMenu)
+        self.ui.tabs.setTabToolTip(0, "Set %s tabs" % ("vertical" if self.h_tabbar else "horizontal"))
+
+        # second, enable buttons (only if horizontal tabbar), and disable for custom control tabs
         self.ui.tabs.setTabsClosable(self.h_tabbar)
+        self.ui.tabs.tabBar().setTabButton(0, QTabBar.ButtonPosition.RightSide, None)
+        self.ui.tabs.tabBar().setTabButton(self.ui.tabs.count() - 1, QTabBar.ButtonPosition.RightSide, None)
 
         # reorganize tabs
         for i in range(1, self.ui.tabs.count() - 1):
@@ -983,14 +993,6 @@ class MainWindow(QMainWindow):
                 new_icon = QIcon(icon.pixmap(QSize(self.icon_size, self.icon_size)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
                 self.ui.tabs.setTabText(i, "")
             self.ui.tabs.tabBar().setTabIcon(i, new_icon)
-
-        self.ui.tabs.setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)
-        self.ui.tabs.tabBar().setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)
-        self.ui.tabs.setTabPosition(QTabWidget.TabPosition.North if self.h_tabbar else QTabWidget.TabPosition.West)
-        self.ui.tabs.tabBar().setTabButton(0, QTabBar.ButtonPosition.RightSide, None)
-        self.ui.tabs.tabBar().setTabButton(self.ui.tabs.count() - 1, QTabBar.ButtonPosition.RightSide, None)
-        self.ui.tabs.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu if self.h_tabbar else Qt.ContextMenuPolicy.CustomContextMenu)
-        self.ui.tabs.setTabToolTip(0, "Set %s tabs" % ("vertical" if self.h_tabbar else "horizontal"))
 
         self.ui.navtab.setStyleSheet(self.h_navtab_style if self.h_tabbar else self.v_navtab_style)
 

@@ -30,6 +30,8 @@ class DefaultSettings:
         loading = utils.resource_path("res/web.png")
         # path separator inverted ("/") for qss files
         tabSeparator = utils.resource_path("res/tabsep.png", True)
+        closeButton = utils.resource_path("res/close.png", True)
+        closeButtonHover = utils.resource_path("res/close_hover.png", True)
 
     class Tabs:
         checkActivity = True

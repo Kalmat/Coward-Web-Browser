@@ -49,7 +49,19 @@ QTabBar::tab:last {
     border-bottom: none;
 }
 
-QTabBar::tab:last:hover {
-    background: #646464;
+QTabBar::close-button {
+    image: url('%s');
+    background: transparent;
+    subcontrol-position: right;
+    max-width: 16px;
+    width: 16px;
+    max-height: 16px;
+    height: 16px;
     border: none;
+    border-radius: 8;
+}
+
+QTabBar::close-button:hover {
+    image: url('%s');
+    background: lightgrey;
 }
