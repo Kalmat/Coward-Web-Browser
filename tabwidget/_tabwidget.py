@@ -17,18 +17,21 @@ class TabWidget(QTabWidget):
         # self.setUsesScrollButtons(False)
 
     def _getTextSize(self, index):
-        if self.tabPosition() == QTabWidget.TabPosition.North:
-            # button is not present, but pyqt6 reserves the space anyway
-            button = self.tabBar().tabButton(index, QTabBar.ButtonPosition.RightSide)
-            b_width = 8 if button is None else (button.width() + 6)  # add button padding
-            available_width = max(0, self.width() - ((self.min_tab_width + b_width) * self.count()))
-            label_width = available_width / self.count()
-            if label_width < DefaultSettings.Tabs.maxWidth - (self.min_tab_width + b_width):
-                target_length = int(label_width / self.char_width)
+        if 0 < index < self.count() - 1:
+            if self.tabPosition() == QTabWidget.TabPosition.North:
+                # button is not present, but pyqt6 reserves the space anyway
+                button = self.tabBar().tabButton(index, QTabBar.ButtonPosition.RightSide)
+                b_width = (0 if button is None else button.width()) + 8  # add button padding
+                available_width = max(0, self.width() - ((self.min_tab_width + b_width) * self.count()))
+                label_width = available_width / self.count()
+                if label_width < DefaultSettings.Tabs.maxWidth - (self.min_tab_width + b_width):
+                    target_length = int(label_width / self.char_width)
+                else:
+                    target_length = len(self.tabText(index))
             else:
-                target_length = len(self.tabText(index))
+                target_length = 0
         else:
-            target_length = 0 if 0 < index < self.count() - 1 else 1
+            target_length = len(self.tabText(index))
         return target_length
 
     def resizeEvent(self, a0=None):
