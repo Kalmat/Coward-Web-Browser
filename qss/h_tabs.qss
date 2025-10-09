@@ -49,6 +49,15 @@ QTabBar::tab:last {
     border-bottom: none;
 }
 
+QTabBar::tab:last:hover {
+    background: #646464;
+    border: none;
+}
+
+QTabBar::scroller {
+    width: 0px;
+}
+
 QTabBar::close-button {
     image: url('%s');
     background: transparent;

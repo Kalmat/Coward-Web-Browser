@@ -13,9 +13,11 @@ class TabWidget(QTabWidget):
         self.char_width = self.font_metrics.averageCharWidth()
         self.icon_size = self.parent().icon_size + 6  # add padding
 
+        self.setUsesScrollButtons(False)
+
         self.resizeEvent = self.on_resize
 
-    def _getTextSize(self, index, orig_text):
+    def _getTextSize(self, index):
         if self.tabPosition() == QTabWidget.TabPosition.North:
             # button is not present, but pyqt6 reserves the space anyway
             button = self.tabBar().tabButton(index, QTabBar.ButtonPosition.RightSide)
@@ -62,7 +64,7 @@ class TabWidget(QTabWidget):
     def setTabText(self, index, a1):
         target_text = a1
         if 0 < index < self.count() - 1:
-            target_length = self._getTextSize(index, a1)
+            target_length = self._getTextSize(index)
             target_text = a1[:target_length] + (" " * max(0, (target_length - len(a1))))
         super().setTabText(index, target_text)
 
