@@ -372,7 +372,7 @@ class MainWindow(QMainWindow):
         super().show()
 
         # apply minimum size to main window according to actual sizes (after show)
-        self.setMinimumWidth((self.ui.ninja_btn.width() * len(self.ui.navtab.findChildren(QToolButton))) - (5 * self.small_action_size))
+        self.setMinimumWidth((self.action_size * len(self.ui.navtab.findChildren(QToolButton))) - (5 * self.small_action_size))
         self.setMinimumHeight(self.ui.navtab.height()+1)
 
         # setup autohide if enabled
@@ -441,6 +441,9 @@ class MainWindow(QMainWindow):
         # set current index AFTER creating all tabs (this will also generate a view for active tab)
         self.ui.tabs.setCurrentIndex(current)
 
+        # force resize event to adjust tabs text size according to tabs number
+        self.ui.tabs.resize(self.ui.tabs.size())
+
         self.instances = []
         for new_tabs in new_wins:
             self.show_in_new_window(new_tabs)
@@ -467,11 +470,11 @@ class MainWindow(QMainWindow):
         # add / insert tab and set title tooltip and icon
         if tabIndex is None:
             # add tab at the end
-            tabIndex = self.ui.tabs.addTab(browser, label if self.h_tabbar else "")
+            tabIndex = self.ui.tabs.addTab(browser, label, self.h_tabbar)
 
         else:
             # add tab in given position (e.g. when requested from page context menu)
-            self.ui.tabs.insertTab(tabIndex, browser, label if self.h_tabbar else "")
+            self.ui.tabs.insertTab(tabIndex, browser, label, self.h_tabbar)
         self.ui.tabs.setTabToolTip(tabIndex, label + ("" if self.h_tabbar else "\n(Right-click to close)"))
         self.ui.tabs.setTabIcon(tabIndex, self._getTabIcon(icon, tab_type == "STANDARD"))
 
@@ -711,7 +714,7 @@ class MainWindow(QMainWindow):
         # sometimes this is called twice for the same page, passing an obsolete title (though URL is ok... weird)
 
         tabIndex = self.ui.tabs.indexOf(browser)
-        self.ui.tabs.tabBar().setTabText(tabIndex, (title + " " * 30)[:29] if self.h_tabbar else "")
+        self.ui.tabs.setTabText(tabIndex, title if self.h_tabbar else "")
         self.ui.tabs.setTabToolTip(tabIndex, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
 
         tabData = self.tabsActivity.get(browser, None)
@@ -757,13 +760,13 @@ class MainWindow(QMainWindow):
 
     def add_toggletab_action(self):
         self.toggletab_btn = QLabel()
-        self.ui.tabs.insertTab(0, self.toggletab_btn, " ▼ ") #🢃⯯⛛▼🞃▼⮟⬎
+        self.ui.tabs.insertTab(0, self.toggletab_btn, " ▼ ", self.h_tabbar, True) #🢃⯯⛛▼🞃▼⮟⬎
         self.ui.tabs.tabBar().setTabButton(0, QTabBar.ButtonPosition.RightSide, None)
         self.ui.tabs.widget(0).setDisabled(True)
 
     def add_tab_action(self):
         self.addtab_btn = QLabel()
-        tabIndex = self.ui.tabs.addTab(self.addtab_btn, " ✚ ")
+        tabIndex = self.ui.tabs.addTab(self.addtab_btn, " ✚ ", self.h_tabbar, True)
         self.ui.tabs.tabBar().setTabButton(tabIndex, QTabBar.ButtonPosition.RightSide, None)
         self.ui.tabs.widget(tabIndex).setDisabled(True)
         self.ui.tabs.tabBar().setTabToolTip(tabIndex, "New tab")
@@ -978,7 +981,7 @@ class MainWindow(QMainWindow):
                 self.ui.tabs.tabBar().tabButton(i, QTabBar.ButtonPosition.RightSide).clicked.connect(lambda checked, b=self.ui.tabs.widget(i): self.tab_closed(b))
             else:
                 new_icon = QIcon(icon.pixmap(QSize(self.icon_size, self.icon_size)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
-                self.ui.tabs.tabBar().setTabText(i, "")
+                self.ui.tabs.setTabText(i, "")
             self.ui.tabs.tabBar().setTabIcon(i, new_icon)
 
         self.ui.tabs.setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)

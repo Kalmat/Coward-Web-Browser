@@ -80,4 +80,3 @@ def preInitializeApp(options):
         # This will allow to show some tracebacks (not all, anyway)
         sys._excepthook = sys.excepthook
         sys.excepthook = exception_hook
-
