@@ -903,6 +903,7 @@ class MainWindow(QMainWindow):
             if tabIndex == 0:
                 self.prevTabIndex = self.ui.tabs.currentIndex()
                 self.toggle_tabbar(clicked=True)
+
             elif tabIndex == self.ui.tabs.count() - 1:
                 # this is needed to immediately refresh url bar content (maybe locked by qwebengineview?)
                 QTimer.singleShot(0, lambda p=DefaultSettings.Browser.defaultPage: self.ui.urlbar.setText(p))
