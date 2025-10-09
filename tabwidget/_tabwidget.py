@@ -16,8 +16,6 @@ class TabWidget(QTabWidget):
         # this has no effect. Solved in qss (width: 0px)
         # self.setUsesScrollButtons(False)
 
-        self.resizeEvent = self.on_resize
-
     def _getTextSize(self, index):
         if self.tabPosition() == QTabWidget.TabPosition.North:
             # button is not present, but pyqt6 reserves the space anyway
@@ -33,9 +31,9 @@ class TabWidget(QTabWidget):
             target_length = 0 if 0 < index < self.count() - 1 else 1
         return target_length
 
-    def on_resize(self, event=None):
-        if event is not None:
-            super().resizeEvent(event)
+    def resizeEvent(self, a0=None):
+        if a0 is not None:
+            super().resizeEvent(a0)
         if self.tabPosition() == QTabWidget.TabPosition.North:
             for i in range(1, self.count() - 1):
                 orig_text = self.tabWhatsThis(i)
@@ -49,7 +47,7 @@ class TabWidget(QTabWidget):
             tabIndex = super().addTab(widget, "")
         self.setTabWhatsThis(tabIndex, a1)
         # force to recalculate all tabs text sizes
-        self.on_resize()
+        self.resizeEvent()
         return tabIndex
 
     def insertTab(self, index, widget, a2, forceSetText=True):
@@ -60,13 +58,13 @@ class TabWidget(QTabWidget):
             tabIndex = super().insertTab(index, widget, "")
         self.setTabWhatsThis(tabIndex, a2)
         # force to recalculate all tabs text sizes
-        self.on_resize()
+        self.resizeEvent()
         return tabIndex
 
     def removeTab(self, index):
         super().removeTab(index)
         # force to recalculate all tabs text sizes
-        self.on_resize()
+        self.resizeEvent()
 
     def setTabText(self, index, a1):
         target_text = a1
