@@ -719,7 +719,7 @@ class MainWindow(QMainWindow):
 
             if self.settings.enableHistory:
                 # create history once the title is available
-                item = [str(time.time()), browser.title(), url, self._getIconFileName(QUrl(url))]
+                item = [str(time.time()), title, url, self._getIconFileName(QUrl(url))]
                 self.history_widget.addHistoryEntry(item)
 
     def icon_changed(self, icon, browser):
