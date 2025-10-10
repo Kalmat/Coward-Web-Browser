@@ -19,7 +19,7 @@ QMenu {
     font-family: "MS Shell Dlg 2";
     font-size: 10pt;
     background: #323232;
-    color: red;
+    color: white;
     border: none;
     padding: 10px;
 }

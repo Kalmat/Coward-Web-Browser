@@ -1,5 +1,7 @@
 import os.path
+import time
 
+from PyQt6 import sip
 from PyQt6.QtCore import Qt, QUrl, pyqtSignal, QSize, pyqtSlot
 from PyQt6.QtGui import QPixmap, QAction
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QGridLayout, QPushButton, QCheckBox, QScrollArea, QMenu, QStyle
@@ -106,11 +108,13 @@ class HistoryWidget(QWidget):
         self.clickedWidget = None
         self.eraseHistorySig.connect(self.eraseHistory)
 
-        self.pendingTitles = {}
+        self.titles = {}
+        self.urls = {}
         self.pendingIcons = {}
         self.loading_ico = QPixmap(DefaultSettings.Icons.loading).scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
 
-        for url in self.history_manager.history.keys():
+        urls = list(self.history_manager.history.keys())
+        for url in urls:
             date = self.history_manager.history[url]["date"]
             title = self.history_manager.history[url]["title"]
             icon = self.history_manager.history[url]["icon"]
@@ -118,69 +122,73 @@ class HistoryWidget(QWidget):
 
     def addHistoryEntry(self, entry):
 
-        self.init_label.setText(self.historyText if self._settings.enableHistory else self.historyDisabled)
+        date, title, url, iconFile = entry
 
-        date, title, url, icon = entry
+        if url in self.urls.keys():
+            old_entry = self.urls[url]["entryText"]
+            self.clickedWidget = old_entry.parent()
+            self.deleteHistoryEntry(False, url)
 
-        widget = Widget(self, self.widgetClickedSig)
-        widget.setObjectName("item")
-        widget.setAccessibleName(str(date))
-        widget.setContentsMargins(5, 0, 0, 0)
-        widget.setFixedSize(460, 32)
-        layout = QGridLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-        layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        if title not in self.titles.keys():
 
-        entryIcon = QLabel()
-        entryIcon.setObjectName("entryIcon")
-        iconFile = os.path.basename(icon)
-        entryIcon.setAccessibleName(iconFile)
-        # entryIcon.setDisabled(True)
-        entryIcon.setFixedSize(24, 24)
-        if not os.path.exists(icon):
-            if iconFile in self.pendingIcons.keys():
-                self.pendingIcons[iconFile] += [entryIcon]
+            self.init_label.setText(self.historyText if self._settings.enableHistory else self.historyDisabled)
+
+            widget = Widget(self, self.widgetClickedSig)
+            widget.setObjectName("item")
+            widget.setAccessibleName(str(date))
+            widget.setContentsMargins(5, 0, 0, 0)
+            widget.setFixedSize(460, 32)
+            layout = QGridLayout()
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(0)
+            layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+
+            entryIcon = QLabel()
+            entryIcon.setObjectName("entryIcon")
+            entryIcon.setFixedSize(24, 24)
+            entryIcon.setAccessibleName(iconFile)
+            icon = os.path.join(self.history_manager.historyFolder, iconFile)
+            if not os.path.exists(icon):
+                entryIcon.setPixmap(self.loading_ico)
+                if iconFile in self.pendingIcons.keys():
+                    self.pendingIcons[iconFile] += [entryIcon]
+                else:
+                    self.pendingIcons[iconFile] = [entryIcon]
             else:
-                self.pendingIcons[iconFile] = [entryIcon]
-        entryIcon.setPixmap(QPixmap(icon))
-        layout.addWidget(entryIcon, 0, 0)
+                entryIcon.setPixmap(QPixmap(icon))
+            layout.addWidget(entryIcon, 0, 0)
 
-        entryText = QLabel()
-        entryText.setObjectName("entryText")
-        entryText.setContentsMargins(5, 0, 0, 0)
-        entryText.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        entryText.setFixedSize(400, 32)
-        entryText.setText(title)
-        entryText.setToolTip(url)
-        self.pendingTitles[url] = entryText
-        layout.addWidget(entryText, 0, 1)
-
-        layout.setColumnStretch(1, 0)
-        layout.setColumnStretch(1, 1)
-
-        widget.setLayout(layout)
-        self.content_layout.insertWidget(0, widget)
-
-        if not self._settings.enableHistory:
-            widget.hide()
-
-        self.update()
-        if self.isVisible():
-            self.hide()
-            self.show()
-
-    def updateEntryTitle(self, title, url):
-        entryText = self.pendingTitles.get(url, None)
-        if entryText is not None:
+            entryText = QLabel()
+            entryText.setObjectName("entryText")
+            entryText.setContentsMargins(5, 0, 0, 0)
+            entryText.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            entryText.setFixedSize(400, 32)
             entryText.setText(title)
-            entryText.update()
+            entryText.setToolTip(url)
+            layout.addWidget(entryText, 0, 1)
+
+            layout.setColumnStretch(1, 0)
+            layout.setColumnStretch(1, 1)
+
+            widget.setLayout(layout)
+            self.content_layout.insertWidget(0, widget)
+
+            self.update()
             if self.isVisible():
                 self.hide()
                 self.show()
-            # can not delete pendingTitles item since this can be invoked several times
-            # this below serves to control repeated entries for different URLs (typically generated by the website)
-            self.history_manager.updateHistoryEntry(url, title=title)
+
+            item = [time.time(), title, url, iconFile]
+            self.history_manager.addHistoryEntry(item)
+
+            self.titles[title] = {
+                "entryText": entryText,
+                "url": url
+            }
+            self.urls[url] = {
+                "entryText": entryText,
+                "title": title
+            }
 
     def updateEntryIcon(self, icon, iconPath):
         iconFile = os.path.basename(iconPath)
@@ -190,7 +198,8 @@ class HistoryWidget(QWidget):
             if not os.path.exists(iconPath):
                 pixmap.save(iconPath, "PNG")
             for entryIcon in entryIcons:
-                entryIcon.setPixmap(QPixmap(pixmap))
+                if not sip.isdeleted(entryIcon):
+                    entryIcon.setPixmap(QPixmap(pixmap))
             del self.pendingIcons[iconFile]
             self.update()
             if self.isVisible():
@@ -206,7 +215,6 @@ class HistoryWidget(QWidget):
     def eraseHistory(self):
         self.history_manager.deleteAllHistory()
         self.pendingIcons = {}
-        self.pendingTitles = {}
         for i in range(0, self.content_layout.count()):
             w = self.content_layout.itemAt(i).widget()
             w.deleteLater()
@@ -224,11 +232,17 @@ class HistoryWidget(QWidget):
             # save clicked widget in case user selects "delete entry" in context menu
             self.clickedWidget = widget
 
-    def deleteHistoryEntry(self, checked):
-        if self.clickedWidget is not None:
+    def deleteHistoryEntry(self, checked, url=None):
+        if url is None and self.clickedWidget is not None:
             url = self.clickedWidget.layout().itemAt(1).widget().toolTip()
-            if url:
-                self.history_manager.deleteHistoryEntryByUrl(url)
+        if url:
+            self.history_manager.deleteHistoryEntryByUrl(url)
+            if url in self.urls.keys():
+                title = self.urls[url]["title"]
+                del self.urls[url]
+                if title in self.titles.keys():
+                    del self.titles[title]
+        if self.clickedWidget is not None:
             self.clickedWidget.deleteLater()
             self.clickedWidget = None
             self.update()

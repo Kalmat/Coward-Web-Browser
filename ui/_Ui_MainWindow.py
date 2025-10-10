@@ -1,6 +1,6 @@
 from PyQt6.QtCore import Qt, QCoreApplication, QSize, QPoint
 from PyQt6.QtGui import QAction, QIcon
-from PyQt6.QtWidgets import QToolButton, QLabel, QSizePolicy, QMenu, QStyle, QTabWidget
+from PyQt6.QtWidgets import QToolButton, QLabel, QSizePolicy, QMenu, QStyle, QTabWidget, QProxyStyle
 
 from hoverwidget import HoverWidget
 from lineedit import LineEdit
@@ -292,8 +292,8 @@ class Ui_MainWindow:
         self.newTabContextMenu.setMinimumHeight(parent.action_size + 12)
         self.newTabContextMenu.setContentsMargins(0, 5, 0, 0)
         self.newWindow_action = QAction()
-        self.newWindow_action.setIcon(parent.style().standardIcon(QStyle.StandardPixmap.SP_DesktopIcon))
-        self.newWindow_action.setText("Open new tab in separate window")
+        # self.newWindow_action.setIcon(parent.style().standardIcon(QStyle.StandardPixmap.SP_DesktopIcon))
+        self.newWindow_action.setText("🗗  Open new tab in separate window")
         self.newTabContextMenu.addAction(self.newWindow_action)
 
         # making document mode true

@@ -705,13 +705,6 @@ class MainWindow(QMainWindow):
                 self.checkedURL.append(qurl.toString())
                 browser.page().mediaCheck.checkCanPlayMedia(url)
 
-        if self.settings.enableHistory:
-            iconFile = os.path.join(self.history_manager.historyFolder, self._getIconFileName(qurl))
-            item = [str(time.time()), browser.title(), qurl.toString(), iconFile]
-            added = self.history_manager.addHistoryEntry(item)
-            if added:
-                self.history_widget.addHistoryEntry(item)
-
     def title_changed(self, title, browser):
         # sometimes this is called twice for the same page, passing an obsolete title (though URL is ok... weird)
 
@@ -724,9 +717,10 @@ class MainWindow(QMainWindow):
             url, _, zoom, lastAccessed, frozen, isPlayingMedia = tabData
             self.tabsActivity[browser] = [url, title, zoom, lastAccessed, frozen, isPlayingMedia]
 
-        if self.settings.enableHistory:
-            # update title since it is asynchronous once the url changes
-            self.history_widget.updateEntryTitle(title, url)
+            if self.settings.enableHistory:
+                # create history once the title is available
+                item = [str(time.time()), browser.title(), url, self._getIconFileName(QUrl(url))]
+                self.history_widget.addHistoryEntry(item)
 
     def icon_changed(self, icon, browser):
 
@@ -806,7 +800,8 @@ class MainWindow(QMainWindow):
             qurl = QUrl(qurl.toString().replace("https:", "https://"))
 
         browser = self.ui.tabs.currentWidget()
-        self.tabsActivity[browser] = [qurl.toString(), "", 1.0, time.time(), False, False]
+        url = qurl.toString()
+        self.tabsActivity[browser] = [url, "", 1.0, time.time(), False, False]
 
         # set the url
         QTimer.singleShot(0, lambda u=qurl: self.ui.tabs.currentWidget().load(u))
@@ -1538,6 +1533,7 @@ class MainWindow(QMainWindow):
 
         # save other open windows
         # only open windows when main instance is closed will be remembered
+        total_new_tabs = 0
         new_wins = []
         for w in self.instances:
 
@@ -1556,6 +1552,7 @@ class MainWindow(QMainWindow):
                         zoom = page.zoomFactor()
                     iconFile = self._getIconFileName(QUrl(url))
                     new_tabs.append([url, zoom, title, i == self.ui.tabs.currentIndex(), frozen, iconFile])
+                    total_new_tabs += 1
 
                 # won't keep any incognito data
                 if not w.isIncognito:
@@ -1563,7 +1560,7 @@ class MainWindow(QMainWindow):
 
             # closing all other open child windows
             w.close()
-        LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"New windows saved: {len(new_wins)}")
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"New windows saved: {len(new_wins)} / tabs: {total_new_tabs}")
 
         # only main window can save settings
         if not self.isNewWin and not self.isIncognito:
