@@ -1029,8 +1029,8 @@ class MainWindow(QMainWindow):
                 # hypothesis: if nav tab is under mouse it will not hide, so trying to show hoverHWidget in the same position fails
                 # solution: moving the mouse out of the nav bar
                 curPos = QCursor.pos(self.screen())
-                x = self.ui.tabs.tabBar().width() if not self.h_tabbar else curPos.x()
-                y = self.ui.navtab.height()
+                x = (self.x() + self.ui.tabs.tabBar().width()) if not self.h_tabbar else curPos.x()
+                y = self.y() + self.ui.navtab.height()
                 QCursor.setPos(x, y)
                 self.ui.navtab.hide()
                 self.ui.tabs.tabBar().hide()
