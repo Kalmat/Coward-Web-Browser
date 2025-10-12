@@ -994,6 +994,8 @@ class MainWindow(QMainWindow):
                 self.ui.tabs.setTabText(i, "")
             self.ui.tabs.tabBar().setTabIcon(i, new_icon)
 
+        targetRect = self.ui.tabs.tabBar().tabRect(0)
+        self.ui.auto_btn.setFixedSize(targetRect.height() if self.h_tabbar else targetRect.width(), self.ui.closewin_btn.height())
         self.ui.navtab.setStyleSheet(self.h_navtab_style if self.h_tabbar else self.v_navtab_style)
 
         if self.autoHide:
