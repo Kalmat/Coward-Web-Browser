@@ -381,8 +381,8 @@ class MainWindow(QMainWindow):
         self.manage_autohide(enabled=self.autoHide)
 
         # adjust button width to tabbar width
-        # self.ui.auto_btn.setFixedSize(self.ui.tabs.tabBar().height() if self.h_tabbar else self.ui.tabs.tabBar().width(),
-        #                               self.ui.ninja_btn.height())
+        targetRect = self.ui.tabs.tabBar().tabRect(0)
+        self.ui.auto_btn.setFixedSize(targetRect.height() if self.h_tabbar else targetRect.width(), self.ui.ninja_btn.height())
 
         # thanks to Maxim Paperno: https://stackoverflow.com/questions/58145272/qdialog-with-rounded-corners-have-black-corners-instead-of-being-translucent
         if self.settings.radius > 0:
@@ -397,7 +397,7 @@ class MainWindow(QMainWindow):
             painter.end()
             self.setMask(b)
 
-            LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Show")
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Show")
 
     def createTabs(self, init_tabs):
 
