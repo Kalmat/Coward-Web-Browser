@@ -984,10 +984,9 @@ class MainWindow(QMainWindow):
                 title = ""
                 if tabData is not None:
                     _, title, _, _, _, _ = tabData
-                tabIndex = self.ui.tabs.indexOf(browser)
-                self.ui.tabs.setTabText(tabIndex, title if self.h_tabbar else "")
-                self.ui.tabs.setTabToolTip(tabIndex, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
-                self.ui.tabs.tabBar().tabButton(i, QTabBar.ButtonPosition.RightSide).clicked.connect(lambda checked, b=self.ui.tabs.widget(i): self.tab_closed(b))
+                self.ui.tabs.setTabText(i, title if self.h_tabbar else "")
+                self.ui.tabs.setTabToolTip(i, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
+                self.ui.tabs.tabBar().tabButton(i, QTabBar.ButtonPosition.RightSide).clicked.connect(lambda checked, b=browser: self.tab_closed(b))
             else:
                 new_icon = QIcon(icon.pixmap(QSize(self.icon_size, self.icon_size)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
                 self.ui.tabs.setTabText(i, "")
