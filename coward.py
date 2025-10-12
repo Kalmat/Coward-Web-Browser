@@ -880,10 +880,10 @@ class MainWindow(QMainWindow):
         # sip.delete(browser)
         browser.close()
 
-        # create new widget in add_tab() method (QWebEngineView if it was QLabel and viceversa)
+        # create new widget in add_tab() method (QWebEngineView if it was QLabel and vice versa)
         icon = self._getIconFileName(qurl)
         tabIndex = self.add_tab(qurl, zoom, title, not isView, icon, tabIndex)
-        self.ui.tabs.setTabIcon(tabIndex, self._getTabIcon(self._getIconFileName(qurl), not isView))
+        # self.ui.tabs.setTabIcon(tabIndex, self._getTabIcon(self._getIconFileName(qurl), not isView))
         if not isView:
             self.ui.tabs.setCurrentIndex(tabIndex)
 
@@ -908,13 +908,15 @@ class MainWindow(QMainWindow):
 
         if to_index >= self.ui.tabs.count() - 1:
             # Avoid moving last tab (add new tab) if dragging another tab onto it
-            self.ui.tabs.removeTab(from_index)
-            self.add_tab_action()
+            # self.ui.tabs.removeTab(from_index)
+            # self.add_tab_action()
+            self.ui.tabs.tabBar().moveTab(from_index, self.ui.tabs.count() - 1)
 
         elif to_index <= 0:
             # Avoid moving first tab (toggle tab orientation) if dragging another tab onto it
-            self.ui.tabs.removeTab(from_index)
-            self.add_toggletab_action()
+            # self.ui.tabs.removeTab(from_index)
+            # self.add_toggletab_action()
+            self.ui.tabs.tabBar().moveTab(from_index, 0)
 
     def tab_closed(self, browser):
 
@@ -1074,7 +1076,7 @@ class MainWindow(QMainWindow):
     def openExternalPlayer(self):
         page = self.ui.tabs.currentWidget().page()
         page.externalPlayer.openInExternalPlayer(page.url().toString())
-        LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"Opening external player: {DefaultSettings.Player.externalPlayerType.value}")
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"Opening external player: {DefaultSettings.Player.externalPlayerType.value} for page: {page.title()}")
 
     def get_search_widget_pos(self):
 
