@@ -18,9 +18,9 @@ class CacheManager:
         LOGGER.write(LoggerSettings.LogLevels.info, "CacheManager", "Finished initialization")
 
     def deleteCache(self):
-        # wipe all cache folders except the last one if requested by user (in a new process or it will be locked)
+        # wipe all cache folders except the last one if requested by user (in a new process, or it will be locked)
         try:
             shutil.rmtree(self.cachePath)
-            LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Cache files deleted")
+            LOGGER.write(LoggerSettings.LogLevels.info, "CacheManager", "Cache files deleted")
         except:
-            LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Cache files not found")
+            LOGGER.write(LoggerSettings.LogLevels.info, "CacheManager", "Cache files not found when trying to delete them")

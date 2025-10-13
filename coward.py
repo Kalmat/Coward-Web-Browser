@@ -1174,8 +1174,10 @@ class MainWindow(QMainWindow):
         self.ui.dark_off_act.setVisible(self.dark_mode)
 
         for i in range(1, self.ui.tabs.count() - 2):
-            self.ui.tabs.widget(i).settings().setAttribute(QWebEngineSettings.WebAttribute.ForceDarkMode, self.dark_mode)
-            self.ui.tabs.widget(i).reload()
+            browser = self.ui.tabs.widget(i)
+            if isinstance(browser, QWebEngineView):
+                browser.settings().setAttribute(QWebEngineSettings.WebAttribute.ForceDarkMode, self.dark_mode)
+                browser.reload()
 
     def manage_tabs(self, index):
         if index <= 0:
@@ -1222,7 +1224,22 @@ class MainWindow(QMainWindow):
 
     def accept_clean(self):
 
-        if not self.isIncognito:
+        if self.isIncognito:
+            # this works quite well, it's quicker and less aggressive (in incognito mode, all will be deleted anyway)
+            for i in range(1, self.ui.tabs.count() - 1):
+                browser = self.ui.tabs.widget(i)
+                if isinstance(browser, QWebEngineView):
+                    page = browser.page()
+                    profile = page.profile()
+                    profile.clearHttpCache()
+                    profile.clearAllVisitedLinks()
+                    cookieStore = profile.cookieStore()
+                    cookieStore.deleteSessionCookies()
+                    cookieStore.deleteAllCookies()
+                    browser.reload()
+
+        else:
+            # this is more aggressive and slower, but guarantees everything is completely and immediately wiped!!
             # activate cache deletion upon closing app (if not incognito which will be auto-deleted)
             self.cache_manager.deleteCacheRequested = True
 
@@ -1400,9 +1417,9 @@ class MainWindow(QMainWindow):
             if not self.isPageFullscreen:
                 self.manage_fullscr(on=not self.isFullScreen())
 
-        elif a0.key() == Qt.Key.Key_A:
+        elif a0.key() == Qt.Key.Key_E:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
-                self.manage_autohide(enabled=False)
+                self.manage_autohide()
 
         elif a0.key() == Qt.Key.Key_H:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
@@ -1486,7 +1503,6 @@ class MainWindow(QMainWindow):
 
     def deletePreviousCacheAndTemp(self):
         if OPTIONS.deleteCache:
-            LOGGER.write(LoggerSettings.LogLevels.info, "Main", "DELETE Previous cache")
             self.cache_manager.deleteCache()
             LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Previous cache deleted")
         if OPTIONS.deletePlayerTemp:
@@ -1587,7 +1603,7 @@ class MainWindow(QMainWindow):
             LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Restart application to delete temp files")
 
         if args:
-            status = QProcess.startDetached(sys.executable, sys.argv + args)
+            status = QProcess.startDetached(sys.executable, sys.argv + args, os.getcwd())
 
 
 def main():

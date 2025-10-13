@@ -14,4 +14,4 @@ class LoggerSettings:
     requestInterceptorEnabled = True   # print messages from request interceptor (requires debug enabled)
     loggingEnabled = False      # log messages to file instead of printing them (requires debug enabled)
     loggerFolder = ".logs"      # logs folder will be placed next to coward script/exe to facilitate to find them
-    logDepth = 0                # max number of old log files to keep (-1 = infinite)
+    logDepth = 1                # max number of old log files to keep (-1 = infinite)

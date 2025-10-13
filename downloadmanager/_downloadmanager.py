@@ -51,8 +51,9 @@ class DownloadManager(QWidget):
         self.tempFolder = os.path.join(DefaultSettings.Storage.App.tempFolder, DefaultSettings.Downloads.downloadTempFolder)
         try:
             shutil.rmtree(self.tempFolder)
+            LOGGER.write(LoggerSettings.LogLevels.info, "DownloadManager", "Download temp folder deleted")
         except:
-            LOGGER.write(LoggerSettings.LogLevels.info, "DownloadManager", "Download temp folder not found")
+            LOGGER.write(LoggerSettings.LogLevels.info, "DownloadManager", "Download temp folder not found (already deleted)")
 
     def addDownload(self, item):
 
@@ -84,7 +85,6 @@ class DownloadManager(QWidget):
         if accept:
             item.accept()
             if added:
-                # request is triggered several times. Only the first time will be added to the UI
                 self._add(item, os.path.basename(filename), filename, tempfile)
 
         else:
