@@ -27,6 +27,7 @@ Rationally, this will never be a good replacement for any of the commercial web 
 
 | Shortcut             | Action                             |
 |----------------------|------------------------------------|
+| `Ctrl` `E`           | Toggle ON / OFF Auto-Hide          |
 | `Ctrl` `T`           | Open new tab                       |
 | `Ctrl` `N`           | Open new window                    |
 | `Ctrl` `Shift` `N`   | Open new incognito window          |
@@ -44,6 +45,7 @@ Rationally, this will never be a good replacement for any of the commercial web 
 | `Shift` `Tab`        | Select previous link               |
 | `Enter`              | Load URL (in url bar)              |
 | `Enter`              | Load selected link (within page)   |
+| `Ctrl` `A`           | Select all in page                 |
 | `Ctrl` `C`           | Copy text (if text selected)       |
 | `Ctrl` `C`           | Copy URL bar (if nothing selected) |
 | `Ctrl` `V`           | Paste clipboard content            |

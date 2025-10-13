@@ -181,8 +181,8 @@ class MainWindow(QMainWindow):
         self._profile = None
 
         # Request interceptor for blocking URLs and ad-blocking
-        self.requestInterceptor = RequestInterceptor(DefaultSettings.AdBlocker.urlBlackList,
-                                                     os.path.join(self.appStorageFolder, DefaultSettings.AdBlocker.filterlistsFolder))
+        self.requestInterceptor = RequestInterceptor(os.path.join(self.appStorageFolder,
+                                                                  DefaultSettings.AdBlocker.filterlistsFolder))
         self.requestInterceptor.setEnabled(self.adblock)
 
         # creating download manager before custom title bar to allow moving it too
@@ -1060,7 +1060,7 @@ class MainWindow(QMainWindow):
         else:
             self.ui.tabs.currentWidget().stop()
 
-    def update_urlbar(self, qurl, browser: QWidget = None):
+    def update_urlbar(self, qurl, browser = None):
 
         # If this signal is not from the current tab, ignore
         if browser != self.ui.tabs.currentWidget():

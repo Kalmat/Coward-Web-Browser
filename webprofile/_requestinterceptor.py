@@ -20,13 +20,25 @@ except:
 
 class RequestInterceptor(QWebEngineUrlRequestInterceptor):
 
-    def __init__(self, blocked_urls, rules_folder):
+    def __init__(self, rules_folder):
         super().__init__()
 
         # List of URLs (as strings or patterns) to block
-        self.blocked_urls = blocked_urls
         self.easylistPath = os.path.join(rules_folder, DefaultSettings.AdBlocker.easylistFile)
         self.easyprivacyPath = os.path.join(rules_folder, DefaultSettings.AdBlocker.easyprivacytFile)
+        self.urlBlackListPath = os.path.join(rules_folder, DefaultSettings.AdBlocker.urlBlackListFile)
+
+        # retrieve blocked urls file
+        self.blocked_urls = []
+        if os.path.exists(self.urlBlackListPath):
+            with open(self.urlBlackListPath, "r") as f:
+                self.blocked_urls = [line.rstrip() for line in f if not line.startswith('#')]
+        else:
+            with open(self.urlBlackListPath, "w") as f:
+                f.write("# include here the complete or partial URL you want to be blocked, one string per line\n"
+                        "# if the url contains the given string, it Will be blocked\n"
+                        "# e.g. if you include 'televisión' here, any URL containing 'television' will be blocked (including searches, for instance)\n"
+                        "# use '#' for comments, but be sure it is at the very beginning of the line\n")
 
         # enable / disable adblocker
         self.enableAdBlocker = DefaultSettings.AdBlocker.enableAdBlocker
