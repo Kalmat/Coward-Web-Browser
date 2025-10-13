@@ -500,7 +500,7 @@ class MainWindow(QMainWindow):
                 pixmap = QPixmap(iconFile)
                 if not enabled:
                     qimage = pixmap.toImage()
-                    grayscale_image = self.convert_to_grayscale_with_alpha(qimage)
+                    grayscale_image = utils.convert_to_grayscale_with_alpha(qimage)
                     pixmap = QPixmap.fromImage(grayscale_image)
                 if not self.h_tabbar:
                     pixmap = pixmap.transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation)
@@ -508,31 +508,6 @@ class MainWindow(QMainWindow):
         if qicon is None:
             qicon = self.web_ico if self.h_tabbar else self.web_ico_rotated
         return qicon
-
-    def convert_to_grayscale_with_alpha(self, image):
-        # this is faster, but doesn't keep the alpha (transparency) channel
-        # grayscale_image = qimage.convertToFormat(QImage.Format.Format_Grayscale8, Qt.ImageConversionFlag.AutoColor)
-        argb_image = image.convertToFormat(QImage.Format.Format_ARGB32)
-        width = argb_image.width()
-        height = argb_image.height()
-        bpl = argb_image.bytesPerLine()
-
-        for y in range(height):
-            scan_line = argb_image.scanLine(y)
-            scan_line.setsize(bpl)  # Set size to access as buffer
-            for x in range(width):
-                # Access 4-byte pixel manually
-                i = x * 4
-                # Extract RGBA components
-                r, g, b = scan_line[i], scan_line[i + 1], scan_line[i + 2]
-                gray = qGray(int.from_bytes(r), int.from_bytes(g), int.from_bytes(b))
-                # Write back grayscale with original alpha
-                scan_line[i] = gray.to_bytes()
-                scan_line[i + 1] = gray.to_bytes()
-                scan_line[i + 2] = gray.to_bytes()
-                # scan_line[i+3] = a  # Alpha already preserved
-
-        return argb_image
 
     def getBrowser(self, qurl, zoom, loadUrl):
 
@@ -693,7 +668,7 @@ class MainWindow(QMainWindow):
     def url_changed(self, qurl, browser):
         # All this has to be done here since loadfinished() is not triggered, titleChanged() is triggered twice, etc...
 
-        self.update_urlbar(qurl, browser)
+        QTimer.singleShot(0, lambda q=qurl, b=browser: self.update_urlbar(q, b))
 
         tabData = self.tabsActivity.get(browser, None)
         if tabData:
@@ -756,7 +731,7 @@ class MainWindow(QMainWindow):
 
     def add_toggletab_action(self):
         self.toggletab_btn = QLabel()
-        self.ui.tabs.insertTab(0, self.toggletab_btn, " ▼ ", True) #🢃⯯⛛▼🞃▼⮟⬎
+        self.ui.tabs.insertTab(0, self.toggletab_btn, " ▼ ", True)  # 🢃⯯⛛▼🞃▼⮟⬎
         self.ui.tabs.tabBar().setTabButton(0, QTabBar.ButtonPosition.RightSide, None)
         self.ui.tabs.widget(0).setDisabled(True)
 
@@ -769,16 +744,14 @@ class MainWindow(QMainWindow):
 
     # method for adding new tab when requested by user
     def add_new_tab(self, qurl=None, setFocus=True):
-        self.ui.tabs.removeTab(self.ui.tabs.count() - 1)
         qurl = qurl or QUrl(DefaultSettings.Browser.defaultPage)
         if setFocus:
-            tabIndex = self.add_tab(qurl)
+            tabIndex = self.add_tab(qurl, tabIndex=self.ui.tabs.count() - 1)
         else:
             tabIndex = self.add_tab(qurl, tabIndex=self.ui.tabs.currentIndex() + 1)
-        self.update_urlbar(self.ui.tabs.currentWidget().url(), self.ui.tabs.currentWidget())
-        self.add_tab_action()
         if setFocus:
             self.ui.tabs.setCurrentIndex(tabIndex)
+            QTimer.singleShot(0, lambda q=qurl, b=self.ui.tabs.currentWidget(): self.update_urlbar(q, b))
 
     # method to update the url when tab is changed
     def navigate_to_url(self):
@@ -928,6 +901,9 @@ class MainWindow(QMainWindow):
                 # close additional window only
                 self.close()
             else:
+                self.ui.tabs.removeTab(1)
+                # remove all tabs
+                self.settings.setPreviousTabs([], True)
                 # close application
                 QCoreApplication.quit()
 
@@ -1060,7 +1036,7 @@ class MainWindow(QMainWindow):
         else:
             self.ui.tabs.currentWidget().stop()
 
-    def update_urlbar(self, qurl, browser = None):
+    def update_urlbar(self, qurl, browser):
 
         # If this signal is not from the current tab, ignore
         if browser != self.ui.tabs.currentWidget():
@@ -1177,7 +1153,7 @@ class MainWindow(QMainWindow):
             browser = self.ui.tabs.widget(i)
             if isinstance(browser, QWebEngineView):
                 browser.settings().setAttribute(QWebEngineSettings.WebAttribute.ForceDarkMode, self.dark_mode)
-                browser.reload()
+                QTimer.singleShot(0, lambda: browser.reload())
 
     def manage_tabs(self, index):
         if index <= 0:
@@ -1236,14 +1212,14 @@ class MainWindow(QMainWindow):
                     cookieStore = profile.cookieStore()
                     cookieStore.deleteSessionCookies()
                     cookieStore.deleteAllCookies()
-                    browser.reload()
+                    QTimer.singleShot(0, lambda: browser.reload())
 
         else:
             # this is more aggressive and slower, but guarantees everything is completely and immediately wiped!!
             # activate cache deletion upon closing app (if not incognito which will be auto-deleted)
             self.cache_manager.deleteCacheRequested = True
 
-            # set a new cache folder (old ones will be deleted when app is restarted)
+            # relaunch app to allow deleting cache file (locked otherwise)
             self.dontCloseOnRelaunch = True
             self.close()
 
@@ -1449,7 +1425,7 @@ class MainWindow(QMainWindow):
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
                 url = self.clipboard.text(QClipboard.Mode.Clipboard)
                 if url:
-                    self.update_urlbar(QUrl(url), self.ui.tabs.currentWidget())
+                    QTimer.singleShot(0, lambda q=QUrl(url), b=self.ui.tabs.currentWidget(): self.update_urlbar(q, b))
                     self.navigate_to_url()
 
     def targetDlgPos(self):

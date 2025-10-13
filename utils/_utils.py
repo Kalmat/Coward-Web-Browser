@@ -6,7 +6,7 @@ import numpy as np
 import psutil
 from PIL import Image
 from PIL.ImageQt import ImageQt
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtGui import QPixmap, qGray, QImage
 
 
 def screenSize(parent):
@@ -47,6 +47,32 @@ def fixDarkImage(pixmap):
         pixmap = QPixmap.fromImage(qt_image)
 
     return pixmap
+
+
+def convert_to_grayscale_with_alpha(image):
+    # this is faster, but doesn't keep the alpha (transparency) channel
+    # grayscale_image = qimage.convertToFormat(QImage.Format.Format_Grayscale8, Qt.ImageConversionFlag.AutoColor)
+    argb_image = image.convertToFormat(QImage.Format.Format_ARGB32)
+    width = argb_image.width()
+    height = argb_image.height()
+    bpl = argb_image.bytesPerLine()
+
+    for y in range(height):
+        scan_line = argb_image.scanLine(y)
+        scan_line.setsize(bpl)  # Set size to access as buffer
+        for x in range(width):
+            # Access 4-byte pixel manually
+            i = x * 4
+            # Extract RGBA components
+            r, g, b = scan_line[i], scan_line[i + 1], scan_line[i + 2]
+            gray = qGray(int.from_bytes(r), int.from_bytes(g), int.from_bytes(b))
+            # Write back grayscale with original alpha
+            scan_line[i] = gray.to_bytes()
+            scan_line[i + 1] = gray.to_bytes()
+            scan_line[i + 2] = gray.to_bytes()
+            # scan_line[i+3] = a  # Alpha already preserved
+
+    return argb_image
 
 
 def kill_process(proc_pid):

@@ -5,5 +5,6 @@ from ._utils import (
     app_location,
     resource_path,
     get_valid_filename,
-    fixDarkImage
+    fixDarkImage,
+    convert_to_grayscale_with_alpha
 )
