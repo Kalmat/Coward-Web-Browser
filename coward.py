@@ -805,7 +805,7 @@ class MainWindow(QMainWindow):
             self.ui.tabs.setCurrentIndex(self.prevTabIndex or 1)
 
         elif tabIndex >= self.ui.tabs.count() - 1:
-            self.ui.tabs.setCurrentIndex(self.ui.tabs.count() - 2)
+            self.ui.tabs.setCurrentIndex(self.prevTabIndex or self.ui.tabs.count() - 2)
 
         else:
 
@@ -1149,18 +1149,11 @@ class MainWindow(QMainWindow):
         self.ui.dark_on_act.setVisible(not self.dark_mode)
         self.ui.dark_off_act.setVisible(self.dark_mode)
 
-        for i in range(1, self.ui.tabs.count() - 2):
+        for i in range(1, self.ui.tabs.count() - 1):
             browser = self.ui.tabs.widget(i)
             if isinstance(browser, QWebEngineView):
                 browser.settings().setAttribute(QWebEngineSettings.WebAttribute.ForceDarkMode, self.dark_mode)
                 QTimer.singleShot(0, lambda: browser.reload())
-
-    def manage_tabs(self, index):
-        if index <= 0:
-            index = self.ui.tabs.count() - 2
-        elif index >= self.ui.tabs.count() - 1:
-            index = 1
-        self.ui.tabs.setCurrentIndex(index)
 
     # adding action to download files
     def download_file(self, item: QWebEngineDownloadRequest):
@@ -1404,17 +1397,17 @@ class MainWindow(QMainWindow):
         elif a0.key() == Qt.Key.Key_Backtab:
             if a0.modifiers() == Qt.KeyboardModifier.ShiftModifier | Qt.KeyboardModifier.ControlModifier:
                 index = self.ui.tabs.currentIndex() - 1
-                self.manage_tabs(index)
+                self.ui.tabs.setCurrentIndex(index)
 
         elif a0.key() == Qt.Key.Key_Tab:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
                 index = self.ui.tabs.currentIndex() + 1
-                self.manage_tabs(index)
+                self.ui.tabs.setCurrentIndex(index)
 
         elif Qt.Key.Key_1 <= a0.key() <= Qt.Key.Key_9:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
                 index = int(chr(a0.key()))
-                self.manage_tabs(index)
+                self.ui.tabs.setCurrentIndex(index)
 
         elif a0.key() == Qt.Key.Key_C:
             if a0.modifiers() == Qt.KeyboardModifier.ControlModifier:
@@ -1480,14 +1473,13 @@ class MainWindow(QMainWindow):
     def deletePreviousCacheAndTemp(self):
         if OPTIONS.deleteCache:
             self.cache_manager.deleteCache()
-            LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Previous cache deleted")
         if OPTIONS.deletePlayerTemp:
             if os.path.exists(DefaultSettings.Storage.App.tempFolder):
                 try:
                     shutil.rmtree(DefaultSettings.Storage.App.tempFolder)
+                    LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Previous temp files deleted")
                 except:
-                    LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Temp folder not found")
-            LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Previous temp files deleted")
+                    LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Temp folder not found (no need to delete it)")
 
         if (OPTIONS.deleteCache or OPTIONS.deletePlayerTemp) and not OPTIONS.dontCloseOnRelaunch:
             QApplication.quit()

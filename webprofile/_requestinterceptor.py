@@ -36,7 +36,7 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
         else:
             with open(self.urlBlackListPath, "w") as f:
                 f.write("# include here the complete or partial URL you want to be blocked, one string per line\n"
-                        "# if the url contains the given string, it Will be blocked\n"
+                        "# if the url contains the given string, it will be blocked\n"
                         "# e.g. if you include 'televisión' here, any URL containing 'television' will be blocked (including searches, for instance)\n"
                         "# use '#' for comments, but be sure it is at the very beginning of the line\n")
 
