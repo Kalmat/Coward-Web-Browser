@@ -3,7 +3,7 @@ QToolBar {
     color: white;
     height: 48px;
     border: none;
-    border-bottom: 1px solid #646464;
+    border-bottom: 1px solid #484848;
 }
 
 QLineEdit {

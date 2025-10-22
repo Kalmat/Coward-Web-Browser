@@ -12,10 +12,9 @@ from PyQt6.QtWebEngineCore import *
 from PyQt6.QtWebEngineWidgets import *
 from PyQt6.QtWidgets import *
 
-import appconfig
 import utils
-from appconfig import OPTIONS
-from appconfig import Splash
+import appconfig
+from appconfig import OPTIONS, Splash
 from cachemanager import CacheManager
 from dialog import DialogsManager
 from downloadmanager import DownloadManager
