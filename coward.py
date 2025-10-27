@@ -649,8 +649,9 @@ class MainWindow(QMainWindow):
                 if self.isFullScreen():
                     self.prevFullScreen = True
             if not self.isFullScreen():
-                for w in self.ui.appGrips.sideGrips + self.ui.appGrips.cornerGrips:
-                    w.hide()
+                if self.settings.isCustomTitleBar:
+                    for w in self.ui.appGrips.sideGrips + self.ui.appGrips.cornerGrips:
+                        w.hide()
                 self.showFullScreen()
                 self.moveOtherWidgets()
 
@@ -659,8 +660,9 @@ class MainWindow(QMainWindow):
                 self.isPageFullscreen = False
                 self.manage_autohide(hide_all=False)
             if not page_fullscr or (page_fullscr and not self.prevFullScreen):
-                for w in self.ui.appGrips.sideGrips + self.ui.appGrips.cornerGrips:
-                    w.show()
+                if self.settings.isCustomTitleBar:
+                    for w in self.ui.appGrips.sideGrips + self.ui.appGrips.cornerGrips:
+                        w.show()
                 self.showNormal()
                 self.moveOtherWidgets()
 
@@ -1221,15 +1223,17 @@ class MainWindow(QMainWindow):
             self.showNormal()
             self.ui.max_btn.setText(self.ui.max_chr)
             self.ui.max_btn.setToolTip("Maximize")
-            for w in self.ui.appGrips.sideGrips + self.ui.appGrips.cornerGrips:
-                w.show()
+            if self.settings.isCustomTitleBar:
+                for w in self.ui.appGrips.sideGrips + self.ui.appGrips.cornerGrips:
+                    w.show()
 
         else:
             self.showMaximized()
             self.ui.max_btn.setText(self.ui.rest_chr)
             self.ui.max_btn.setToolTip("Restore")
-            for w in self.ui.appGrips.sideGrips + self.ui.appGrips.cornerGrips:
-                w.hide()
+            if self.settings.isCustomTitleBar:
+                for w in self.ui.appGrips.sideGrips + self.ui.appGrips.cornerGrips:
+                    w.hide()
 
     def showContextMenu(self, point):
 
