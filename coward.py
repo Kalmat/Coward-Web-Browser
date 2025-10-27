@@ -115,6 +115,7 @@ class MainWindow(QMainWindow):
         self.autoHide = self.settings.autoHide
         self.isPageFullscreen = False
         self.prevFullScreen = False
+        self.maxButtonClicked = False
 
         # set tabbar orientation
         self.h_tabbar = self.settings.isTabBarHorizontal
@@ -1217,7 +1218,9 @@ class MainWindow(QMainWindow):
             self.dontCloseOnRelaunch = True
             self.close()
 
-    def showMaxRestore(self):
+    def showMaxRestore(self, clicked=True):
+        print("MAX")
+        self.maxButtonClicked = clicked
 
         if self.isMaximized():
             self.showNormal()
@@ -1453,6 +1456,11 @@ class MainWindow(QMainWindow):
 
     def moveEvent(self, a0):
         super().moveEvent(a0)
+
+        # restore window if maximized
+        if self.isMaximized() and self.maxButtonClicked:
+            self.maxButtonClicked = False
+            self.showMaxRestore(clicked=False)
 
         # also move widgets with relative positions
         self.moveOtherWidgets()
