@@ -1219,7 +1219,6 @@ class MainWindow(QMainWindow):
             self.close()
 
     def showMaxRestore(self, clicked=True):
-        print("MAX")
         self.maxButtonClicked = clicked
 
         if self.isMaximized():
@@ -1459,7 +1458,6 @@ class MainWindow(QMainWindow):
 
         # restore window if maximized
         if self.isMaximized() and self.maxButtonClicked:
-            self.maxButtonClicked = False
             self.showMaxRestore(clicked=False)
 
         # also move widgets with relative positions
