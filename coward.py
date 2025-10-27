@@ -115,7 +115,7 @@ class MainWindow(QMainWindow):
         self.autoHide = self.settings.autoHide
         self.isPageFullscreen = False
         self.prevFullScreen = False
-        self.maxButtonClicked = False
+        self.wasMaximized = False
 
         # set tabbar orientation
         self.h_tabbar = self.settings.isTabBarHorizontal
@@ -1218,8 +1218,7 @@ class MainWindow(QMainWindow):
             self.dontCloseOnRelaunch = True
             self.close()
 
-    def showMaxRestore(self, clicked=True):
-        self.maxButtonClicked = clicked
+    def showMaxRestore(self):
 
         if self.isMaximized():
             self.showNormal()
@@ -1236,6 +1235,8 @@ class MainWindow(QMainWindow):
             if self.settings.isCustomTitleBar:
                 for w in self.ui.appGrips.sideGrips + self.ui.appGrips.cornerGrips:
                     w.hide()
+
+        print("EXIT MAX", self.isMaximized())
 
     def showContextMenu(self, point):
 
@@ -1454,11 +1455,6 @@ class MainWindow(QMainWindow):
             self.dialog_manager.currentDialog.move(self.targetDlgPos())
 
     def moveEvent(self, a0):
-        super().moveEvent(a0)
-
-        # restore window if maximized
-        if self.isMaximized() and self.maxButtonClicked:
-            self.showMaxRestore(clicked=False)
 
         # also move widgets with relative positions
         self.moveOtherWidgets()
