@@ -1221,11 +1221,15 @@ class MainWindow(QMainWindow):
             self.showNormal()
             self.ui.max_btn.setText(self.ui.max_chr)
             self.ui.max_btn.setToolTip("Maximize")
+            for w in self.ui.appGrips.sideGrips + self.ui.appGrips.cornerGrips:
+                w.show()
 
         else:
             self.showMaximized()
             self.ui.max_btn.setText(self.ui.rest_chr)
             self.ui.max_btn.setToolTip("Restore")
+            for w in self.ui.appGrips.sideGrips + self.ui.appGrips.cornerGrips:
+                w.hide()
 
     def showContextMenu(self, point):
 
