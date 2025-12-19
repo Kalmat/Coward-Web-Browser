@@ -1,4 +1,3 @@
-import qtutils
 from PyQt6.QtCore import Qt, QCoreApplication, QSize, QPoint
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtWidgets import QToolButton, QLabel, QSizePolicy, QMenu, QStyle, QTabWidget, QProxyStyle, QToolBar
