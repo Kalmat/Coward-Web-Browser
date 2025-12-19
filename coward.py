@@ -1069,7 +1069,13 @@ class MainWindow(QMainWindow):
             self.ui.sidePanel.hide()
         else:
             self.ui.sidePanel.show()
-
+        if self.search_widget.isVisible():
+            self.search_widget.move(self.get_search_widget_pos())
+        if self.dl_manager.isVisible():
+            self.dl_manager.move(self.get_dl_manager_pos())
+        if self.history_widget.isVisible():
+            x, y, w, h = self.get_search_widget_pos()
+            self.history_widget.move(x, y)
     def toggleEngine(self):
         new_index = (self.settings.defaultEngine + 1) % len(DefaultSettings.Browser.defaultPages)
         self.settings.setDefaultEngine(new_index, True)
@@ -1078,6 +1084,7 @@ class MainWindow(QMainWindow):
         self.ui.engine_btn.setIcon(self.engineLogos[new_index])
         self.ui.engine_btn.setToolTip("Change search engine and initial page\n"
                                       "Current: " + DefaultSettings.Browser.defaultNames[new_index])
+        LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"Change default search engine to: {DefaultSettings.Browser.defaultNames[new_index]}")
 
     def openExternalPlayer(self):
         page = self.ui.tabs.currentWidget().page()
