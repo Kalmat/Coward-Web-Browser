@@ -6,5 +6,6 @@ from ._utils import (
     resource_path,
     get_valid_filename,
     fixDarkImage,
-    convert_to_grayscale_with_alpha
+    convert_to_grayscale_with_alpha,
+    resizeImageWithQT
 )

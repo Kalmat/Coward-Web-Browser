@@ -120,6 +120,10 @@ class MainWindow(QMainWindow):
         # set tabbar orientation
         self.h_tabbar = self.settings.isTabBarHorizontal
 
+        # set browser defaults
+        self.defaultPage = DefaultSettings.Browser.defaultPages[self.settings.defaultEngine]
+        self.defaultSearch = DefaultSettings.Browser.defaultSearchs[self.settings.defaultEngine]
+
         LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Settings loaded")
 
     def saveSettings(self, tabs, new_wins):
@@ -135,6 +139,7 @@ class MainWindow(QMainWindow):
         self.settings.setIncognitoTheme(self.settings.incognitoTheme, True)
         self.settings.setCustomTitleBar(self.settings.isCustomTitleBar, True)
         self.settings.setAutoHide(self.autoHide, True)
+        self.settings.setSidePanel(self.ui.sidePanel.isVisible(), True)
         self.settings.setTabBarHorizontal(self.h_tabbar, True)
         self.settings.setIconSize(self.settings.iconSize, True)
         self.settings.setRadius(self.settings.radius, True)
@@ -248,6 +253,8 @@ class MainWindow(QMainWindow):
         self.web_pix = QPixmap(DefaultSettings.Icons.loading)
         self.web_ico = QIcon(DefaultSettings.Icons.loading)
         self.web_ico_rotated = QIcon(QPixmap(DefaultSettings.Icons.loading).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
+        self.engineLogos = [QIcon(utils.resizeImageWithQT(utils.resource_path("res/" + file), self.medium_action_size - 4, self.medium_action_size - 4))
+                            for file in DefaultSettings.Browser.defaultLogos]
 
         LOGGER.write(LoggerSettings.LogLevels.info, "Main", "Pre-initialization finished")
 
@@ -297,6 +304,8 @@ class MainWindow(QMainWindow):
         self.v_tab_style = self.v_tab_style % (self.action_size, self.action_size)
         # style for tabs will be applied within toggle_tabbar() method
 
+        self.ui.sidePanel.setStyleSheet(Themes.styleSheet(theme, Themes.Section.sidePanel))
+
         # apply styles to independent widgets
         self.dl_manager.setStyleSheet(Themes.styleSheet(theme, Themes.Section.downloadManager))
         self.search_widget.setStyleSheet(Themes.styleSheet(theme, Themes.Section.searchWidget))
@@ -317,6 +326,8 @@ class MainWindow(QMainWindow):
         self.ui.reload_btn.triggered.connect(self.reloadPage)
         self.ui.urlbar.returnPressed.connect(self.navigate_to_url)
         self.ui.ext_player_btn.clicked.connect(self.openExternalPlayer)
+        self.ui.sidePanel_btn.clicked.connect(self.toggleSidePanel)
+        self.ui.engine_btn.clicked.connect(self.toggleEngine)
         self.ui.search_off_btn.clicked.connect(self.manage_search)
         self.ui.search_on_btn.clicked.connect(self.manage_search)
         self.ui.dl_on_btn.clicked.connect(self.manage_downloads)
@@ -435,7 +446,7 @@ class MainWindow(QMainWindow):
                     os.remove(filepath)
 
         else:
-            self.add_tab(QUrl(DefaultSettings.Browser.defaultPage))
+            self.add_tab(QUrl(self.defaultPage))
 
         # add the new tab action ("+") in tab bar
         self.add_tab_action()
@@ -746,7 +757,7 @@ class MainWindow(QMainWindow):
 
     # method for adding new tab when requested by user
     def add_new_tab(self, qurl=None, setFocus=True):
-        qurl = qurl or QUrl(DefaultSettings.Browser.defaultPage)
+        qurl = qurl or QUrl(self.defaultPage)
         if setFocus:
             tabIndex = self.add_tab(qurl, tabIndex=self.ui.tabs.count() - 1)
         else:
@@ -766,7 +777,7 @@ class MainWindow(QMainWindow):
             # search in Google
             # qurl.setUrl("https://www.google.es/search?q=%s&safe=off" % self.urlbar.text())
             # search in DuckDuckGo (safer)
-            qurl.setUrl("https://duckduckgo.com/?t=h_&hps=1&start=1&q=%s&ia=web&kae=d" % self.ui.urlbar.text().replace(" ", "+"))
+            qurl.setUrl(self.defaultSearch % self.ui.urlbar.text().replace(" ", "+"))
 
         # if scheme is blank
         if qurl.scheme() == "":
@@ -876,7 +887,7 @@ class MainWindow(QMainWindow):
 
             elif tabIndex == self.ui.tabs.count() - 1:
                 # this is needed to immediately refresh url bar content (maybe locked by qwebengineview?)
-                QTimer.singleShot(0, lambda p=DefaultSettings.Browser.defaultPage: self.ui.urlbar.setText(p))
+                QTimer.singleShot(0, lambda p=self.defaultPage: self.ui.urlbar.setText(p))
                 self.add_new_tab()
 
     def tab_moved(self, to_index, from_index):
@@ -1053,6 +1064,21 @@ class MainWindow(QMainWindow):
             self.ui.back_btn.setEnabled(browser.history().canGoBack())
             self.ui.next_btn.setEnabled(browser.history().canGoForward())
 
+    def toggleSidePanel(self):
+        if self.ui.sidePanel.isVisible():
+            self.ui.sidePanel.hide()
+        else:
+            self.ui.sidePanel.show()
+
+    def toggleEngine(self):
+        new_index = (self.settings.defaultEngine + 1) % len(DefaultSettings.Browser.defaultPages)
+        self.settings.setDefaultEngine(new_index, True)
+        self.defaultPage = DefaultSettings.Browser.defaultPages[new_index]
+        self.defaultSearch = DefaultSettings.Browser.defaultSearchs[new_index]
+        self.ui.engine_btn.setIcon(self.engineLogos[new_index])
+        self.ui.engine_btn.setToolTip("Change search engine and initial page\n"
+                                      "Current: " + DefaultSettings.Browser.defaultNames[new_index])
+
     def openExternalPlayer(self):
         page = self.ui.tabs.currentWidget().page()
         page.externalPlayer.openInExternalPlayer(page.url().toString())
@@ -1105,7 +1131,8 @@ class MainWindow(QMainWindow):
         # calculate position
         actRect = refWidget.geometry()
         actPos = self.mapToGlobal(actRect.topLeft())
-        x = actPos.x()
+        # x = actPos.x()
+        x = self.width() - self.dl_manager.width() - (self.ui.sidePanel.width() if self.ui.sidePanel.isVisible() else 0)
         y = self.y() + self.ui.navtab.height() + gap
         return QPoint(x, y)
 
@@ -1134,7 +1161,8 @@ class MainWindow(QMainWindow):
         gap = self.mapToGlobal(self.ui.navtab.pos()).y() - self.y()
 
         # calculate position
-        x = self.x() + self.width() - self.history_widget.width()
+        # x = self.x() + self.width() - self.history_widget.width()
+        x = self.x() + self.width() - self.history_widget.width() - (self.ui.sidePanel.width() if self.ui.sidePanel.isVisible() else 0)
         y = self.y() + self.ui.navtab.height() + gap
         w = 300
         h = self.height() - (self.ui.navtab.height() + (self.ui.tabs.tabBar().height() if self.h_tabbar else 0))

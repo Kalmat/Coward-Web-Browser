@@ -18,6 +18,7 @@ class Themes:
         verticalTitleBar = "verticalTitleBar"
         horizontalTabs = "horizontalTabs"
         verticalTabs = "verticalTabs"
+        sidePanel = "sidePanel"
         searchWidget = "searchWidget"
         downloadManager = "downloadManager"
         dialog = "dialog"
@@ -33,6 +34,7 @@ class Themes:
             "verticalTitleBar": 'v_titlebar.qss',
             "horizontalTabs": 'h_tabs.qss',
             "verticalTabs": 'v_tabs.qss',
+            "sidePanel": 'v_panel.qss',
             "searchWidget": 'search_widget.qss',
             "downloadManager": 'download_manager.qss',
             "dialog": 'dialog.qss',
@@ -47,6 +49,7 @@ class Themes:
             "verticalTitleBar": 'v_titlebar_incognito.qss',
             "horizontalTabs": 'h_tabs.qss',
             "verticalTabs": 'v_tabs.qss',
+            "sidePanel": 'v_panel.qss',
             "searchWidget": 'search_widget.qss',
             "downloadManager": 'download_manager.qss',
             "dialog": 'dialog.qss',

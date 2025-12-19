@@ -6,6 +6,7 @@ import numpy as np
 import psutil
 from PIL import Image
 from PIL.ImageQt import ImageQt
+from PyQt6 import QtCore
 from PyQt6.QtGui import QPixmap, qGray, QImage
 
 
@@ -133,3 +134,20 @@ def get_valid_filename(name):
     if s in {"", ".", ".."}:
         return ""
     return s
+
+
+def resizeImageWithQT(img, width, height, keepAspectRatio=True, expand=True):
+
+    pixmap = QPixmap(img)
+    pixmap_resized = pixmap
+
+    if not pixmap.isNull() and (width != pixmap.width() or height != pixmap.height()):
+        if keepAspectRatio:
+            if expand:
+                flag = QtCore.Qt.AspectRatioMode.KeepAspectRatioByExpanding
+            else:
+                flag = QtCore.Qt.AspectRatioMode.KeepAspectRatio
+        else:
+            flag = QtCore.Qt.AspectRatioMode.IgnoreAspectRatio
+        pixmap_resized = pixmap.scaled(int(width), int(height), flag, QtCore.Qt.TransformationMode.SmoothTransformation)
+    return pixmap_resized

@@ -29,6 +29,8 @@ class Settings:
         self._iconSize = self._getInt("Appearance/icon_size", 24)
         self._radius = self._getInt("Appearance/border_radius", 0)
         self._autoHide = self._getBool("Appearance/auto_hide", False)
+        self._sidePanel = self._getBool("Appearance/side_panel", True)
+        self._defEngine = self._getInt("Browser/default_engine", 0)
         self._position = self._settings.value("Window/pos", QPoint(100, 100))
         self._size = self._settings.value("Window/size", QSize(min(utils.screenSize(parent).width() // 2, 1024), min(utils.screenSize(parent).height() - 200, 1024)))
         self._previousTabs = self._getList("Session/tabs", DefaultSettings.Browser.defaultTabs)
@@ -136,6 +138,24 @@ class Settings:
         self._autoHide = value
         if persistent:
             self._settings.setValue("Appearance/auto_hide", value)
+
+    @property
+    def sidePanel(self):
+        return self._sidePanel
+
+    def setSidePanel(self, value, persistent=False):
+        self._autoHide = value
+        if persistent:
+            self._settings.setValue("Appearance/side_panel", value)
+
+    @property
+    def defaultEngine(self):
+        return self._defEngine
+
+    def setDefaultEngine(self, value, persistent=False):
+        self._defEngine = value
+        if persistent:
+            self._settings.setValue("Browser/default_engine", value)
 
     @property
     def position(self):

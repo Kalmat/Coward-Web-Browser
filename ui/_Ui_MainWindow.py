@@ -1,6 +1,7 @@
+import qtutils
 from PyQt6.QtCore import Qt, QCoreApplication, QSize, QPoint
 from PyQt6.QtGui import QAction, QIcon
-from PyQt6.QtWidgets import QToolButton, QLabel, QSizePolicy, QMenu, QStyle, QTabWidget, QProxyStyle
+from PyQt6.QtWidgets import QToolButton, QLabel, QSizePolicy, QMenu, QStyle, QTabWidget, QProxyStyle, QToolBar
 
 from hoverwidget import HoverWidget
 from lineedit import LineEdit
@@ -98,6 +99,35 @@ class Ui_MainWindow:
         spacer.setMaximumWidth(150)
         self.navtab.addWidget(spacer)
 
+        self.sidePanel_btn = QToolButton(self.navtab)
+        self.sidePanel_btn.setText("◧")
+        self.sidePanel_btn.setToolTip("Show / hide tools panel")
+        font = self.sidePanel_btn.font()
+        font.setPointSize(font.pointSize() + 12)
+        self.sidePanel_btn.setFont(font)
+        self.sidePanel_btn.setFixedSize(parent.small_action_size, parent.small_action_size)
+        self.sidePanel_act = self.navtab.addWidget(self.sidePanel_btn)
+
+        self.navtab.addSeparator()
+
+        self.sidePanel = QToolBar()
+        self.sidePanel.setOrientation(Qt.Orientation.Vertical)
+        self.sidePanel.setMovable(False)
+        self.sidePanel.setFloatable(False)
+        parent.addToolBar(Qt.ToolBarArea.RightToolBarArea, self.sidePanel)
+        if not settings.sidePanel:
+            self.sidePanel.hide()
+
+        # change search engine button
+        self.engine_btn = QToolButton(self.sidePanel)
+        self.engine_btn.setIcon(QIcon(parent.engineLogos[settings.defaultEngine]))
+        self.engine_btn.setToolTip("Change search engine and initial page\n"
+                                   "Current: " + DefaultSettings.Browser.defaultNames[settings.defaultEngine])
+        self.engine_act = self.sidePanel.addWidget(self.engine_btn)
+        self.engine_btn.setFixedSize(parent.medium_action_size, parent.medium_action_size)
+
+        self.sidePanel.addSeparator()
+
         # adding stream button
         self.ext_player_btn = QToolButton(self.navtab)  # ြ🗔🗔🕹ျ𓂀⏿
         self.ext_player_btn.setText("ျ")
@@ -106,8 +136,8 @@ class Ui_MainWindow:
         self.ext_player_btn.setFont(font)
         self.ext_player_btn.setToolTip("Open in external player\n"
                                        "(may fix non-compatible media issues)")
-        self.ext_player_act = self.navtab.addWidget(self.ext_player_btn)
-        self.ext_player_btn.setFixedSize(parent.small_action_size, parent.small_action_size)
+        self.ext_player_act = self.sidePanel.addWidget(self.ext_player_btn)
+        self.ext_player_btn.setFixedSize(parent.medium_action_size, parent.medium_action_size)
 
         # adding search option
         self.search_on_btn = QToolButton(self.navtab)
@@ -151,13 +181,13 @@ class Ui_MainWindow:
         self.dl_off_act = self.navtab.addWidget(self.dl_off_btn)
         self.dl_off_act.setVisible(False)
 
-        # adding history mgt.
+        # adding history mgt. 🟑⎈🟈
         self.hist_on_btn = QToolButton(self.navtab)
         self.hist_on_btn.setObjectName("hist_on")
         font = self.hist_on_btn.font()
-        font.setPointSize(font.pointSize() + 8)
+        font.setPointSize(font.pointSize() + 6)
         self.hist_on_btn.setFont(font)
-        self.hist_on_btn.setText("🟑")
+        self.hist_on_btn.setText("⎈")
         self.hist_on_btn.setToolTip("Show / hide navigation history")
         self.hist_on_btn.setFixedSize(parent.small_action_size, parent.small_action_size)
         self.hist_on_act = self.navtab.addWidget(self.hist_on_btn)
@@ -165,9 +195,9 @@ class Ui_MainWindow:
         self.hist_off_btn = QToolButton(self.navtab)
         self.hist_off_btn.setObjectName("hist_off")
         font = self.hist_off_btn.font()
-        font.setPointSize(font.pointSize() + 8)
+        font.setPointSize(font.pointSize() + 6)
         self.hist_off_btn.setFont(font)
-        self.hist_off_btn.setText("🟑")
+        self.hist_off_btn.setText("⎈")
         self.hist_off_btn.setToolTip("Show / hide navigation history")
         self.hist_on_btn.setFixedSize(parent.small_action_size, parent.small_action_size)
         self.hist_off_act = self.navtab.addWidget(self.hist_off_btn)
@@ -181,8 +211,8 @@ class Ui_MainWindow:
         self.dark_on_btn.setFont(font)
         self.dark_on_btn.setText("◑")
         self.dark_on_btn.setToolTip("Enable force Dark Mode")
-        self.dark_on_btn.setFixedSize(parent.small_action_size, parent.small_action_size)
-        self.dark_on_act = self.navtab.addWidget(self.dark_on_btn)
+        self.dark_on_btn.setFixedSize(parent.medium_action_size, parent.medium_action_size)
+        self.dark_on_act = self.sidePanel.addWidget(self.dark_on_btn)
         self.dark_on_act.setVisible(not settings.forceDark)
 
         self.dark_off_btn = QToolButton(self.navtab)
@@ -192,17 +222,17 @@ class Ui_MainWindow:
         self.dark_off_btn.setFont(font)
         self.dark_off_btn.setText("◐")
         self.dark_off_btn.setToolTip("Disable force Dark Mode")
-        self.dark_off_act = self.navtab.addWidget(self.dark_off_btn)
+        self.dark_off_act = self.sidePanel.addWidget(self.dark_off_btn)
         self.dark_off_act.setVisible(settings.forceDark)
 
-        self.navtab.addSeparator()
+        self.sidePanel.addSeparator()
 
         # adding adblocker mgt.
         self.adblock_btn = QToolButton(self.navtab)
         font = self.adblock_btn.font()
         font.setPointSize(font.pointSize() + 4)
         self.adblock_btn.setFont(font)
-        self.adblock_act = self.navtab.addWidget(self.adblock_btn)
+        self.adblock_act = self.sidePanel.addWidget(self.adblock_btn)
         self.adblock_btn.setFixedSize(parent.medium_action_size, parent.medium_action_size)
 
         # adding cookie mgt.   ⛔🚫🚯
@@ -210,7 +240,7 @@ class Ui_MainWindow:
         font = self.cookie_btn.font()
         font.setPointSize(font.pointSize() + 4)
         self.cookie_btn.setFont(font)
-        self.cookie_act = self.navtab.addWidget(self.cookie_btn)
+        self.cookie_act = self.sidePanel.addWidget(self.cookie_btn)
         self.cookie_btn.setFixedSize(parent.medium_action_size, parent.medium_action_size)
 
         # adding cleaning mgt.
@@ -220,7 +250,7 @@ class Ui_MainWindow:
         self.clean_btn.setFont(font)
         self.clean_btn.setText("🧹")
         self.clean_btn.setToolTip("Disabled (no content will be stored)" if is_incognito else "Erase history and cookies")
-        self.clean_act = self.navtab.addWidget(self.clean_btn)
+        self.clean_act = self.sidePanel.addWidget(self.clean_btn)
         self.clean_btn.setFixedSize(parent.medium_action_size, parent.medium_action_size)
         self.clean_btn.setDisabled(is_incognito)
 
@@ -232,7 +262,7 @@ class Ui_MainWindow:
         font.setPointSize(font.pointSize() + 6)
         self.ninja_btn.setFont(font)
         self.ninja_btn.setToolTip("Incognito mode activated" if is_incognito else "Open new window in incognito mode")
-        self.ninja_act = self.navtab.addWidget(self.ninja_btn)
+        self.ninja_act = self.sidePanel.addWidget(self.ninja_btn)
         self.ninja_btn.setFixedSize(parent.medium_action_size, parent.medium_action_size)
         if parent.isNewWin:
             if parent.isIncognito:

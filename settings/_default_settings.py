@@ -63,10 +63,14 @@ class DefaultSettings:
             tabsFolder = "coward.tabs"
 
     class Browser:
-        defaultPage = 'https://start.duckduckgo.com/?kae=d'
-        defaultTabs = [[defaultPage, 1.0, "", True, False, ""]]
-        htmlPath = utils.resource_path("html")
-        fatalErrorPage = "fatal_error.html"
+        defaultEngine = 0
+        defaultPages = ['https://start.duckduckgo.com/?kae=d', 'https://www.startpage.com']
+        defaultSearchs = ['https://duckduckgo.com/?t=h_&hps=1&start=1&q=%s&ia=web&kae=d', 'https://www.startpage.com/sp/search?query=%s']
+        defaultLogos = ["DuckDuckGo-logo.png", "startpage-logo.png"]
+        defaultNames = ["DuckDuckGo", "StartPage"]
+        defaultTabs = [[defaultPages[defaultEngine], 1.0, "", True, False, ""]]
+        htmlPath = utils.resource_path('html')
+        fatalErrorPage = 'fatal_error.html'
 
     class Cookies:
         allow = True
