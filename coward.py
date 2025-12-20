@@ -699,7 +699,7 @@ class MainWindow(QMainWindow):
         # sometimes this is called twice for the same page, passing an obsolete title (though URL is ok... weird)
 
         tabIndex = self.ui.tabs.indexOf(browser)
-        self.ui.tabs.tabBar().setTabText(tabIndex, title if self.h_tabbar else "")
+        self.ui.tabs.setTabText(tabIndex, title if self.h_tabbar else "")
         self.ui.tabs.tabBar().setTabToolTip(tabIndex, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
 
         tabData = self.tabsActivity.get(browser, None)
@@ -977,12 +977,12 @@ class MainWindow(QMainWindow):
                 _, title, _, _, _, _ = tabData
             if self.h_tabbar:
                 new_icon = QIcon(icon.pixmap(QSize(self.icon_size, self.icon_size)).transformed(QTransform().rotate(-90), Qt.TransformationMode.SmoothTransformation))
-                self.ui.tabs.tabBar().setTabText(i, title)
+                self.ui.tabs.setTabText(i, title)
                 self.ui.tabs.tabBar().setTabToolTip(i, title)
                 self.ui.tabs.tabBar().tabButton(i, QTabBar.ButtonPosition.RightSide).clicked.connect(lambda checked, b=browser: self.tab_closed(b))
             else:
                 new_icon = QIcon(icon.pixmap(QSize(self.icon_size, self.icon_size)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
-                self.ui.tabs.tabBar().setTabText(i, "")
+                self.ui.tabs.setTabText(i, "")
                 self.ui.tabs.tabBar().setTabToolTip(i, title + "\n(Right-click to close)")
             self.ui.tabs.tabBar().setTabIcon(i, new_icon)
 
