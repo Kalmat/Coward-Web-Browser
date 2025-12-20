@@ -75,7 +75,7 @@ class TabWidget(QTabWidget):
         target_text = a1
         if 0 < index < self.count() - 1:
             target_length, padding = self._getTextSize(index, a1)
-            target_text  = a1[:target_length] + (" " * padding)
+            target_text = a1[:target_length] + (" " * padding)
         super().setTabText(index, target_text)
 
     def setCurrentIndex(self, index):
