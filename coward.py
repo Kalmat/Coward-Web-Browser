@@ -294,7 +294,7 @@ class MainWindow(QMainWindow):
         # tab bar styles
         # horizontal tabs
         self.h_tab_style = Themes.styleSheet(theme, Themes.Section.horizontalTabs)
-        # inject variable parameters: tab separator image (to make it shorter), min-width and height
+        # inject variable parameters: tab separator image (to make it shorter), max-width, height and buttons icons
         self.h_tab_style = self.h_tab_style % (DefaultSettings.Icons.tabSeparator, self.h_tab_size,
                                                DefaultSettings.Tabs.maxWidth, self.h_tab_size,
                                                DefaultSettings.Icons.closeButton, DefaultSettings.Icons.closeButtonHover)
@@ -438,7 +438,7 @@ class MainWindow(QMainWindow):
                 if active:
                     current = i + 1
                     QTimer.singleShot(0, lambda u=url: self.ui.urlbar.setText(u))
-                self.add_tab(QUrl(url), zoom, title, active and not self.checkActivityEnabled, icon)
+                self.add_tab(QUrl(url), zoom, title, active or not self.checkActivityEnabled, icon)
                 tabIcons.append(icon)
             for file in os.listdir(self.tabIconsFolder):
                 filepath = os.path.join(self.tabIconsFolder, file)
@@ -460,6 +460,12 @@ class MainWindow(QMainWindow):
         self.instances = []
         for new_tabs in new_wins:
             self.show_in_new_window(new_tabs)
+
+        for i in range(self.ui.tabs.count()):
+            print(self.ui.tabs.tabText(i))
+        self.toggle_tabbar(clicked=False)
+        for i in range(self.ui.tabs.count()):
+            print(self.ui.tabs.tabText(i))
 
         LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"All tabs created: {len(tabs)}")
 
@@ -488,14 +494,13 @@ class MainWindow(QMainWindow):
         else:
             # add tab in given position (e.g. when requested from page context menu)
             self.ui.tabs.insertTab(tabIndex, browser, label, self.h_tabbar)
-        self.ui.tabs.setTabToolTip(tabIndex, label + ("" if self.h_tabbar else "\n(Right-click to close)"))
-        self.ui.tabs.setTabIcon(tabIndex, self._getTabIcon(icon, tab_type == "STANDARD"))
+        self.ui.tabs.tabBar().setTabToolTip(tabIndex, label + ("" if self.h_tabbar else "\n(Right-click to close)"))
+        self.ui.tabs.tabBar().setTabIcon(tabIndex, self._getTabIcon(icon, tab_type == "STANDARD"))
 
         # set close buttons according to tabs orientation
         if self.h_tabbar:
             self.ui.tabs.tabBar().tabButton(tabIndex, QTabBar.ButtonPosition.RightSide).clicked.disconnect()
-            self.ui.tabs.tabBar().tabButton(tabIndex, QTabBar.ButtonPosition.RightSide).clicked.connect(
-                lambda checked, b=browser: self.tab_closed(b))
+            self.ui.tabs.tabBar().tabButton(tabIndex, QTabBar.ButtonPosition.RightSide).clicked.connect(lambda checked, b=browser: self.tab_closed(b))
         else:
             self.ui.tabs.tabBar().setTabButton(tabIndex, QTabBar.ButtonPosition.RightSide, None)
 
@@ -555,7 +560,7 @@ class MainWindow(QMainWindow):
 
     def onLoadStarted(self, browser):
 
-        self.ui.tabs.setTabIcon(self.ui.tabs.indexOf(browser), self.web_ico if self.h_tabbar else self.web_ico_rotated)
+        self.ui.tabs.tabBar().setTabIcon(self.ui.tabs.indexOf(browser), self.web_ico if self.h_tabbar else self.web_ico_rotated)
 
         if browser == self.ui.tabs.currentWidget():
             self.ui.reload_btn.setText(self.ui.stop_char)
@@ -697,8 +702,8 @@ class MainWindow(QMainWindow):
         # sometimes this is called twice for the same page, passing an obsolete title (though URL is ok... weird)
 
         tabIndex = self.ui.tabs.indexOf(browser)
-        self.ui.tabs.setTabText(tabIndex, title if self.h_tabbar else "")
-        self.ui.tabs.setTabToolTip(tabIndex, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
+        self.ui.tabs.tabBar().setTabText(tabIndex, title if self.h_tabbar else "")
+        self.ui.tabs.tabBar().setTabToolTip(tabIndex, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
 
         tabData = self.tabsActivity.get(browser, None)
         if tabData:
@@ -958,7 +963,7 @@ class MainWindow(QMainWindow):
         self.ui.tabs.tabBar().setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)
         self.ui.tabs.setTabPosition(QTabWidget.TabPosition.North if self.h_tabbar else QTabWidget.TabPosition.West)
         self.ui.tabs.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu if self.h_tabbar else Qt.ContextMenuPolicy.CustomContextMenu)
-        self.ui.tabs.setTabToolTip(0, "Set %s tabs" % ("vertical" if self.h_tabbar else "horizontal"))
+        self.ui.tabs.tabBar().setTabToolTip(0, "Set %s tabs" % ("vertical" if self.h_tabbar else "horizontal"))
 
         # second, enable buttons (only if horizontal tabbar), and disable for custom control tabs
         self.ui.tabs.setTabsClosable(self.h_tabbar)
@@ -969,18 +974,20 @@ class MainWindow(QMainWindow):
         for i in range(1, self.ui.tabs.count() - 1):
             browser = self.ui.tabs.widget(i)
             icon = self.ui.tabs.tabIcon(i)
+            title = ""
+            tabData = self.tabsActivity.get(browser, None)
+            if tabData is not None:
+                _, title, _, _, _, _ = tabData
             if self.h_tabbar:
+                print("TOGGLE", title)
                 new_icon = QIcon(icon.pixmap(QSize(self.icon_size, self.icon_size)).transformed(QTransform().rotate(-90), Qt.TransformationMode.SmoothTransformation))
-                tabData = self.tabsActivity.get(browser, None)
-                title = ""
-                if tabData is not None:
-                    _, title, _, _, _, _ = tabData
-                self.ui.tabs.setTabText(i, title if self.h_tabbar else "")
-                self.ui.tabs.setTabToolTip(i, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
+                self.ui.tabs.tabBar().setTabText(i, title)
+                self.ui.tabs.tabBar().setTabToolTip(i, title)
                 self.ui.tabs.tabBar().tabButton(i, QTabBar.ButtonPosition.RightSide).clicked.connect(lambda checked, b=browser: self.tab_closed(b))
             else:
                 new_icon = QIcon(icon.pixmap(QSize(self.icon_size, self.icon_size)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
-                self.ui.tabs.setTabText(i, "")
+                self.ui.tabs.tabBar().setTabText(i, "")
+                self.ui.tabs.tabBar().setTabToolTip(i, title + "\n(Right-click to close)")
             self.ui.tabs.tabBar().setTabIcon(i, new_icon)
 
         targetRect = self.ui.tabs.tabBar().tabRect(0)
@@ -1076,6 +1083,7 @@ class MainWindow(QMainWindow):
         if self.history_widget.isVisible():
             x, y, w, h = self.get_search_widget_pos()
             self.history_widget.move(x, y)
+
     def toggleEngine(self):
         new_index = (self.settings.defaultEngine + 1) % len(DefaultSettings.Browser.defaultPages)
         self.settings.setDefaultEngine(new_index, True)
