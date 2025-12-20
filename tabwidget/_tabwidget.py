@@ -16,6 +16,44 @@ class TabWidget(QTabWidget):
         # this has no effect. Solved in qss (width: 0px)
         # self.setUsesScrollButtons(False)
 
+    def addTab(self, widget, a1, forceSetText=True):
+        if forceSetText:
+            tabIndex = super().addTab(widget, a1)
+            self.setTabText(tabIndex, a1)
+        else:
+            tabIndex = super().addTab(widget, "")
+        self.setTabWhatsThis(tabIndex, a1)
+        # force to recalculate all tabs text sizes
+        self.resizeEvent()
+        return tabIndex
+
+    def insertTab(self, index, widget, a2, forceSetText=True):
+        if forceSetText:
+            tabIndex = super().insertTab(index, widget, a2)
+            self.setTabText(index, a2)
+        else:
+            tabIndex = super().insertTab(index, widget, "")
+        self.setTabWhatsThis(tabIndex, a2)
+        # force to recalculate all tabs text sizes
+        self.resizeEvent()
+        return tabIndex
+
+    def removeTab(self, index):
+        super().removeTab(index)
+        # force to recalculate all tabs text sizes
+        self.resizeEvent()
+
+    def setCurrentIndex(self, index):
+        index = max(1, min(index, self.count() - 2))
+        super().setCurrentIndex(index)
+
+    def setTabText(self, index, a1):
+        target_text = a1
+        if 0 < index < self.count() - 1:
+            target_length, padding = self._getTextSize(index, a1)
+            target_text = a1[:target_length] + (" " * padding)
+        super().setTabText(index, target_text)
+
     def _getTextSize(self, index, title):
         padding_length = 0
         if 0 < index < self.count() - 1:
@@ -44,44 +82,6 @@ class TabWidget(QTabWidget):
             for i in range(1, self.count() - 1):
                 orig_text = self.tabWhatsThis(i)
                 self.setTabText(i, orig_text)
-
-    def addTab(self, widget, a1, forceSetText=True):
-        if forceSetText:
-            tabIndex = super().addTab(widget, a1)
-            self.setTabText(tabIndex, a1)
-        else:
-            tabIndex = super().addTab(widget, "")
-        self.setTabWhatsThis(tabIndex, a1)
-        # force to recalculate all tabs text sizes
-        self.resizeEvent()
-        return tabIndex
-
-    def insertTab(self, index, widget, a2, forceSetText=True):
-        if forceSetText:
-            tabIndex = super().insertTab(index, widget, a2)
-            self.setTabText(index, a2)
-        else:
-            tabIndex = super().insertTab(index, widget, "")
-        self.setTabWhatsThis(tabIndex, a2)
-        # force to recalculate all tabs text sizes
-        self.resizeEvent()
-        return tabIndex
-
-    def removeTab(self, index):
-        super().removeTab(index)
-        # force to recalculate all tabs text sizes
-        self.resizeEvent()
-
-    def setTabText(self, index, a1):
-        target_text = a1
-        if 0 < index < self.count() - 1:
-            target_length, padding = self._getTextSize(index, a1)
-            target_text = a1[:target_length] + (" " * padding)
-        super().setTabText(index, target_text)
-
-    def setCurrentIndex(self, index):
-        index = max(1, min(index, self.count() - 2))
-        super().setCurrentIndex(index)
 
     def keyPressEvent(self, a0):
         pass
