@@ -25,11 +25,12 @@ class TabWidget(QTabWidget):
                 b_width = (0 if button is None else button.width()) + 8  # add button padding
                 available_width = max(0, self.width() - ((self.min_tab_width + b_width) * self.count()))
                 label_width = min(DefaultSettings.Tabs.maxWidth - b_width, available_width / self.count())
-                if label_width < self.char_width * len(title):
+                title_width = len(title) * self.char_width
+                if label_width < title_width:
                     target_length = int(label_width / self.char_width)
                 else:
                     target_length = len(title)
-                    padding_length = max(0, int((label_width - (len(title) * self.char_width)) / self.char_width))
+                    padding_length = max(0, int((label_width - title_width) / self.char_width))
             else:
                 target_length = 0
         else:

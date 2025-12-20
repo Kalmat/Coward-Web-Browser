@@ -491,8 +491,8 @@ class MainWindow(QMainWindow):
         else:
             # add tab in given position (e.g. when requested from page context menu)
             self.ui.tabs.insertTab(tabIndex, browser, label, self.h_tabbar)
-        self.ui.tabs.tabBar().setTabToolTip(tabIndex, label + ("" if self.h_tabbar else "\n(Right-click to close)"))
-        self.ui.tabs.tabBar().setTabIcon(tabIndex, self._getTabIcon(icon, tab_type == "STANDARD"))
+        self.ui.tabs.setTabToolTip(tabIndex, label + ("" if self.h_tabbar else "\n(Right-click to close)"))
+        self.ui.tabs.setTabIcon(tabIndex, self._getTabIcon(icon, tab_type == "STANDARD"))
 
         # set close buttons according to tabs orientation
         if self.h_tabbar:
@@ -557,7 +557,7 @@ class MainWindow(QMainWindow):
 
     def onLoadStarted(self, browser):
 
-        self.ui.tabs.tabBar().setTabIcon(self.ui.tabs.indexOf(browser), self.web_ico if self.h_tabbar else self.web_ico_rotated)
+        self.ui.tabs.setTabIcon(self.ui.tabs.indexOf(browser), self.web_ico if self.h_tabbar else self.web_ico_rotated)
 
         if browser == self.ui.tabs.currentWidget():
             self.ui.reload_btn.setText(self.ui.stop_char)
@@ -700,7 +700,7 @@ class MainWindow(QMainWindow):
 
         tabIndex = self.ui.tabs.indexOf(browser)
         self.ui.tabs.setTabText(tabIndex, title if self.h_tabbar else "")
-        self.ui.tabs.tabBar().setTabToolTip(tabIndex, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
+        self.ui.tabs.setTabToolTip(tabIndex, title + ("" if self.h_tabbar else "\n(Right-click to close)"))
 
         tabData = self.tabsActivity.get(browser, None)
         if tabData:
@@ -723,7 +723,7 @@ class MainWindow(QMainWindow):
             pixmapRotated = pixmap.transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation)
 
         tabIndex = self.ui.tabs.indexOf(browser)
-        self.ui.tabs.tabBar().setTabIcon(tabIndex, QIcon(pixmapRotated))
+        self.ui.tabs.setTabIcon(tabIndex, QIcon(pixmapRotated))
 
         filename = self._getIconFileName(browser.url())
         iconFile = os.path.join(self.tabIconsFolder, filename)
@@ -755,7 +755,7 @@ class MainWindow(QMainWindow):
         tabIndex = self.ui.tabs.addTab(self.addtab_btn, " ✚ ", True)
         self.ui.tabs.tabBar().setTabButton(tabIndex, QTabBar.ButtonPosition.RightSide, None)
         self.ui.tabs.widget(tabIndex).setDisabled(True)
-        self.ui.tabs.tabBar().setTabToolTip(tabIndex, "New tab")
+        self.ui.tabs.setTabToolTip(tabIndex, "New tab")
 
     # method for adding new tab when requested by user
     def add_new_tab(self, qurl=None, setFocus=True):
@@ -960,7 +960,7 @@ class MainWindow(QMainWindow):
         self.ui.tabs.tabBar().setStyleSheet(self.h_tab_style if self.h_tabbar else self.v_tab_style)
         self.ui.tabs.setTabPosition(QTabWidget.TabPosition.North if self.h_tabbar else QTabWidget.TabPosition.West)
         self.ui.tabs.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu if self.h_tabbar else Qt.ContextMenuPolicy.CustomContextMenu)
-        self.ui.tabs.tabBar().setTabToolTip(0, "Set %s tabs" % ("vertical" if self.h_tabbar else "horizontal"))
+        self.ui.tabs.setTabToolTip(0, "Set %s tabs" % ("vertical" if self.h_tabbar else "horizontal"))
 
         # second, enable buttons (only if horizontal tabbar), and disable for custom control tabs
         self.ui.tabs.setTabsClosable(self.h_tabbar)
@@ -978,13 +978,13 @@ class MainWindow(QMainWindow):
             if self.h_tabbar:
                 new_icon = QIcon(icon.pixmap(QSize(self.icon_size, self.icon_size)).transformed(QTransform().rotate(-90), Qt.TransformationMode.SmoothTransformation))
                 self.ui.tabs.setTabText(i, title)
-                self.ui.tabs.tabBar().setTabToolTip(i, title)
+                self.ui.tabs.setTabToolTip(i, title)
                 self.ui.tabs.tabBar().tabButton(i, QTabBar.ButtonPosition.RightSide).clicked.connect(lambda checked, b=browser: self.tab_closed(b))
             else:
                 new_icon = QIcon(icon.pixmap(QSize(self.icon_size, self.icon_size)).transformed(QTransform().rotate(90), Qt.TransformationMode.SmoothTransformation))
                 self.ui.tabs.setTabText(i, "")
-                self.ui.tabs.tabBar().setTabToolTip(i, title + "\n(Right-click to close)")
-            self.ui.tabs.tabBar().setTabIcon(i, new_icon)
+                self.ui.tabs.setTabToolTip(i, title + "\n(Right-click to close)")
+            self.ui.tabs.setTabIcon(i, new_icon)
 
         targetRect = self.ui.tabs.tabBar().tabRect(0)
         self.ui.auto_btn.setFixedSize(targetRect.height() if self.h_tabbar else targetRect.width(), self.ui.closewin_btn.height())
