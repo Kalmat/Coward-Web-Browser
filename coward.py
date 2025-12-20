@@ -461,11 +461,8 @@ class MainWindow(QMainWindow):
         for new_tabs in new_wins:
             self.show_in_new_window(new_tabs)
 
-        for i in range(self.ui.tabs.count()):
-            print(self.ui.tabs.tabText(i))
+        # run this again to set tabs titles and tooltips
         self.toggle_tabbar(clicked=False)
-        for i in range(self.ui.tabs.count()):
-            print(self.ui.tabs.tabText(i))
 
         LOGGER.write(LoggerSettings.LogLevels.info, "Main", f"All tabs created: {len(tabs)}")
 
@@ -979,7 +976,6 @@ class MainWindow(QMainWindow):
             if tabData is not None:
                 _, title, _, _, _, _ = tabData
             if self.h_tabbar:
-                print("TOGGLE", title)
                 new_icon = QIcon(icon.pixmap(QSize(self.icon_size, self.icon_size)).transformed(QTransform().rotate(-90), Qt.TransformationMode.SmoothTransformation))
                 self.ui.tabs.tabBar().setTabText(i, title)
                 self.ui.tabs.tabBar().setTabToolTip(i, title)
@@ -1278,8 +1274,6 @@ class MainWindow(QMainWindow):
             if self.settings.isCustomTitleBar:
                 for w in self.ui.appGrips.sideGrips + self.ui.appGrips.cornerGrips:
                     w.hide()
-
-        print("EXIT MAX", self.isMaximized())
 
     def showContextMenu(self, point):
 
