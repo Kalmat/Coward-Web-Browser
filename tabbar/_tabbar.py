@@ -35,6 +35,9 @@ class TabBar(QTabBar):
     #
     #         painter.restore()
 
+    def setTabText(self, index, text):
+        self.parent().setTabText(index, text)
+
     def enterEvent(self, event):
         if self.enter_signal is not None:
             self.enter_signal.emit()
